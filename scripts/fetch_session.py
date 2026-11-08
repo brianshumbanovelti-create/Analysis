@@ -77,6 +77,10 @@ def downsample_location(samples, start_dt):
     if not samples:
         return []
     samples.sort(key=lambda s: s.get("date", ""))
+    
+    # ZERO FILTER: drop rows where x == 0 and y == 0
+    samples = [s for s in samples if not (s.get("x") == 0 and s.get("y") == 0)]
+    
     kept = []
     last_sec = None
     for s in samples:
@@ -163,6 +167,38 @@ def main():
     (out_dir / "stints.json").write_text(json.dumps(stints))
     print(f"stints.json written ({len(stints)} rows)")
 
+    # --- OUTLINE GENERATION ---
+    outline_file = out_dir / "outline.json"
+    if not outline_file.exists() or force:
+        print("Building outline.json...")
+        valid_laps = [l for l in laps if l.get("lap_duration") and not l.get("is_pit_out_lap") and l.get("date_start")]
+        if valid_laps:
+            fastest = min(valid_laps, key=lambda l: l["lap_duration"])
+            dn = fastest["driver_number"]
+            lap_num = fastest["lap_number"]
+            dur = fastest["lap_duration"]
+            try:
+                start_dt_outline = datetime.fromisoformat(fastest["date_start"].replace("Z", "+00:00"))
+                end_dt_outline = start_dt_outline + timedelta(seconds=dur + 1)
+                date_gt_o = start_dt_outline.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
+                date_lt_o = end_dt_outline.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
+                rows_o, count_o, success_o = api_get("/location", {
+                    "session_key": session_key,
+                    "driver_number": dn,
+                    "date>": date_gt_o,
+                    "date<": date_lt_o,
+                })
+                if success_o and rows_o:
+                    points = [[r["x"], r["y"]] for r in rows_o if not (r.get("x") == 0 and r.get("y") == 0)]
+                    outline_data = {"driver": dn, "lap": lap_num, "lap_duration": dur, "points": points}
+                    outline_file.write_text(json.dumps(outline_data))
+                    print(f"outline: driver {dn} lap {lap_num}, {dur}s, {len(points)} points")
+            except Exception as e:
+                print(f"WARN: outline failed: {e}")
+        else:
+            print("WARN: no valid lap found for outline")
+
+    # --- LOCATION FETCHING ---
     print("Fetching location (per driver, windowed)...")
     if start_dt is None and laps:
         try:
@@ -255,8 +291,9 @@ def main():
     idx_path.write_text(json.dumps(idx, indent=2))
     print(f"sessions.json updated ({len(idx)} entries)")
 
+    print(f"Failed windows: {len(failed_windows)}")
     if failed_windows:
-        print(f"\nERROR: {len(failed_windows)} windows failed to fetch:")
+        print("Failed window details:")
         for w in failed_windows:
             print(f"  - {w}")
         sys.exit(1)
