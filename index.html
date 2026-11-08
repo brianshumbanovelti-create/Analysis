@@ -136,6 +136,93 @@
   }
   .flipRow { display: flex; gap: 8px; margin-top: 10px; }
   .flipRow button { margin-top: 0; }
+  
+  /* Cars */
+  .car-label {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    paint-order: stroke fill;
+    -webkit-text-stroke: 2.5px #0a0e1a;
+  }
+  
+  /* Controls */
+  #controls {
+    margin-top: 14px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+    display: none;
+  }
+  #controls.show { display: block; }
+  .playback-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  #playBtn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    padding: 0;
+    margin: 0;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  #slider {
+    flex: 1;
+    min-height: 44px;
+    accent-color: var(--accent);
+  }
+  .time-display {
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+    color: var(--dim);
+    white-space: nowrap;
+  }
+  .speed-row {
+    display: flex;
+    gap: 8px;
+  }
+  .speed-btn {
+    flex: 1;
+    padding: 0;
+    margin: 0;
+    font-size: 13px;
+    background: transparent;
+  }
+  .speed-btn.active {
+    background: var(--text);
+    color: var(--bg);
+  }
+  #visibleCount {
+    font-size: 13px;
+    color: var(--dim);
+    margin-top: 8px;
+    text-align: center;
+  }
+  
+  /* Loading bar */
+  #progressWrap {
+    display: none;
+    margin-top: 10px;
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  #progressWrap.show { display: block; }
+  #progressBar {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.1s linear;
+  }
 </style>
 </head>
 <body>
@@ -154,8 +241,26 @@
     <div id="mapEmpty">Select a session to draw the track</div>
   </div>
 
+  <div id="progressWrap"><div id="progressBar"></div></div>
+
   <div class="flipRow">
-    <button id="flipBtn" disabled>Flip Y axis</button>
+    <button id="flipBtn" disabled>Un-flip Y axis</button>
+  </div>
+
+  <div id="visibleCount"></div>
+
+  <div id="controls">
+    <div class="playback-row">
+      <button id="playBtn" disabled>▶</button>
+      <input type="range" id="slider" min="0" max="100" value="0" step="0.1" disabled>
+      <div class="time-display"><span id="timeCurrent">00:00</span> / <span id="timeTotal">00:00</span></div>
+    </div>
+    <div class="speed-row">
+      <button class="speed-btn active" data-speed="1">1x</button>
+      <button class="speed-btn" data-speed="2">2x</button>
+      <button class="speed-btn" data-speed="4">4x</button>
+      <button class="speed-btn" data-speed="16">16x</button>
+    </div>
   </div>
 
   <div id="info" style="display:none">
@@ -188,15 +293,36 @@
     infoLap: document.getElementById("infoLap"),
     infoLapTime: document.getElementById("infoLapTime"),
     infoPoints: document.getElementById("infoPoints"),
-    error: document.getElementById("error")
+    error: document.getElementById("error"),
+    progressWrap: document.getElementById("progressWrap"),
+    progressBar: document.getElementById("progressBar"),
+    visibleCount: document.getElementById("visibleCount"),
+    controls: document.getElementById("controls"),
+    playBtn: document.getElementById("playBtn"),
+    slider: document.getElementById("slider"),
+    timeCurrent: document.getElementById("timeCurrent"),
+    timeTotal: document.getElementById("timeTotal")
   };
 
   var state = {
     sessions: [],
     currentSessionKey: null,
     outline: null,
-    flipY: false
+    flipY: true, // FLIPPED BY DEFAULT
+    sessionLength: 0,
+    drivers: {}, // dn -> { acronym, color, data: [] }
+    startTime: 0,
+    currentTime: 0,
+    playing: false,
+    speed: 1,
+    lastFrameTime: 0,
+    transform: null
   };
+  
+  var animationId = null;
+  var baseCanvas = document.createElement("canvas");
+  var baseCtx = baseCanvas.getContext("2d");
+  var resizeTimer = null;
 
   function showError(msg) {
     els.error.textContent = msg;
@@ -210,23 +336,27 @@
     els.status.textContent = msg || "";
   }
 
-  // Load JSON with explicit error naming the file
   function loadJSON(url) {
     return fetch(url, { cache: "no-store" }).then(function (res) {
-      if (!res.ok) {
-        throw new Error("Could not load " + url + ": " + res.status);
-      }
+      if (!res.ok) throw new Error("Could not load " + url + ": " + res.status);
       return res.json();
     }).catch(function (err) {
-      // Network errors don't carry status; re-throw with file name
-      if (err && err.message && err.message.indexOf("Could not load") === 0) {
-        throw err;
-      }
+      if (err && err.message && err.message.indexOf("Could not load") === 0) throw err;
       throw new Error("Could not load " + url + ": " + (err && err.message ? err.message : "network error"));
     });
   }
 
-  // 1. Load sessions index
+  function formatTime(sec) {
+    var m = Math.floor(sec / 60);
+    var s = Math.floor(sec % 60);
+    return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function updateTimeDisplay() {
+    els.timeCurrent.textContent = formatTime(state.currentTime);
+    els.slider.value = state.currentTime;
+  }
+
   function loadSessions() {
     setStatus("Loading sessions…");
     loadJSON("data/sessions.json").then(function (sessions) {
@@ -262,7 +392,6 @@
     });
   }
 
-  // 2. On session select
   els.select.addEventListener("change", function () {
     var key = els.select.value;
     if (!key) return;
@@ -273,32 +402,98 @@
     clearError();
     state.currentSessionKey = key;
     state.outline = null;
+    state.drivers = {};
     els.flipBtn.disabled = true;
     els.info.style.display = "none";
-    setStatus("Loading session " + key + "…");
+    els.controls.classList.remove("show");
+    els.progressWrap.classList.add("show");
+    els.progressBar.style.width = "0%";
+    els.mapEmpty.style.display = "flex";
+    els.mapEmpty.textContent = "Loading data…";
+    setStatus("Loading session data…");
 
     var metaURL = "data/" + key + "/meta.json";
     var outlineURL = "data/" + key + "/outline.json";
+    var driversURL = "data/" + key + "/drivers.json";
 
-    Promise.all([loadJSON(metaURL), loadJSON(outlineURL)]).then(function (results) {
+    Promise.all([loadJSON(metaURL), loadJSON(outlineURL), loadJSON(driversURL)]).then(function (results) {
       var meta = results[0];
       var outline = results[1];
+      var driversRaw = results[2];
 
-      if (!outline || !Array.isArray(outline.points) || outline.points.length === 0) {
-        throw new Error("outline.json for session " + key + " has no points");
-      }
+      if (!outline || !Array.isArray(outline.points) || outline.points.length === 0) throw new Error("outline.json has no points");
+      
+      var startMs = new Date(meta.date_start).getTime();
+      var endMs = new Date(meta.date_end).getTime();
+      state.sessionLength = (endMs - startMs) / 1000;
+      state.startTime = startMs;
+      
+      els.slider.max = state.sessionLength;
+      els.timeTotal.textContent = formatTime(state.sessionLength);
 
       state.outline = outline;
       renderInfo(meta, outline);
-      els.flipBtn.disabled = false;
-      els.mapEmpty.style.display = "none";
-      drawTrack();
-      setStatus("Ready");
+      
+      var driverNums = [];
+      driversRaw.forEach(function(d) {
+        state.drivers[d.driver_number] = {
+          acronym: d.name_acronym || String(d.driver_number),
+          color: d.team_colour || "ffffff",
+          data: []
+        };
+        driverNums.push(d.driver_number);
+      });
+
+      var loadedCount = 0;
+      var totalDrivers = driverNums.length;
+      
+      function loadNext(idx) {
+        if (idx >= totalDrivers) {
+          finishLoading();
+          return;
+        }
+        
+        var dn = driverNums[idx];
+        var url = "data/" + key + "/location/" + dn + ".json";
+        
+        fetch(url).then(function(r) {
+          if (!r.ok) throw new Error("Could not load " + url + ": " + r.status);
+          return r.json();
+        }).then(function(data) {
+          state.drivers[dn].data = data;
+        }).catch(function(err) {
+          console.warn(err.message);
+        }).finally(function() {
+          loadedCount++;
+          var pct = Math.round((loadedCount / totalDrivers) * 100);
+          els.progressBar.style.width = pct + "%";
+          setStatus("Loading " + loadedCount + "/" + totalDrivers);
+          loadNext(idx + 1);
+        });
+      }
+      
+      function finishLoading() {
+        els.progressWrap.classList.remove("show");
+        els.mapEmpty.style.display = "none";
+        els.flipBtn.disabled = false;
+        els.controls.classList.add("show");
+        els.playBtn.disabled = false;
+        els.slider.disabled = false;
+        setStatus("Ready");
+        
+        prepareBackground();
+        state.currentTime = 0;
+        els.slider.value = 0;
+        updateTimeDisplay();
+        drawCars();
+      }
+      
+      loadNext(0);
+
     }).catch(function (err) {
       showError(err.message);
-      setStatus("");
-      els.mapEmpty.style.display = "flex";
-      els.mapEmpty.textContent = "Could not draw track";
+      els.progressWrap.classList.remove("show");
+      els.mapEmpty.textContent = "Could not load data";
     });
   }
 
@@ -312,42 +507,34 @@
     els.infoPoints.textContent = outline.points.length;
   }
 
-  // 3. Drawing
-  function drawTrack() {
+  function prepareBackground() {
     if (!state.outline) return;
-    var canvas = els.canvas;
     var wrap = els.mapWrap;
     var dpr = window.devicePixelRatio || 1;
-
     var cssW = wrap.clientWidth;
     var cssH = wrap.clientHeight;
     if (cssW === 0 || cssH === 0) return;
 
-    canvas.width = Math.round(cssW * dpr);
-    canvas.height = Math.round(cssH * dpr);
-    canvas.style.width = cssW + "px";
-    canvas.style.height = cssH + "px";
+    els.canvas.width = Math.round(cssW * dpr);
+    els.canvas.height = Math.round(cssH * dpr);
+    els.canvas.style.width = cssW + "px";
+    els.canvas.style.height = cssH + "px";
+    
+    baseCanvas.width = els.canvas.width;
+    baseCanvas.height = els.canvas.height;
 
-    var ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cssW, cssH);
+    baseCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    baseCtx.clearRect(0, 0, cssW, cssH);
 
     var pts = state.outline.points;
-    // Bounding box
     var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (var i = 0; i < pts.length; i++) {
       var x = pts[i][0], y = pts[i][1];
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
     }
-    var w = maxX - minX;
-    var h = maxY - minY;
-    if (w <= 0 || h <= 0) {
-      showError("outline.json has zero-width bounding box");
-      return;
-    }
+    var w = maxX - minX, h = maxY - minY;
+    if (w <= 0 || h <= 0) return;
 
     var pad = 20;
     var availW = cssW - pad * 2;
@@ -356,60 +543,185 @@
     var offsetX = pad + (availW - w * scale) / 2;
     var offsetY = pad + (availH - h * scale) / 2;
 
-    function toCanvas(p) {
-      var cx = (p[0] - minX) * scale + offsetX;
-      var cy = (p[1] - minY) * scale + offsetY;
+    state.transform = { minX, minY, scale, offsetX, offsetY, cssW, cssH };
+
+    function toCanvas(px, py) {
+      var cx = (px - minX) * scale + offsetX;
+      var cy = (py - minY) * scale + offsetY;
       if (state.flipY) cy = cssH - cy;
       return [cx, cy];
     }
 
-    // Draw track line
-    ctx.lineWidth = 3;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#ff5c7a";
-    ctx.beginPath();
-    var first = toCanvas(pts[0]);
-    ctx.moveTo(first[0], first[1]);
+    var first = toCanvas(pts[0][0], pts[0][1]);
+    baseCtx.beginPath();
+    baseCtx.moveTo(first[0], first[1]);
     for (var j = 1; j < pts.length; j++) {
-      var c = toCanvas(pts[j]);
-      ctx.lineTo(c[0], c[1]);
+      var c = toCanvas(pts[j][0], pts[j][1]);
+      baseCtx.lineTo(c[0], c[1]);
     }
-    // Close the loop
-    ctx.closePath();
-    ctx.stroke();
+    baseCtx.closePath();
+    baseCtx.lineWidth = 4;
+    baseCtx.lineJoin = "round";
+    baseCtx.strokeStyle = "#2a3454";
+    baseCtx.stroke();
 
-    // Fill a subtle inner shadow effect: draw the same path again with wider lighter stroke
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = "rgba(255,255,255,0.25)";
-    ctx.stroke();
-
-    // Mark start point
-    ctx.beginPath();
-    ctx.arc(first[0], first[1], 4, 0, Math.PI * 2);
-    ctx.fillStyle = "#4ade80";
-    ctx.fill();
+    baseCtx.beginPath();
+    baseCtx.arc(first[0], first[1], 4, 0, Math.PI * 2);
+    baseCtx.fillStyle = "#4ade80";
+    baseCtx.fill();
   }
 
-  // 4. Flip button
+  function drawCars() {
+    if (!state.outline || !state.transform) return;
+    var ctx = els.canvas.getContext("2d");
+    var t = state.transform;
+    
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
+    ctx.drawImage(baseCanvas, 0, 0);
+
+    ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
+    
+    var currentT = state.currentTime;
+    var visibleCount = 0;
+
+    for (var dn in state.drivers) {
+      var car = state.drivers[dn];
+      var loc = getCarLocation(car.data, currentT);
+      if (!loc) continue;
+      
+      visibleCount++;
+      
+      var cx = (loc[0] - t.minX) * t.scale + t.offsetX;
+      var cy = (loc[1] - t.minY) * t.scale + t.offsetY;
+      if (state.flipY) cy = t.cssH - cy;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+      ctx.fillStyle = "#" + car.color;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#0a0e1a";
+      ctx.stroke();
+
+      ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#" + car.color;
+      ctx.fillText(car.acronym, cx, cy - 10);
+    }
+    els.visibleCount.textContent = visibleCount + " cars visible";
+  }
+
+  function getCarLocation(data, t) {
+    if (data.length === 0) return null;
+    if (t < data[0][0] || t > data[data.length - 1][0]) return null;
+
+    var i = data.length - 1;
+    while (i > 0 && data[i][0] > t) i--;
+    
+    if (i === data.length - 1) return [data[i][1], data[i][2]];
+    
+    var p1 = data[i];
+    var p2 = data[i + 1];
+    
+    if (p2[0] - p1[0] > 5) return null;
+
+    var ratio = (t - p1[0]) / (p2[0] - p1[0]);
+    var x = p1[1] + (p2[1] - p1[1]) * ratio;
+    var y = p1[2] + (p2[2] - p1[2]) * ratio;
+    
+    if (x === 0 && y === 0) return null;
+    return [x, y];
+  }
+
+  function loop(timestamp) {
+    if (!state.playing) return;
+    
+    if (!state.lastFrameTime) state.lastFrameTime = timestamp;
+    var dt = (timestamp - state.lastFrameTime) / 1000;
+    state.lastFrameTime = timestamp;
+
+    state.currentTime += dt * state.speed;
+    
+    if (state.currentTime >= state.sessionLength) {
+      state.currentTime = state.sessionLength;
+      pausePlayback();
+    }
+
+    updateTimeDisplay();
+    drawCars();
+    
+    if (state.playing) {
+      animationId = requestAnimationFrame(loop);
+    }
+  }
+
+  function playPlayback() {
+    if (state.playing) return;
+    if (state.currentTime >= state.sessionLength) state.currentTime = 0;
+    
+    state.playing = true;
+    state.lastFrameTime = 0;
+    els.playBtn.textContent = "⏸";
+    animationId = requestAnimationFrame(loop);
+  }
+
+  function pausePlayback() {
+    state.playing = false;
+    els.playBtn.textContent = "▶";
+    if (animationId) cancelAnimationFrame(animationId);
+  }
+
+  els.playBtn.addEventListener("click", function() {
+    if (state.playing) pausePlayback();
+    else playPlayback();
+  });
+
+  var wasPlayingBeforeScrub = false;
+  els.slider.addEventListener("input", function() {
+    state.currentTime = parseFloat(els.slider.value);
+    updateTimeDisplay();
+    drawCars();
+  });
+  els.slider.addEventListener("touchstart", function() {
+    wasPlayingBeforeScrub = state.playing;
+    pausePlayback();
+  });
+  els.slider.addEventListener("touchend", function() {
+    if (wasPlayingBeforeScrub) playPlayback();
+  });
+
+  var speedBtns = document.querySelectorAll(".speed-btn");
+  speedBtns.forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      speedBtns.forEach(function(b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      state.speed = parseInt(btn.getAttribute("data-speed"), 10);
+    });
+  });
+
   els.flipBtn.addEventListener("click", function () {
     state.flipY = !state.flipY;
     els.flipBtn.textContent = state.flipY ? "Un-flip Y axis" : "Flip Y axis";
-    drawTrack();
+    prepareBackground();
+    drawCars();
   });
 
-  // 5. Resize and rotate
-  var resizeTimer = null;
-  function scheduleRedraw() {
+  window.addEventListener("resize", function() {
     if (resizeTimer) clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(function () {
-      drawTrack();
+    resizeTimer = setTimeout(function() {
+      prepareBackground();
+      drawCars();
     }, 100);
-  }
-  window.addEventListener("resize", scheduleRedraw);
-  window.addEventListener("orientationchange", scheduleRedraw);
+  });
+  window.addEventListener("orientationchange", function() {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      prepareBackground();
+      drawCars();
+    }, 100);
+  });
 
-  // Boot
   loadSessions();
 })();
 </script>
