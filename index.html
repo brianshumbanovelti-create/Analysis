@@ -18,6 +18,9 @@
     --muted: #707c98;
     --accent: #ff5c7a;
     --err: #ff5c5c;
+    --purple: #c58bff;
+    --green: #4ade80;
+    --yellow: #ffd23f;
     
     --header-height: 100px;
     --map-height: 45vh;
@@ -128,7 +131,7 @@
     height: var(--map-height);
     z-index: 10;
     padding: 0 var(--map-margin);
-    background: var(--bg0); /* Covers scrolling list behind it */
+    background: var(--bg0);
   }
   #mapWrap {
     position: relative;
@@ -182,7 +185,7 @@
     left: 0;
     width: 100%;
     height: calc(100% - 48px);
-    touch-action: manipulation; /* Prevents double tap zoom */
+    touch-action: manipulation;
   }
   #mapEmpty {
     position: absolute;
@@ -197,7 +200,6 @@
     pointer-events: none;
   }
   
-  /* Clock at bottom left */
   #timeDisplay {
     position: absolute;
     bottom: 10px;
@@ -210,7 +212,7 @@
     text-shadow: 0 1px 3px rgba(0,0,0,0.8);
   }
   
-  /* --- RANKINGS LIST (SCROLLING) --- */
+  /* --- RANKINGS LIST --- */
   #listContainer {
     position: absolute;
     top: calc(var(--header-height) + var(--map-height) + 8px);
@@ -222,61 +224,112 @@
     z-index: 5;
   }
   
-  /* List placeholder styling */
-  .list-header {
+  .list-header-row {
+    display: grid;
+    grid-template-columns: 24px 56px 1fr 40px 24px 60px;
+    gap: 4px;
+    padding: 12px 12px 8px;
     font-size: 11px;
     font-weight: 600;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 12px 4px 8px;
   }
+  .list-header-row span:nth-child(3),
+  .list-header-row span:nth-child(6) { text-align: right; }
+  .list-header-row span:nth-child(4),
+  .list-header-row span:nth-child(5) { text-align: center; }
   
   .driver-row {
-    display: flex;
-    align-items: center;
     background: var(--bg2);
     border: 1px solid var(--line);
     border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 8px;
-    gap: 12px;
+    margin-bottom: 6px;
     user-select: none;
     -webkit-user-select: none;
-    touch-action: manipulation; /* Prevent double tap zoom */
+    touch-action: manipulation;
     transition: background 0.2s ease, border-color 0.2s ease;
+    overflow: hidden;
   }
   .driver-row.highlighted {
     background: rgba(255, 255, 255, 0.1);
     border-color: rgba(255, 255, 255, 0.3);
   }
   
-  .row-pos {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--dim);
-    width: 20px;
-    text-align: center;
+  .row-main {
+    display: grid;
+    grid-template-columns: 24px 56px 1fr 40px 24px 60px;
+    gap: 4px;
+    padding: 10px 12px;
+    align-items: center;
   }
   
+  .row-pos { font-size: 13px; font-weight: 700; color: var(--dim); text-align: center; }
+  
+  .row-driver { display: flex; align-items: center; gap: 6px; }
   .row-circle {
-    width: 28px;
-    height: 28px;
+    width: 20px; height: 20px;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 800;
-    color: #000; /* Will invert based on team color in JS */
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800;
     flex-shrink: 0;
   }
+  .row-acronym { font-size: 13px; font-weight: 700; letter-spacing: 0.3px; }
   
-  .row-name {
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+  .row-gap { font-size: 12px; font-weight: 500; color: var(--dim); text-align: right; }
+  
+  .row-tyre {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
   }
+  .tyre-circle {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800;
+  }
+  .tyre-age { font-size: 9px; color: var(--muted); }
+  
+  .row-laps { font-size: 12px; font-weight: 500; color: var(--dim); text-align: center; }
+  
+  .row-best { font-size: 12px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  
+  .row-sectors {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 0 12px 10px 92px;
+  }
+  .sector-box {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sector-time {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .sector-time.dimmed { opacity: 0.4; }
+  
+  .sector-ticks {
+    display: flex;
+    gap: 1px;
+    height: 4px;
+    align-items: flex-end;
+  }
+  .tick {
+    flex: 1;
+    min-width: 2px;
+    height: 3px;
+    background: var(--muted);
+    border-radius: 1px;
+  }
+  .tick.dimmed { opacity: 0.3; }
+  .tick.c-yellow { background: var(--yellow); }
+  .tick.c-green { background: var(--green); }
+  .tick.c-purple { background: var(--purple); }
+  .tick.c-grey { background: var(--muted); }
   
   /* Loading Progress */
   #progressWrap {
@@ -328,13 +381,27 @@
 </div>
 
 <div id="listContainer">
-  <div class="list-header">Rankings (Placeholder)</div>
+  <div class="list-header-row">
+    <span>Pos</span>
+    <span>Driver</span>
+    <span>Gap</span>
+    <span>Tyre</span>
+    <span>Laps</span>
+    <span>Best</span>
+  </div>
   <div id="rankingsList"></div>
 </div>
 
 <script>
 (function () {
   "use strict";
+
+  /*
+   * KNOWN LIMITS:
+   * - Ordering by best lap so far can differ slightly from the official qualifying
+   *   classification, which ranks by the session stage reached (Q3, Q2, Q1).
+   * - laps.json has no flag for deleted laps as far as I know.
+   */
 
   var els = {
     yearSelect: document.getElementById("yearSelect"),
@@ -360,14 +427,18 @@
     outline: null,
     flipY: true,
     sessionLength: 0,
+    sessionStartMs: 0,
     drivers: {},
-    driverOrder: [], // For rankings placeholder
+    driverOrder: [],
+    laps: [],
+    stints: {},
     currentTime: 0,
     playing: false,
     lastFrameTime: 0,
     transform: null,
     highlightedDriver: null,
-    bytesDownloaded: 0
+    bytesDownloaded: 0,
+    rowCache: {} // Store current DOM values to avoid unnecessary writes
   };
   
   var animationId = null;
@@ -375,7 +446,6 @@
   var baseCtx = baseCanvas.getContext("2d");
   var resizeTimer = null;
   
-  // Double-tap tracking
   var lastTapTime = 0;
   var lastTapTarget = null;
 
@@ -408,17 +478,30 @@
   }
 
   function formatTime(sec) {
+    if (sec === null || sec === undefined) return "";
     var m = Math.floor(sec / 60);
-    var s = Math.floor(sec % 60);
-    return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+    var s = (sec % 60).toFixed(3);
+    if (s < 10) s = "0" + s;
+    return m + ":" + s;
+  }
+  
+  function formatShortTime(sec) {
+    if (sec === null || sec === undefined) return "";
+    return sec.toFixed(3);
   }
 
   function updateTimeDisplay() {
-    els.timeDisplay.textContent = formatTime(state.currentTime) + " / " + formatTime(state.sessionLength);
+    var m = Math.floor(state.currentTime / 60);
+    var s = Math.floor(state.currentTime % 60);
+    var totalM = Math.floor(state.sessionLength / 60);
+    var totalS = Math.floor(state.sessionLength % 60);
+    
+    var str = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+    var strTotal = (totalM < 10 ? "0" : "") + totalM + ":" + (totalS < 10 ? "0" : "") + totalS;
+    els.timeDisplay.textContent = str + " / " + strTotal;
     els.slider.value = state.currentTime;
   }
 
-  // Determine contrast color for circle
   function getContrastColor(hex) {
     if(!hex || hex === "ffffff") return "#000";
     var r = parseInt(hex.substr(0, 2), 16);
@@ -427,13 +510,33 @@
     var yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
     return (yiq >= 128) ? '#000000' : '#ffffff';
   }
+  
+  function getTyreColor(compound) {
+    if (!compound) return "#555";
+    var c = compound.toUpperCase();
+    if (c.includes("SOFT")) return "#ff3b4e";
+    if (c.includes("MED")) return "#ffd23f";
+    if (c.includes("HARD")) return "#f1f3f8";
+    if (c.includes("INTER")) return "#3ddc84";
+    if (c.includes("WET")) return "#4aa3ff";
+    return "#555";
+  }
+  
+  function getTyreLetter(compound) {
+    if (!compound) return "?";
+    var c = compound.toUpperCase();
+    if (c.includes("SOFT")) return "S";
+    if (c.includes("MED")) return "M";
+    if (c.includes("HARD")) return "H";
+    if (c.includes("INTER")) return "I";
+    if (c.includes("WET")) return "W";
+    return c[0];
+  }
 
-  // --- INIT & DROPDOWNS ---
   fetchJSON("data/sessions.json").then(function (sessions) {
     if (!Array.isArray(sessions) || sessions.length === 0) throw new Error("sessions.json is empty");
     state.allSessions = sessions;
     
-    // Populate Years
     var years = [...new Set(sessions.map(s => s.year || "Unknown"))].sort((a,b) => b-a);
     els.yearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
     els.yearSelect.disabled = false;
@@ -482,13 +585,16 @@
     }
   }
 
-  // --- SESSION LOADING ---
   function selectSession(key) {
     state.currentSessionKey = key;
     state.outline = null;
     state.drivers = {};
+    state.driverOrder = [];
+    state.laps = [];
+    state.stints = {};
     state.highlightedDriver = null;
     state.bytesDownloaded = 0;
+    state.rowCache = {};
     updateMeter();
     
     els.playBtn.disabled = true;
@@ -503,17 +609,28 @@
     var metaURL = "data/" + key + "/meta.json";
     var outlineURL = "data/" + key + "/outline.json";
     var driversURL = "data/" + key + "/drivers.json";
+    var lapsURL = "data/" + key + "/laps.json";
+    var stintsURL = "data/" + key + "/stints.json";
 
-    Promise.all([fetchJSON(metaURL), fetchJSON(outlineURL), fetchJSON(driversURL)]).then(function (results) {
+    Promise.all([
+      fetchJSON(metaURL), 
+      fetchJSON(outlineURL), 
+      fetchJSON(driversURL),
+      fetchJSON(lapsURL),
+      fetchJSON(stintsURL)
+    ]).then(function (results) {
       var meta = results[0];
       var outline = results[1];
       var driversRaw = results[2];
+      state.laps = results[3];
+      var stintsRaw = results[4];
 
-      state.sessionLength = (new Date(meta.date_end).getTime() - new Date(meta.date_start).getTime()) / 1000;
+      state.sessionStartMs = new Date(meta.date_start).getTime();
+      state.sessionLength = (new Date(meta.date_end).getTime() - state.sessionStartMs) / 1000;
       state.outline = outline;
-      
       els.slider.max = state.sessionLength;
       
+      // Process drivers
       driversRaw.forEach(function(d) {
         state.drivers[d.driver_number] = {
           acronym: d.name_acronym || String(d.driver_number),
@@ -521,6 +638,23 @@
           data: []
         };
         state.driverOrder.push(d);
+      });
+      
+      // Process stints
+      stintsRaw.forEach(function(s) {
+        if (!state.stints[s.driver_number]) state.stints[s.driver_number] = [];
+        state.stints[s.driver_number].push(s);
+      });
+      
+      // Process laps (convert dates to relative seconds)
+      state.laps.forEach(function(l) {
+        if (l.date_start) {
+          l._t_start = (new Date(l.date_start).getTime() - state.sessionStartMs) / 1000;
+          l._t_end = l._t_start + (l.lap_duration || 0);
+        } else {
+          l._t_start = null;
+          l._t_end = null;
+        }
       });
 
       var driverNums = state.driverOrder.map(d => d.driver_number);
@@ -557,6 +691,7 @@
         renderRankings();
         prepareBackground();
         drawCars();
+        updateRankings(); // Initial fill
       }
       
       loadNext(0);
@@ -568,39 +703,270 @@
     });
   }
 
-  // --- RANKINGS PLACEHOLDER ---
   function renderRankings() {
-    // PLACEHOLDER: Just listing drivers by driver_number order for now.
-    // Real ranking order comes later.
-    els.rankingsList.innerHTML = state.driverOrder.map(function(d, i) {
+    els.rankingsList.innerHTML = state.driverOrder.map(function(d) {
       var dn = d.driver_number;
       var color = state.drivers[dn].color;
       var textColor = getContrastColor(color);
       var acronym = state.drivers[dn].acronym;
-      var isHighlighted = state.highlightedDriver === dn;
       
       return `
-        <div class="driver-row ${isHighlighted ? 'highlighted' : ''}" data-dn="${dn}">
-          <div class="row-pos">${i + 1}</div>
-          <div class="row-circle" style="background:#${color}; color:${textColor}">${dn}</div>
-          <div class="row-name">${acronym}</div>
+        <div class="driver-row" data-dn="${dn}" id="row-${dn}">
+          <div class="row-main">
+            <div class="row-pos" id="pos-${dn}"></div>
+            <div class="row-driver">
+              <div class="row-circle" style="background:#${color}; color:${textColor}">${dn}</div>
+              <div class="row-acronym">${acronym}</div>
+            </div>
+            <div class="row-gap" id="gap-${dn}"></div>
+            <div class="row-tyre">
+              <div class="tyre-circle" id="tyre-c-${dn}" style="display:none"></div>
+              <div class="tyre-age" id="tyre-a-${dn}"></div>
+            </div>
+            <div class="row-laps" id="laps-${dn}"></div>
+            <div class="row-best" id="best-${dn}"></div>
+          </div>
+          <div class="row-sectors">
+            <div class="sector-box">
+              <div class="sector-time" id="s1-${dn}"></div>
+              <div class="sector-ticks" id="ticks1-${dn}"></div>
+            </div>
+            <div class="sector-box">
+              <div class="sector-time" id="s2-${dn}"></div>
+              <div class="sector-ticks" id="ticks2-${dn}"></div>
+            </div>
+            <div class="sector-box">
+              <div class="sector-time" id="s3-${dn}"></div>
+              <div class="sector-ticks" id="ticks3-${dn}"></div>
+            </div>
+          </div>
         </div>
       `;
     }).join("");
   }
 
-  // --- HIGHLIGHT LOGIC ---
+  function updateRankings() {
+    if (!state.drivers || Object.keys(state.drivers).length === 0) return;
+    
+    var t = state.currentTime;
+    var driversData = [];
+
+    // 1. Calculate stats for each driver
+    for (var i = 0; i < state.driverOrder.length; i++) {
+      var d = state.driverOrder[i];
+      var dn = d.driver_number;
+      
+      var driverLaps = state.laps.filter(l => l.driver_number === dn && l._t_start !== null);
+      driverLaps.sort((a,b) => a.lap_number - b.lap_number);
+      
+      var completedLaps = driverLaps.filter(l => t >= l._t_end);
+      var bestLap = Infinity;
+      completedLaps.forEach(l => {
+        if (l.lap_duration && l.lap_duration < bestLap) bestLap = l.lap_duration;
+      });
+      if (bestLap === Infinity) bestLap = null;
+      
+      var currentLap = null;
+      var prevLap = null;
+      for (var j = driverLaps.length - 1; j >= 0; j--) {
+        if (t >= driverLaps[j]._t_start) {
+          currentLap = driverLaps[j];
+          if (j > 0) prevLap = driverLaps[j-1];
+          break;
+        }
+      }
+      
+      // Tyre data
+      var currentStint = null;
+      var driverStints = state.stints[dn] || [];
+      if (currentLap) {
+        for (var k = driverStints.length - 1; k >= 0; k--) {
+          if (currentLap.lap_number >= driverStints[k].lap_start) {
+            currentStint = driverStints[k];
+            break;
+          }
+        }
+      }
+      
+      driversData.push({
+        dn: dn,
+        acronym: state.drivers[dn].acronym,
+        color: state.drivers[dn].color,
+        bestLap: bestLap,
+        completedLaps: completedLaps.length,
+        currentLap: currentLap,
+        prevLap: prevLap,
+        currentStint: currentStint
+      });
+    }
+
+    // 2. Sort by Best Lap
+    driversData.sort((a, b) => {
+      if (a.bestLap === null && b.bestLap === null) return a.dn - b.dn;
+      if (a.bestLap === null) return 1;
+      if (b.bestLap === null) return -1;
+      return a.bestLap - b.bestLap;
+    });
+
+    var p1Best = driversData.length > 0 ? driversData[0].bestLap : null;
+
+    // 3. Update DOM
+    var listContainer = els.rankingsList;
+    var domOrder = [];
+    
+    for (var i = 0; i < driversData.length; i++) {
+      var dd = driversData[i];
+      var dn = dd.dn;
+      var pos = i + 1;
+      
+      var rowEl = document.getElementById("row-" + dn);
+      domOrder.push(rowEl);
+      
+      // Position
+      setText("pos-" + dn, pos);
+      
+      // Gap
+      var gapStr = "";
+      if (pos === 1) gapStr = ""; 
+      else if (dd.bestLap !== null && p1Best !== null) {
+        gapStr = "+" + (dd.bestLap - p1Best).toFixed(3);
+      }
+      setText("gap-" + dn, gapStr);
+      
+      // Laps
+      setText("laps-" + dn, dd.completedLaps);
+      
+      // Best
+      setText("best-" + dn, dd.bestLap ? formatTime(dd.bestLap) : "");
+      
+      // Tyre
+      var tcEl = document.getElementById("tyre-c-" + dn);
+      var taEl = document.getElementById("tyre-a-" + dn);
+      if (dd.currentStint) {
+        var comp = dd.currentStint.compound;
+        var color = getTyreColor(comp);
+        var txtColor = getContrastColor(color.replace("#", ""));
+        var age = dd.currentLap.lap_number - dd.currentStint.lap_start + 1;
+        
+        tcEl.style.display = "flex";
+        tcEl.style.background = color;
+        tcEl.style.color = txtColor;
+        tcEl.textContent = getTyreLetter(comp);
+        taEl.textContent = age;
+      } else {
+        tcEl.style.display = "none";
+        taEl.textContent = "";
+      }
+      
+      // Sectors
+      updateSectors(dn, t, dd.currentLap, dd.prevLap);
+    }
+    
+    // Reorder DOM to match new sort order
+    var fragment = document.createDocumentFragment();
+    domOrder.forEach(el => fragment.appendChild(el));
+    listContainer.appendChild(fragment);
+  }
+
+  function updateSectors(dn, t, curr, prev) {
+    var sData = [null, null, null];
+    var sDim = [true, true, true];
+    var sTicks = [null, null, null];
+    var sTicksDim = [true, true, true];
+    
+    if (curr) {
+      var t1 = curr.duration_sector_1 || 0;
+      var t2 = curr.duration_sector_2 || 0;
+      var t3 = curr.duration_sector_3 || 0;
+      
+      var end1 = curr._t_start + t1;
+      var end2 = end1 + t2;
+      var end3 = end2 + t3;
+      
+      if (t >= end1 && t1 > 0) {
+        sData[0] = t1; sDim[0] = false;
+        sTicks[0] = curr.segments_sector_1; sTicksDim[0] = false;
+      }
+      if (t >= end2 && t2 > 0) {
+        sData[1] = t2; sDim[1] = false;
+        sTicks[1] = curr.segments_sector_2; sTicksDim[1] = false;
+      }
+      if (t >= end3 && t3 > 0) {
+        sData[2] = t3; sDim[2] = false;
+        sTicks[2] = curr.segments_sector_3; sTicksDim[2] = false;
+      }
+    }
+    
+    // Fill in previous lap for incomplete sectors
+    if (prev) {
+      if (sData[0] === null && prev.duration_sector_1) {
+        sData[0] = prev.duration_sector_1; sTicks[0] = prev.segments_sector_1;
+      }
+      if (sData[1] === null && prev.duration_sector_2) {
+        sData[1] = prev.duration_sector_2; sTicks[1] = prev.segments_sector_2;
+      }
+      if (sData[2] === null && prev.duration_sector_3) {
+        sData[2] = prev.duration_sector_3; sTicks[2] = prev.segments_sector_3;
+      }
+    }
+    
+    for (var k = 0; k < 3; k++) {
+      // Time
+      var timeEl = document.getElementById("s" + (k+1) + "-" + dn);
+      var timeStr = sData[k] ? formatShortTime(sData[k]) : "";
+      if (timeEl.textContent !== timeStr) {
+        timeEl.textContent = timeStr;
+        if (sDim[k]) timeEl.classList.add("dimmed");
+        else timeEl.classList.remove("dimmed");
+      }
+      
+      // Ticks
+      var tickWrap = document.getElementById("ticks" + (k+1) + "-" + dn);
+      var arr = sTicks[k];
+      if (!arr || arr.length === 0) {
+        if (tickWrap.innerHTML !== "") tickWrap.innerHTML = "";
+      } else {
+        var sig = arr.join(",") + (sTicksDim[k] ? "d" : "b");
+        if (tickWrap.dataset.sig !== sig) {
+          tickWrap.dataset.sig = sig;
+          tickWrap.innerHTML = arr.map(function(code) {
+            var c = "c-grey";
+            if (code === 2049) c = "c-green";
+            else if (code === 2051) c = "c-purple";
+            else if (code === 2048) c = "c-yellow";
+            return `<div class="tick ${c} ${sTicksDim[k] ? 'dimmed' : ''}"></div>`;
+          }).join("");
+        }
+      }
+    }
+  }
+  
+  function setText(id, val) {
+    var el = document.getElementById(id);
+    if (el && el.textContent !== String(val)) {
+      el.textContent = val;
+    }
+  }
+
   function toggleHighlight(dn) {
     if (state.highlightedDriver === dn) {
       state.highlightedDriver = null;
     } else {
       state.highlightedDriver = dn;
     }
-    renderRankings();
+    
+    var rows = document.querySelectorAll(".driver-row");
+    rows.forEach(r => {
+      if (parseInt(r.getAttribute("data-dn"), 10) === state.highlightedDriver) {
+        r.classList.add("highlighted");
+      } else {
+        r.classList.remove("highlighted");
+      }
+    });
+    
     drawCars();
   }
 
-  // List double tap
   els.rankingsList.addEventListener("click", function(e) {
     var row = e.target.closest(".driver-row");
     if (!row) return;
@@ -609,30 +975,25 @@
     var now = Date.now();
     if (now - lastTapTime < 300 && lastTapTarget === dn) {
       toggleHighlight(dn);
-      lastTapTime = 0; // reset
+      lastTapTime = 0;
     } else {
       lastTapTime = now;
       lastTapTarget = dn;
     }
   });
 
-  // Map double tap
   els.canvas.addEventListener("click", function(e) {
     if (!state.transform || state.mapEmpty.style.display !== "none") return;
     
     var rect = els.canvas.getBoundingClientRect();
     var touchX = e.clientX - rect.left;
     var touchY = e.clientY - rect.top;
-    
-    // Adjust for canvas offset
-    var scaleFactor = window.devicePixelRatio || 1;
-    var actualY = touchY - 48; // Map top is offset by 48px for controls
+    var actualY = touchY - 48;
     if (actualY < 0) return;
 
     var t = state.transform;
     var hitDn = null;
     
-    // Hit test backwards (topmost first)
     var dns = Object.keys(state.drivers).reverse();
     for (var i = 0; i < dns.length; i++) {
       var dn = dns[i];
@@ -662,13 +1023,12 @@
     }
   });
 
-  // --- MAP DRAWING ---
   function prepareBackground() {
     if (!state.outline) return;
     var wrap = els.mapWrap;
     var dpr = window.devicePixelRatio || 1;
     var cssW = wrap.clientWidth;
-    var cssH = wrap.clientHeight - 48; // Exclude top control bar
+    var cssH = wrap.clientHeight - 48;
     if (cssW === 0 || cssH === 0) return;
 
     els.canvas.width = Math.round(cssW * dpr);
@@ -706,7 +1066,6 @@
       return [cx, cy];
     }
 
-    // Draw outline
     baseCtx.beginPath();
     var p0 = toCanvas(pts[0][0], pts[0][1]);
     baseCtx.moveTo(p0[0], p0[1]);
@@ -720,14 +1079,13 @@
     baseCtx.strokeStyle = "#2a3454";
     baseCtx.stroke();
 
-    // Draw start/finish white line
     var p1 = toCanvas(pts[1][0], pts[1][1]);
     var dx = p1[0] - p0[0];
     var dy = p1[1] - p0[1];
     var len = Math.sqrt(dx*dx + dy*dy);
     var nx = -dy / len;
     var ny = dx / len;
-    var lineLen = 12; // Half width
+    var lineLen = 12;
 
     baseCtx.beginPath();
     baseCtx.moveTo(p0[0] - nx * lineLen, p0[1] - ny * lineLen);
@@ -757,7 +1115,6 @@
       var cy = (loc[1] - t.minY) * t.scale + t.offsetY;
       if (state.flipY) cy = t.cssH - cy;
 
-      // Glow for highlighted
       if (state.highlightedDriver === parseInt(dn, 10)) {
         ctx.beginPath();
         ctx.arc(cx, cy, 16, 0, Math.PI * 2);
@@ -767,13 +1124,11 @@
         ctx.globalAlpha = 1.0;
       }
 
-      // Car circle
       ctx.beginPath();
       ctx.arc(cx, cy, 10, 0, Math.PI * 2);
       ctx.fillStyle = "#" + car.color;
       ctx.fill();
 
-      // Number inside
       ctx.fillStyle = getContrastColor(car.color);
       ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, sans-serif";
       ctx.textAlign = "center";
@@ -804,7 +1159,6 @@
     return [x, y];
   }
 
-  // --- PLAYBACK ---
   function loop(timestamp) {
     if (!state.playing) return;
     if (!state.lastFrameTime) state.lastFrameTime = timestamp;
@@ -820,6 +1174,8 @@
 
     updateTimeDisplay();
     drawCars();
+    updateRankings();
+    
     if (state.playing) animationId = requestAnimationFrame(loop);
   }
 
@@ -848,6 +1204,7 @@
     state.currentTime = parseFloat(els.slider.value);
     updateTimeDisplay();
     drawCars();
+    updateRankings();
   });
   els.slider.addEventListener("touchstart", function() {
     wasPlayingBeforeScrub = state.playing;
