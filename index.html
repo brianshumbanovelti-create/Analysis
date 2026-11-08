@@ -8,61 +8,33 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg0: #070b16;
-    --bg1: #0c1322;
-    --bg2: rgba(255, 255, 255, .055);
-    --bg3: rgba(255, 255, 255, .09);
-    --line: rgba(255, 255, 255, .09);
-    --text: #eef1f8;
-    --dim: #a6b0c7;
-    --muted: #707c98;
-    --accent: #ff5c7a;
-    --err: #ff5c5c;
-    --purple: #c58bff;
-    --green: #4ade80;
-    --yellow: #ffd23f;
-    
-    --header-height: 100px;
-    --map-height: 45vh;
-    --map-margin: 12px;
+    --bg0: #070b16; --bg1: #0c1322; --bg2: rgba(255, 255, 255, .055);
+    --bg3: rgba(255, 255, 255, .09); --line: rgba(255, 255, 255, .09);
+    --text: #eef1f8; --dim: #a6b0c7; --muted: #707c98;
+    --accent: #ff5c7a; --err: #ff5c5c;
+    --purple: #c58bff; --green: #4ade80; --yellow: #ffd23f;
+    --header-height: 100px; --map-height: 45vh; --map-margin: 12px;
   }
   
   html, body {
-    height: 100%;
-    background: var(--bg0);
-    color: var(--text);
+    height: 100%; background: var(--bg0); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 15px;
-    -webkit-font-smoothing: antialiased;
-    overflow: hidden;
-    overscroll-behavior-y: none;
+    font-size: 15px; -webkit-font-smoothing: antialiased;
+    overflow: hidden; overscroll-behavior-y: none;
   }
   
+  /* HEADER */
   #header {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 20;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 20;
     height: var(--header-height);
     background: radial-gradient(60% 40% at 15% -5%, rgba(86,120,255,.22), transparent 70%), radial-gradient(50% 35% at 100% 8%, rgba(190,90,255,.14), transparent 70%), var(--bg0);
-    padding: 10px 14px;
-    padding-top: calc(10px + env(safe-area-inset-top));
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top));
+    display: flex; flex-direction: column; justify-content: space-between;
   }
-  .header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  }
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   .title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
   .title i { font-style: normal; color: var(--muted); font-weight: 500; }
-  .download-meter {
-    font-size: 11px; font-weight: 500; color: var(--dim);
-    background: var(--bg2); border: 1px solid var(--line);
-    border-radius: 999px; padding: 5px 11px;
-  }
+  .download-meter { font-size: 11px; font-weight: 500; color: var(--dim); background: var(--bg2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; }
   
   .selector-row { display: flex; gap: 8px; width: 100%; }
   .selector-row select {
@@ -73,140 +45,99 @@
   }
   .selector-row select:disabled { opacity: 0.5; }
   
-  #error {
-    position: fixed; top: calc(var(--header-height) + 8px); left: 12px; right: 12px;
-    z-index: 30; display: none; background: rgba(255,92,92,0.95); color: #fff;
-    border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600;
-    text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-  }
+  #error { position: fixed; top: calc(var(--header-height) + 8px); left: 12px; right: 12px; z-index: 30; display: none; background: rgba(255,92,92,0.95); color: #fff; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
   #error.show { display: block; }
   
-  #mapContainer {
-    position: fixed; top: var(--header-height); left: 0; right: 0;
-    height: var(--map-height); z-index: 10; padding: 0 var(--map-margin);
-    background: var(--bg0);
-  }
-  #mapWrap {
-    position: relative; width: 100%; height: 100%;
-    background: var(--bg1); border: 1px solid var(--line);
-    border-radius: 14px; overflow: hidden;
-  }
+  /* MAP */
+  #mapContainer { position: fixed; top: var(--header-height); left: 0; right: 0; height: var(--map-height); z-index: 10; padding: 0 var(--map-margin); background: var(--bg0); }
+  #mapWrap { position: relative; width: 100%; height: 100%; background: var(--bg1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
   
-  #mapControls {
-    position: absolute; top: 0; left: 0; right: 0; height: 48px;
-    display: flex; align-items: center; gap: 8px; padding: 0 12px;
-    background: rgba(12, 19, 34, 0.85); border-bottom: 1px solid var(--line);
-    z-index: 5;
-  }
-  .icon-btn {
-    width: 32px; height: 32px; border-radius: 50%; background: var(--bg3);
-    border: none; color: var(--text); font-size: 14px;
-    display: flex; align-items: center; justify-content: center; cursor: pointer;
-  }
+  #mapControls { position: absolute; top: 0; left: 0; right: 0; height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: rgba(12, 19, 34, 0.85); border-bottom: 1px solid var(--line); z-index: 5; }
+  .icon-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--bg3); border: none; color: var(--text); font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
   .icon-btn:active { background: rgba(255,255,255,0.2); }
   .icon-btn:disabled { opacity: 0.4; }
   
   #sliderWrap { flex: 1; position: relative; display: flex; align-items: center; height: 32px; }
-  #slider {
-    width: 100%; min-height: 32px; accent-color: var(--text);
-    position: relative; z-index: 2; background: transparent;
-  }
-  #sliderMarkers {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    z-index: 1; pointer-events: none; overflow: hidden; border-radius: 4px;
-  }
-  .slider-marker {
-    position: absolute; top: 0; bottom: 0; width: 4px;
-    background: rgba(255, 92, 92, 0.4);
-  }
+  #slider { width: 100%; min-height: 32px; accent-color: var(--text); position: relative; z-index: 2; background: transparent; }
+  #sliderMarkers { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; pointer-events: none; overflow: hidden; border-radius: 4px; }
+  .slider-marker { position: absolute; top: 0; bottom: 0; width: 4px; background: rgba(255, 92, 92, 0.4); }
   
-  #trackCanvas {
-    position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px);
-    touch-action: manipulation;
-  }
-  #mapEmpty {
-    position: absolute; inset: 48px 0 0 0; display: flex; align-items: center;
-    justify-content: center; color: var(--muted); font-size: 13px; text-align: center;
-    padding: 20px; pointer-events: none;
-  }
+  #trackCanvas { position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; }
+  #mapEmpty { position: absolute; inset: 48px 0 0 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; text-align: center; padding: 20px; pointer-events: none; }
   
-  #timeDisplay {
-    position: absolute; bottom: 10px; left: 12px;
-    font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600;
-    color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-  }
+  .map-overlay-bl { position: absolute; bottom: 10px; left: 12px; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8); display: flex; gap: 10px; }
+  .map-overlay-br { position: absolute; bottom: 10px; right: 12px; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+  .lap-counter { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
   
-  #rcPopup {
-    position: absolute; top: 56px; left: 12px; right: 12px;
-    background: #ffffff; color: #333333;
-    padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600;
-    text-align: center; opacity: 0; transition: opacity 0.3s ease;
-    pointer-events: none; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-  }
+  #rcPopup { position: absolute; top: 56px; left: 12px; right: 12px; background: #ffffff; color: #333333; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
   #rcPopup.show { opacity: 1; }
 
-  #listContainer {
-    position: absolute; top: calc(var(--header-height) + var(--map-height) + 8px);
-    bottom: 0; left: 0; right: 0; overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0 var(--map-margin) calc(20px + env(safe-area-inset-bottom));
-    z-index: 5;
-  }
+  /* TABS & LIST */
+  #tabContainer { position: absolute; top: calc(var(--header-height) + var(--map-height) + 8px); bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; z-index: 5; }
   
-  .list-header-row {
-    display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 60px;
-    gap: 4px; padding: 12px 12px 8px; font-size: 11px;
-    font-weight: 600; color: var(--muted); text-transform: uppercase;
-  }
+  .tab-bar { display: flex; gap: 4px; padding: 0 var(--map-margin) 8px; }
+  .tab-btn { flex: 1; padding: 8px 0; font-size: 12px; font-weight: 600; color: var(--dim); background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+  .tab-btn.active { background: var(--bg3); color: var(--text); border-color: rgba(255,255,255,0.2); }
+  
+  .panel { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 var(--map-margin) calc(20px + env(safe-area-inset-bottom)); display: none; }
+  .panel.active { display: block; }
+
+  /* TIMING LIST */
+  .list-header-row { display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 60px; gap: 4px; padding: 4px 12px 8px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; }
   .list-header-row span:nth-child(3), .list-header-row span:nth-child(6) { text-align: right; }
   .list-header-row span:nth-child(4), .list-header-row span:nth-child(5) { text-align: center; }
   
-  .driver-row {
-    background: var(--bg2); border: 1px solid var(--line); border-radius: 12px;
-    margin-bottom: 6px; user-select: none; touch-action: manipulation;
-    transition: background 0.2s ease, border-color 0.2s ease;
-  }
+  .driver-row { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 6px; user-select: none; touch-action: manipulation; transition: background 0.2s ease; overflow: hidden; }
   .driver-row.highlighted { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.3); }
   
-  .row-main {
-    display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 60px;
-    gap: 4px; padding: 10px 12px; align-items: center;
-  }
-  
+  .row-main { display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 60px; gap: 4px; padding: 10px 12px; align-items: center; }
   .row-pos { font-size: 13px; font-weight: 700; color: var(--dim); text-align: center; }
   .row-driver { display: flex; align-items: center; gap: 6px; }
-  .row-circle {
-    width: 22px; height: 22px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 800; flex-shrink: 0;
-  }
+  .row-circle { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
   .row-acronym { font-size: 13px; font-weight: 700; letter-spacing: 0.3px; }
   .row-gap { font-size: 12px; font-weight: 500; color: var(--dim); text-align: right; }
   .row-tyre { display: flex; align-items: center; justify-content: center; }
-  .tyre-circle {
-    width: 22px; height: 22px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 800;
-  }
+  .tyre-circle { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
   .row-laps { font-size: 12px; font-weight: 500; color: var(--dim); text-align: center; }
   .row-best { font-size: 12px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
   
-  .row-sectors {
-    display: grid; grid-template-columns: 40px 40px 40px 1fr;
-    gap: 6px; padding: 0 12px 10px 44px; align-items: center;
-  }
+  .row-sectors { display: grid; grid-template-columns: 40px 40px 40px 1fr; gap: 6px; padding: 0 12px 10px 44px; align-items: center; }
   .sector-time { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .lap-total-time { font-size: 11px; font-weight: 600; color: var(--text); text-align: right; font-variant-numeric: tabular-nums; padding-right: 4px; }
-  
   .sector-time.dimmed { opacity: 0.4; }
   .sector-time.c-neutral { color: var(--dim); }
   .sector-time.c-yellow { color: var(--yellow); }
   .sector-time.c-green { color: var(--green); }
   .sector-time.c-purple { color: var(--purple); }
+
+  /* MODAL */
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(3,6,14,.62); z-index: 100; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .modal-backdrop.open { display: flex; align-items: flex-end; justify-content: center; animation: fadeIn .2s; }
+  .modal-box { width: 100%; max-width: 680px; max-height: 85dvh; display: flex; flex-direction: column; background: linear-gradient(180deg, #1c263e 0%, #0e1424 100%); border: 1px solid var(--line); border-bottom: none; border-radius: 26px 26px 0 0; box-shadow: 0 -20px 60px -20px rgba(0,0,0,.8); animation: slideUp .3s ease; }
+  .modal-box::before { content: ""; display: block; width: 38px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.22); margin: 9px auto 0; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px 8px; }
+  .modal-title { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .modal-close { background: rgba(255,255,255,.08); border: none; color: var(--dim); width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; }
+  .modal-tabs { display: flex; gap: 2px; margin: 2px 16px 8px; padding: 3px; background: rgba(255,255,255,.06); border-radius: 999px; }
+  .modal-tab { flex: 1; font-size: 13px; font-weight: 600; padding: 8px 10px; border: none; background: none; color: var(--dim); cursor: pointer; border-radius: 999px; transition: all .2s; }
+  .modal-tab.active { background: rgba(255,255,255,.16); color: #fff; }
+  .modal-body { padding: 4px 16px 24px; overflow-y: auto; min-height: 0; }
   
-  #progressWrap { position: absolute; top: 48px; left: 0; right: 0; height: 2px; background: rgba(255,255,255,0.1); display: none; z-index: 6; }
-  #progressWrap.show { display: block; }
-  #progressBar { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+  .lap-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .lap-table th { color: var(--muted); font-size: 11px; font-weight: 500; padding: 4px 5px 8px; text-align: left; }
+  .lap-table td { padding: 7px 5px; border-top: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
+  .lap-table td:first-child { color: var(--muted); }
+  .lap-table td.lt { color: var(--text); font-weight: 500; }
+  .lap-table td.pb { color: var(--green); font-weight: 600; }
+  .lap-table td.ob { color: var(--purple); font-weight: 700; }
+  .lap-table tr.off td { opacity: .55; }
+  .note { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.08); color: var(--dim); }
+  .note.pit { background: rgba(255,107,122,.16); color: var(--err); }
+  .note.push { background: rgba(197,139,255,.16); color: var(--purple); }
+  .note.run { background: rgba(124,183,255,.14); color: #7cb7ff; }
+
+  @keyframes fadeIn { from{opacity:0}to{opacity:1} }
+  @keyframes slideUp { from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1} }
 </style>
 </head>
 <body>
@@ -236,16 +167,50 @@
     <div id="progressWrap"><div id="progressBar"></div></div>
     <canvas id="trackCanvas"></canvas>
     <div id="mapEmpty">Select a session to draw the track</div>
-    <div id="timeDisplay">00:00 / 00:00</div>
+    <div class="map-overlay-bl">
+      <span id="timeDisplay">00:00</span>
+      <span id="lapCounter" class="lap-counter" style="display:none">0/0</span>
+    </div>
+    <div class="map-overlay-br" id="durationTicker">00:00</div>
     <div id="rcPopup"></div>
   </div>
 </div>
 
-<div id="listContainer">
-  <div class="list-header-row">
-    <span>Pos</span><span>Driver</span><span>Gap</span><span>Tyre</span><span>Laps</span><span>Best</span>
+<div id="tabContainer">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('timing')">Timing</button>
+    <button class="tab-btn" onclick="switchTab('analysis')">Analysis</button>
+    <button class="tab-btn" onclick="switchTab('ontrack')">On Track</button>
   </div>
-  <div id="rankingsList"></div>
+  
+  <div class="panel active" id="panel-timing">
+    <div class="list-header-row">
+      <span>Pos</span><span>Driver</span><span>Gap</span><span>Tyre</span><span>Laps</span><span>Best</span>
+    </div>
+    <div id="rankingsList"></div>
+  </div>
+  
+  <div class="panel" id="panel-analysis">
+    <div style="text-align:center; padding: 40px; color: var(--muted);">Select two drivers to compare (Coming soon)</div>
+  </div>
+  
+  <div class="panel" id="panel-ontrack">
+    <div style="text-align:center; padding: 40px; color: var(--muted);">Circle of Doom (Coming soon)</div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="driverModal" onclick="if(event.target===this) closeModal()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="modalTitle">Driver</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" onclick="switchModalTab('laps')">Laps</button>
+      <button class="modal-tab" onclick="switchModalTab('stints')">Stints</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
 </div>
 
 <script>
@@ -253,21 +218,16 @@
   "use strict";
 
   var els = {
-    sessionSelect: document.getElementById("sessionSelect"),
-    dataMeter: document.getElementById("dataMeter"),
-    error: document.getElementById("error"),
-    mapWrap: document.getElementById("mapWrap"),
-    canvas: document.getElementById("trackCanvas"),
-    mapEmpty: document.getElementById("mapEmpty"),
-    playBtn: document.getElementById("playBtn"),
-    slider: document.getElementById("slider"),
-    sliderMarkers: document.getElementById("sliderMarkers"),
-    flipBtn: document.getElementById("flipBtn"),
-    timeDisplay: document.getElementById("timeDisplay"),
-    progressWrap: document.getElementById("progressWrap"),
-    progressBar: document.getElementById("progressBar"),
-    rankingsList: document.getElementById("rankingsList"),
-    rcPopup: document.getElementById("rcPopup")
+    sessionSelect: document.getElementById("sessionSelect"), dataMeter: document.getElementById("dataMeter"),
+    error: document.getElementById("error"), mapWrap: document.getElementById("mapWrap"),
+    canvas: document.getElementById("trackCanvas"), mapEmpty: document.getElementById("mapEmpty"),
+    playBtn: document.getElementById("playBtn"), slider: document.getElementById("slider"),
+    sliderMarkers: document.getElementById("sliderMarkers"), flipBtn: document.getElementById("flipBtn"),
+    timeDisplay: document.getElementById("timeDisplay"), lapCounter: document.getElementById("lapCounter"),
+    durationTicker: document.getElementById("durationTicker"), progressWrap: document.getElementById("progressWrap"),
+    progressBar: document.getElementById("progressBar"), rankingsList: document.getElementById("rankingsList"),
+    rcPopup: document.getElementById("rcPopup"), driverModal: document.getElementById("driverModal"),
+    modalTitle: document.getElementById("modalTitle"), modalBody: document.getElementById("modalBody")
   };
 
   var state = {
@@ -277,7 +237,8 @@
     currentTime: 0, playing: false, lastFrameTime: 0, transform: null,
     highlightedDriver: null, bytesDownloaded: 0,
     q1Ended: false, q2Ended: false, q1Eliminated: [], q2Eliminated: [],
-    activeRC: null, rcTimeout: null, lastFlagState: false
+    activeRC: null, rcTimeout: null, lastFlagState: false,
+    currentModalDriver: null, currentModalTab: 'laps'
   };
   
   var animationId = null;
@@ -286,16 +247,21 @@
   var resizeTimer = null;
   var lastTapTime = 0, lastTapTarget = null;
 
+  window.switchTab = function(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    if(tab === 'timing') { document.querySelector('.tab-btn:nth-child(1)').classList.add('active'); document.getElementById('panel-timing').classList.add('active'); }
+    if(tab === 'analysis') { document.querySelector('.tab-btn:nth-child(2)').classList.add('active'); document.getElementById('panel-analysis').classList.add('active'); }
+    if(tab === 'ontrack') { document.querySelector('.tab-btn:nth-child(3)').classList.add('active'); document.getElementById('panel-ontrack').classList.add('active'); }
+  };
+
   function addBytes(len) { state.bytesDownloaded += len; updateMeter(); }
   function updateMeter() {
     els.dataMeter.textContent = state.bytesDownloaded < 1048576 
       ? Math.round(state.bytesDownloaded / 1024) + " KB"
       : (state.bytesDownloaded / 1048576).toFixed(1) + " MB";
   }
-  function showError(msg) {
-    els.error.textContent = msg; els.error.classList.add("show");
-    setTimeout(() => els.error.classList.remove("show"), 5000);
-  }
+  function showError(msg) { els.error.textContent = msg; els.error.classList.add("show"); setTimeout(() => els.error.classList.remove("show"), 5000); }
   function fetchJSON(url) {
     return fetch(url, { cache: "no-store" }).then(res => {
       if (!res.ok) throw new Error("Could not load " + url + ": " + res.status);
@@ -312,10 +278,26 @@
 
   function updateTimeDisplay() {
     var now = new Date(state.sessionStartMs + state.currentTime * 1000);
-    var end = new Date(state.sessionStartMs + state.sessionLength * 1000);
-    
     var fmt = d => (d.getHours()<10?"0":"") + d.getHours() + ":" + (d.getMinutes()<10?"0":"") + d.getMinutes();
-    els.timeDisplay.textContent = fmt(now) + " / " + fmt(end);
+    els.timeDisplay.textContent = fmt(now);
+    
+    var elapsed = Math.floor(state.currentTime);
+    var m = Math.floor(elapsed / 60), s = elapsed % 60;
+    els.durationTicker.textContent = (m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+    
+    // Lap Counter
+    var maxLap = 0;
+    state.laps.forEach(l => {
+      var lt = (new Date(l.date_start).getTime() - state.sessionStartMs)/1000;
+      if (state.currentTime >= lt && l.lap_number > maxLap) maxLap = l.lap_number;
+    });
+    if (maxLap > 0) {
+      els.lapCounter.style.display = "inline-block";
+      els.lapCounter.textContent = maxLap + "/" + (state.sessionResult.length > 0 ? state.sessionResult[0].number_of_laps : "?");
+    } else {
+      els.lapCounter.style.display = "none";
+    }
+    
     els.slider.value = state.currentTime;
   }
 
@@ -326,12 +308,15 @@
   }
   function getTyreColor(c) {
     if (!c) return "#555"; c = c.toUpperCase();
-    if (c.includes("SOFT")) return "#ff3b4e";
-    if (c.includes("MED")) return "#ffd23f";
-    if (c.includes("HARD")) return "#f1f3f8";
-    if (c.includes("INTER")) return "#3ddc84";
-    if (c.includes("WET")) return "#4aa3ff";
-    return "#555";
+    if (c.includes("SOFT")) return "#ff3b4e"; if (c.includes("MED")) return "#ffd23f";
+    if (c.includes("HARD")) return "#f1f3f8"; if (c.includes("INTER")) return "#3ddc84";
+    if (c.includes("WET")) return "#4aa3ff"; return "#555";
+  }
+  function getTyreLetter(c) {
+    if (!c) return "?"; c = c.toUpperCase();
+    if (c.includes("SOFT")) return "S"; if (c.includes("MED")) return "M";
+    if (c.includes("HARD")) return "H"; if (c.includes("INTER")) return "I";
+    if (c.includes("WET")) return "W"; return c[0];
   }
 
   fetchJSON("data/sessions.json").then(sessions => {
@@ -350,7 +335,6 @@
       var m = state.raceControl[i];
       var mt = (new Date(m.date).getTime() - state.sessionStartMs) / 1000;
       if (mt > t) break;
-      
       if (m.flag === "RED") isRed = true;
       if (m.flag === "GREEN" || m.message === "TRACK CLEAR" || (m.message && m.message.includes("SAFETY CAR"))) isRed = false;
     }
@@ -362,7 +346,7 @@
     state.driverOrder = []; state.laps = []; state.stints = {}; state.raceControl = []; state.sessionResult = [];
     state.highlightedDriver = null; state.bytesDownloaded = 0;
     state.q1Ended = false; state.q2Ended = false; state.q1Eliminated = []; state.q2Eliminated = [];
-    state.lastFlagState = false;
+    state.lastFlagState = false; closeModal();
     updateMeter();
     els.playBtn.disabled = true; els.flipBtn.disabled = true; els.slider.disabled = true;
     els.mapEmpty.style.display = "flex"; els.mapEmpty.textContent = "Loading data…";
@@ -381,7 +365,6 @@
 
       state.sessionStartMs = new Date(meta.date_start).getTime();
       
-      // Anchor to Race Control
       if (state.raceControl.length > 0) {
         state.sessionStartMs = new Date(state.raceControl[0].date).getTime();
         var endMs = new Date(state.raceControl[state.raceControl.length-1].date).getTime();
@@ -393,14 +376,12 @@
       state.outline = outline;
       els.slider.max = state.sessionLength;
 
-      // Slider markers
       var redStart = null;
       state.raceControl.forEach(m => {
         if (m.flag === "RED") redStart = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
         else if (redStart !== null && (m.flag === "GREEN" || m.message === "TRACK CLEAR")) {
           var redEnd = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
-          var pct = (redStart / state.sessionLength) * 100, w = ((redEnd - redStart) / state.sessionLength) * 100;
-          els.sliderMarkers.innerHTML += `<div class="slider-marker" style="left:${pct}%; width:${w}%"></div>`;
+          els.sliderMarkers.innerHTML += `<div class="slider-marker" style="left:${(redStart / state.sessionLength) * 100}%; width:${((redEnd - redStart) / state.sessionLength) * 100}%"></div>`;
           redStart = null;
         }
       });
@@ -411,14 +392,12 @@
       });
       stintsRaw.forEach(s => { if (!state.stints[s.driver_number]) state.stints[s.driver_number] = []; state.stints[s.driver_number].push(s); });
 
-      // Qualifying Cutoffs
       state.sessionResult.forEach(r => {
         if (!r.duration || !Array.isArray(r.duration)) return;
         if (r.duration[0] !== null && r.duration[1] === null) state.q1Eliminated.push(r.driver_number);
         if (r.duration[0] !== null && r.duration[1] !== null && r.duration[2] === null) state.q2Eliminated.push(r.driver_number);
       });
 
-      // Precompute Sector Colors
       var validLaps = state.laps.filter(l => l.date_start !== null).sort((a,b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
       var bestS1 = Infinity, bestS2 = Infinity, bestS3 = Infinity;
       var drvBestS1 = {}, drvBestS2 = {}, drvBestS3 = {};
@@ -493,7 +472,6 @@
     if (!state.drivers || Object.keys(state.drivers).length === 0) return;
     var t = state.currentTime, driversData = [];
 
-    // Check RC
     var rcInWindow = state.raceControl.filter(m => {
       var mt = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
       return mt <= t && mt > t - 0.5;
@@ -529,7 +507,6 @@
       driversData.push({ dn, bestLap, completedLaps: laps.filter(l => t >= l._t_end).length, curr, prev, stint });
     }
 
-    // Sort
     driversData.sort((a, b) => {
       if (a.bestLap === null && b.bestLap === null) return a.dn - b.dn;
       if (a.bestLap === null) return 1;
@@ -584,7 +561,7 @@
       if (t >= e2 && curr.duration_sector_2) { sVal[1] = curr.duration_sector_2; sDim[1] = false; sCls[1] = curr._c2; }
       if (t >= e3 && curr.duration_sector_3) { sVal[2] = curr.duration_sector_3; sDim[2] = false; sCls[2] = curr._c3; }
     }
-    if (prev) {
+    if (prev && prev.lap_duration && t < (curr ? curr._t_end : Infinity)) {
       if (sVal[0] === null && prev.duration_sector_1) { sVal[0] = prev.duration_sector_1; sCls[0] = prev._c1; }
       if (sVal[1] === null && prev.duration_sector_2) { sVal[1] = prev.duration_sector_2; sCls[1] = prev._c2; }
       if (sVal[2] === null && prev.duration_sector_3) { sVal[2] = prev.duration_sector_3; sCls[2] = prev._c3; }
@@ -592,9 +569,8 @@
 
     var totalEl = document.getElementById("total-" + dn);
     if (totalEl) {
-      if (sVal[0] && sVal[1] && sVal[2]) {
-        var total = Number(sVal[0]) + Number(sVal[1]) + Number(sVal[2]);
-        totalEl.textContent = formatTime(total);
+      if (curr && curr.lap_duration && !sDim[0] && !sDim[1] && !sDim[2]) {
+        totalEl.textContent = formatTime(curr.lap_duration);
       } else {
         totalEl.textContent = "";
       }
@@ -618,10 +594,80 @@
     drawCars();
   }
 
+  // Modal Logic
+  window.closeModal = function() {
+    els.driverModal.classList.remove("open");
+    state.currentModalDriver = null;
+  };
+  window.switchModalTab = function(tab) {
+    state.currentModalTab = tab;
+    document.querySelectorAll(".modal-tab").forEach(t => t.classList.remove("active"));
+    document.querySelector(`.modal-tab:nth-child(${tab === 'laps' ? 1 : 2})`).classList.add("active");
+    renderModalBody();
+  };
+  
+  function openModal(dn) {
+    state.currentModalDriver = dn;
+    var driver = state.drivers[dn];
+    els.modalTitle.innerHTML = `<span class="row-circle" style="background:#${driver.color}; color:${getContrastColor(driver.color)}">${dn}</span> ${driver.acronym}`;
+    els.driverModal.classList.add("open");
+    switchModalTab('laps');
+  }
+
+  function renderModalBody() {
+    var dn = state.currentModalDriver;
+    if (!dn) return;
+    var driverLaps = state.laps.filter(l => l.driver_number === dn && l.date_start !== null).sort((a,b) => a.lap_number - b.lap_number);
+    
+    if (state.currentModalTab === 'stints') {
+      els.modalBody.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted)">Stints view coming soon</div>`;
+      return;
+    }
+
+    // Laps Tab
+    var html = `<table class="lap-table"><thead><tr><th>Lap</th><th>Time</th><th>S1</th><th>S2</th><th>S3</th><th>Tyre</th><th></th></tr></thead><tbody>`;
+    
+    var bestLapTime = Infinity;
+    driverLaps.forEach(l => { if (l.lap_duration && !l.is_pit_out_lap && l.lap_duration < bestLapTime) bestLapTime = l.lap_duration; });
+
+    driverLaps.forEach(l => {
+      var stint = null;
+      var st = state.stints[dn] || [];
+      for (var k = st.length - 1; k >= 0; k--) {
+        if (l.lap_number >= st[k].lap_start && l.lap_number <= (st[k].lap_end || 999)) { stint = st[k]; break; }
+      }
+      
+      var tCls = l.lap_duration === bestLapTime ? "pb" : (l.lap_duration ? "lt" : "");
+      var isOff = l.is_pit_out_lap ? 'off' : '';
+      
+      var note = '';
+      if (l.is_pit_out_lap) note = '<span class="note pit">OUTPIT</span>';
+      else if (l.lap_duration && l.lap_duration < bestLapTime * 1.02) note = '<span class="note push">Push</span>';
+      else if (l.lap_duration) note = '<span class="note">Run</span>';
+
+      html += `<tr class="${isOff}">
+        <td>${l.lap_number}</td>
+        <td class="${tCls}">${l.lap_duration ? formatTime(l.lap_duration) : '-'}</td>
+        <td>${l.duration_sector_1 ? l.duration_sector_1.toFixed(3) : '-'}</td>
+        <td>${l.duration_sector_2 ? l.duration_sector_2.toFixed(3) : '-'}</td>
+        <td>${l.duration_sector_3 ? l.duration_sector_3.toFixed(3) : '-'}</td>
+        <td>${stint ? `<span style="background:#${getTyreColor(stint.compound).replace('#','')}; color:#fff; padding:2px 6px; border-radius:10px; font-size:10px">${getTyreLetter(stint.compound)}</span>` : '-'}</td>
+        <td>${note}</td>
+      </tr>`;
+    });
+    
+    html += `</tbody></table>`;
+    els.modalBody.innerHTML = html;
+  }
+
   els.rankingsList.addEventListener("click", e => {
     var row = e.target.closest(".driver-row"); if (!row) return;
     var dn = parseInt(row.getAttribute("data-dn"), 10), now = Date.now();
-    if (now - lastTapTime < 300 && lastTapTarget === dn) { toggleHighlight(dn); lastTapTime = 0; }
+    if (now - lastTapTime < 300 && lastTapTarget === dn) { 
+      toggleHighlight(dn); 
+      openModal(dn);
+      lastTapTime = 0; 
+    }
     else { lastTapTime = now; lastTapTarget = dn; }
   });
 
@@ -684,7 +730,6 @@
     baseCtx.lineTo(p0[0] + nx * lineLen, p0[1] + ny * lineLen);
     baseCtx.lineWidth = 3; baseCtx.strokeStyle = "#ffffff"; baseCtx.stroke();
 
-    // Sector Lines
     var validLaps = state.laps.filter(l => l.date_start && !l.is_pit_out_lap && l.duration_sector_1 && l.duration_sector_2 && l.duration_sector_3);
     if (validLaps.length > 0) {
       var fastest = validLaps.reduce((a, b) => a.lap_duration < b.lap_duration ? a : b);
