@@ -140,10 +140,9 @@
   /* Cars */
   .car-label {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     paint-order: stroke fill;
-    -webkit-text-stroke: 2.5px #0a0e1a;
   }
   
   /* Controls */
@@ -604,10 +603,31 @@
       ctx.strokeStyle = "#0a0e1a";
       ctx.stroke();
 
-      ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.font = "10px -apple-system, BlinkMacSystemFont, sans-serif";
       ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      
+      var offsetType = (parseInt(dn) || 0) % 3;
+      var labelX = cx;
+      var labelY = cy;
+      
+      if (offsetType === 0) {
+        labelY -= 12;
+        ctx.textAlign = "center";
+      } else if (offsetType === 1) {
+        labelY += 14;
+        ctx.textAlign = "center";
+      } else {
+        labelX += 12;
+        ctx.textAlign = "left";
+      }
+
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#0a0e1a";
+      ctx.strokeText(car.acronym, labelX, labelY);
+
       ctx.fillStyle = "#" + car.color;
-      ctx.fillText(car.acronym, cx, cy - 10);
+      ctx.fillText(car.acronym, labelX, labelY);
     }
     els.visibleCount.textContent = visibleCount + " cars visible";
   }
