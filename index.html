@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0e1a">
+<title>F1 Replay</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0e1a;
+    --panel: #141a2e;
+    --line: rgba(255,255,255,0.12);
+    --text: #eef1f8;
+    --dim: #8a94ad;
+    --accent: #ff5c7a;
+    --ok: #4ade80;
+    --err: #ff5c5c;
+  }
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  #app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding: 12px;
+    padding-top: calc(12px + env(safe-area-inset-top));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  header { margin-bottom: 12px; }
+  h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin-bottom: 10px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--dim);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  select, button {
+    width: 100%;
+    min-height: 44px;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 15px;
+    font-family: inherit;
+  }
+  select:disabled, button:disabled { opacity: 0.5; }
+  button {
+    cursor: pointer;
+    margin-top: 10px;
+    font-weight: 600;
+  }
+  button:active { background: #1c2440; }
+  #mapWrap {
+    position: relative;
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-top: 14px;
+    aspect-ratio: 1 / 1;
+  }
+  #trackCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  #mapEmpty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--dim);
+    font-size: 14px;
+    text-align: center;
+    padding: 20px;
+  }
+  #info {
+    margin-top: 14px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+  }
+  #info .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  #info .row:last-child { border-bottom: none; }
+  #info .k { color: var(--dim); }
+  #info .v { color: var(--text); font-weight: 600; text-align: right; }
+  #info .title {
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  #error {
+    display: none;
+    margin-top: 12px;
+    background: rgba(255,92,92,0.12);
+    border: 1px solid var(--err);
+    color: #ffd0d0;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  #error.show { display: block; }
+  #status {
+    color: var(--dim);
+    font-size: 13px;
+    margin-top: 8px;
+    min-height: 18px;
+  }
+  .flipRow { display: flex; gap: 8px; margin-top: 10px; }
+  .flipRow button { margin-top: 0; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>F1 Replay</h1>
+    <label for="sessionSelect">Session</label>
+    <select id="sessionSelect" disabled>
+      <option value="">Loading sessions…</option>
+    </select>
+    <div id="status"></div>
+  </header>
+
+  <div id="mapWrap">
+    <canvas id="trackCanvas"></canvas>
+    <div id="mapEmpty">Select a session to draw the track</div>
+  </div>
+
+  <div class="flipRow">
+    <button id="flipBtn" disabled>Flip Y axis</button>
+  </div>
+
+  <div id="info" style="display:none">
+    <div class="title" id="infoTitle"></div>
+    <div class="row"><span class="k">Session</span><span class="v" id="infoSession">—</span></div>
+    <div class="row"><span class="k">Driver</span><span class="v" id="infoDriver">—</span></div>
+    <div class="row"><span class="k">Lap</span><span class="v" id="infoLap">—</span></div>
+    <div class="row"><span class="k">Lap time</span><span class="v" id="infoLapTime">—</span></div>
+    <div class="row"><span class="k">Outline points</span><span class="v" id="infoPoints">—</span></div>
+  </div>
+
+  <div id="error"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var els = {
+    select: document.getElementById("sessionSelect"),
+    status: document.getElementById("status"),
+    canvas: document.getElementById("trackCanvas"),
+    mapWrap: document.getElementById("mapWrap"),
+    mapEmpty: document.getElementById("mapEmpty"),
+    flipBtn: document.getElementById("flipBtn"),
+    info: document.getElementById("info"),
+    infoTitle: document.getElementById("infoTitle"),
+    infoSession: document.getElementById("infoSession"),
+    infoDriver: document.getElementById("infoDriver"),
+    infoLap: document.getElementById("infoLap"),
+    infoLapTime: document.getElementById("infoLapTime"),
+    infoPoints: document.getElementById("infoPoints"),
+    error: document.getElementById("error")
+  };
+
+  var state = {
+    sessions: [],
+    currentSessionKey: null,
+    outline: null,
+    flipY: false
+  };
+
+  function showError(msg) {
+    els.error.textContent = msg;
+    els.error.classList.add("show");
+  }
+  function clearError() {
+    els.error.classList.remove("show");
+    els.error.textContent = "";
+  }
+  function setStatus(msg) {
+    els.status.textContent = msg || "";
+  }
+
+  // Load JSON with explicit error naming the file
+  function loadJSON(url) {
+    return fetch(url, { cache: "no-store" }).then(function (res) {
+      if (!res.ok) {
+        throw new Error("Could not load " + url + ": " + res.status);
+      }
+      return res.json();
+    }).catch(function (err) {
+      // Network errors don't carry status; re-throw with file name
+      if (err && err.message && err.message.indexOf("Could not load") === 0) {
+        throw err;
+      }
+      throw new Error("Could not load " + url + ": " + (err && err.message ? err.message : "network error"));
+    });
+  }
+
+  // 1. Load sessions index
+  function loadSessions() {
+    setStatus("Loading sessions…");
+    loadJSON("data/sessions.json").then(function (sessions) {
+      if (!Array.isArray(sessions) || sessions.length === 0) {
+        throw new Error("data/sessions.json is empty — run the Actions workflow first");
+      }
+      state.sessions = sessions;
+      populateSelect(sessions);
+      els.select.disabled = false;
+      setStatus(sessions.length + " session" + (sessions.length === 1 ? "" : "s") + " available");
+    }).catch(function (err) {
+      showError(err.message);
+      setStatus("");
+    });
+  }
+
+  function populateSelect(sessions) {
+    els.select.innerHTML = "";
+    var placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Choose a session…";
+    els.select.appendChild(placeholder);
+
+    sessions.forEach(function (s) {
+      var year = s.year || "";
+      var name = s.meeting_name || "Unknown meeting";
+      var sess = s.session_name || "";
+      var label = year ? (year + " " + name + (sess ? " - " + sess : "")) : (name + (sess ? " - " + sess : ""));
+      var opt = document.createElement("option");
+      opt.value = String(s.session_key);
+      opt.textContent = label;
+      els.select.appendChild(opt);
+    });
+  }
+
+  // 2. On session select
+  els.select.addEventListener("change", function () {
+    var key = els.select.value;
+    if (!key) return;
+    selectSession(key);
+  });
+
+  function selectSession(key) {
+    clearError();
+    state.currentSessionKey = key;
+    state.outline = null;
+    els.flipBtn.disabled = true;
+    els.info.style.display = "none";
+    setStatus("Loading session " + key + "…");
+
+    var metaURL = "data/" + key + "/meta.json";
+    var outlineURL = "data/" + key + "/outline.json";
+
+    Promise.all([loadJSON(metaURL), loadJSON(outlineURL)]).then(function (results) {
+      var meta = results[0];
+      var outline = results[1];
+
+      if (!outline || !Array.isArray(outline.points) || outline.points.length === 0) {
+        throw new Error("outline.json for session " + key + " has no points");
+      }
+
+      state.outline = outline;
+      renderInfo(meta, outline);
+      els.flipBtn.disabled = false;
+      els.mapEmpty.style.display = "none";
+      drawTrack();
+      setStatus("Ready");
+    }).catch(function (err) {
+      showError(err.message);
+      setStatus("");
+      els.mapEmpty.style.display = "flex";
+      els.mapEmpty.textContent = "Could not draw track";
+    });
+  }
+
+  function renderInfo(meta, outline) {
+    els.info.style.display = "block";
+    els.infoTitle.textContent = (meta.meeting_name || "—") + " · " + (meta.session_name || "");
+    els.infoSession.textContent = meta.session_name || "—";
+    els.infoDriver.textContent = "#" + outline.driver;
+    els.infoLap.textContent = "Lap " + outline.lap;
+    els.infoLapTime.textContent = (outline.lap_duration || 0).toFixed(3) + " s";
+    els.infoPoints.textContent = outline.points.length;
+  }
+
+  // 3. Drawing
+  function drawTrack() {
+    if (!state.outline) return;
+    var canvas = els.canvas;
+    var wrap = els.mapWrap;
+    var dpr = window.devicePixelRatio || 1;
+
+    var cssW = wrap.clientWidth;
+    var cssH = wrap.clientHeight;
+    if (cssW === 0 || cssH === 0) return;
+
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    canvas.style.width = cssW + "px";
+    canvas.style.height = cssH + "px";
+
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    var pts = state.outline.points;
+    // Bounding box
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (var i = 0; i < pts.length; i++) {
+      var x = pts[i][0], y = pts[i][1];
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    var w = maxX - minX;
+    var h = maxY - minY;
+    if (w <= 0 || h <= 0) {
+      showError("outline.json has zero-width bounding box");
+      return;
+    }
+
+    var pad = 20;
+    var availW = cssW - pad * 2;
+    var availH = cssH - pad * 2;
+    var scale = Math.min(availW / w, availH / h);
+    var offsetX = pad + (availW - w * scale) / 2;
+    var offsetY = pad + (availH - h * scale) / 2;
+
+    function toCanvas(p) {
+      var cx = (p[0] - minX) * scale + offsetX;
+      var cy = (p[1] - minY) * scale + offsetY;
+      if (state.flipY) cy = cssH - cy;
+      return [cx, cy];
+    }
+
+    // Draw track line
+    ctx.lineWidth = 3;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#ff5c7a";
+    ctx.beginPath();
+    var first = toCanvas(pts[0]);
+    ctx.moveTo(first[0], first[1]);
+    for (var j = 1; j < pts.length; j++) {
+      var c = toCanvas(pts[j]);
+      ctx.lineTo(c[0], c[1]);
+    }
+    // Close the loop
+    ctx.closePath();
+    ctx.stroke();
+
+    // Fill a subtle inner shadow effect: draw the same path again with wider lighter stroke
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.stroke();
+
+    // Mark start point
+    ctx.beginPath();
+    ctx.arc(first[0], first[1], 4, 0, Math.PI * 2);
+    ctx.fillStyle = "#4ade80";
+    ctx.fill();
+  }
+
+  // 4. Flip button
+  els.flipBtn.addEventListener("click", function () {
+    state.flipY = !state.flipY;
+    els.flipBtn.textContent = state.flipY ? "Un-flip Y axis" : "Flip Y axis";
+    drawTrack();
+  });
+
+  // 5. Resize and rotate
+  var resizeTimer = null;
+  function scheduleRedraw() {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      drawTrack();
+    }, 100);
+  }
+  window.addEventListener("resize", scheduleRedraw);
+  window.addEventListener("orientationchange", scheduleRedraw);
+
+  // Boot
+  loadSessions();
+})();
+</script>
+</body>
+</html>
