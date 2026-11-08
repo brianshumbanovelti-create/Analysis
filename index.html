@@ -18,8 +18,6 @@
     --muted: #707c98;
     --accent: #ff5c7a;
     --err: #ff5c5c;
-    
-    /* Sector Colors (High Contrast) */
     --purple: #c58bff;
     --green: #4ade80;
     --yellow: #ffd23f;
@@ -40,7 +38,6 @@
     overscroll-behavior-y: none;
   }
   
-  /* --- HEADER --- */
   #header {
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -59,283 +56,160 @@
     align-items: center;
     margin-bottom: 8px;
   }
-  .title {
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-  }
-  .title i {
-    font-style: normal;
-    color: var(--muted);
-    font-weight: 500;
-  }
+  .title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .title i { font-style: normal; color: var(--muted); font-weight: 500; }
   .download-meter {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--dim);
-    background: var(--bg2);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 5px 11px;
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    font-size: 11px; font-weight: 500; color: var(--dim);
+    background: var(--bg2); border: 1px solid var(--line);
+    border-radius: 999px; padding: 5px 11px;
   }
   
-  /* --- SELECTORS --- */
-  .selector-row {
-    display: flex;
-    gap: 8px;
-    width: 100%;
-  }
+  .selector-row { display: flex; gap: 8px; width: 100%; }
   .selector-row select {
-    flex: 1;
-    min-width: 0;
-    appearance: none;
-    -webkit-appearance: none;
+    flex: 1; min-width: 0; appearance: none; -webkit-appearance: none;
     background: var(--bg2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a6b0c7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center;
-    color: var(--text);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 10px 30px 10px 12px;
-    font-size: 13px;
-    font-weight: 500;
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    text-overflow: ellipsis;
+    color: var(--text); border: 1px solid var(--line); border-radius: 14px;
+    padding: 10px 30px 10px 12px; font-size: 13px; font-weight: 500;
   }
   .selector-row select:disabled { opacity: 0.5; }
   .selector-row select:first-child { flex: 0 0 90px; }
-  .selector-row select option { background: #101828; color: var(--text); }
   
-  /* --- ERROR BANNER --- */
   #error {
-    position: fixed;
-    top: calc(var(--header-height) + 8px);
-    left: 12px; right: 12px;
-    z-index: 30;
-    display: none;
-    background: rgba(255,92,92,0.95);
-    color: #fff;
-    border-radius: 8px;
-    padding: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    text-align: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    position: fixed; top: calc(var(--header-height) + 8px); left: 12px; right: 12px;
+    z-index: 30; display: none; background: rgba(255,92,92,0.95); color: #fff;
+    border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600;
+    text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   }
   #error.show { display: block; }
   
-  /* --- MAP CONTAINER (FIXED) --- */
   #mapContainer {
-    position: fixed;
-    top: var(--header-height);
-    left: 0; right: 0;
-    height: var(--map-height);
-    z-index: 10;
-    padding: 0 var(--map-margin);
+    position: fixed; top: var(--header-height); left: 0; right: 0;
+    height: var(--map-height); z-index: 10; padding: 0 var(--map-margin);
     background: var(--bg0);
   }
   #mapWrap {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    background: var(--bg1);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    overflow: hidden;
+    position: relative; width: 100%; height: 100%;
+    background: var(--bg1); border: 1px solid var(--line);
+    border-radius: 14px; overflow: hidden;
   }
   
-  /* Map Controls */
   #mapControls {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0 12px;
-    background: rgba(12, 19, 34, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--line);
+    position: absolute; top: 0; left: 0; right: 0; height: 48px;
+    display: flex; align-items: center; gap: 8px; padding: 0 12px;
+    background: rgba(12, 19, 34, 0.85); border-bottom: 1px solid var(--line);
     z-index: 5;
   }
   .icon-btn {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    background: var(--bg3);
-    border: none;
-    color: var(--text);
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
+    width: 32px; height: 32px; border-radius: 50%; background: var(--bg3);
+    border: none; color: var(--text); font-size: 14px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
   }
   .icon-btn:active { background: rgba(255,255,255,0.2); }
   .icon-btn:disabled { opacity: 0.4; }
+  
+  #sliderWrap { flex: 1; position: relative; display: flex; align-items: center; height: 32px; }
   #slider {
-    flex: 1;
-    min-height: 32px;
-    accent-color: var(--text);
+    width: 100%; min-height: 32px; accent-color: var(--text);
+    position: relative; z-index: 2; background: transparent;
+  }
+  #sliderMarkers {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 1; pointer-events: none; overflow: hidden; border-radius: 4px;
+  }
+  .slider-marker {
+    position: absolute; top: 0; bottom: 0; width: 4px;
+    background: rgba(255, 92, 92, 0.4);
   }
   
   #trackCanvas {
-    position: absolute;
-    top: 48px;
-    left: 0;
-    width: 100%;
-    height: calc(100% - 48px);
+    position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px);
     touch-action: manipulation;
   }
   #mapEmpty {
-    position: absolute;
-    inset: 48px 0 0 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted);
-    font-size: 13px;
-    text-align: center;
-    padding: 20px;
-    pointer-events: none;
+    position: absolute; inset: 48px 0 0 0; display: flex; align-items: center;
+    justify-content: center; color: var(--muted); font-size: 13px; text-align: center;
+    padding: 20px; pointer-events: none;
   }
   
   #timeDisplay {
-    position: absolute;
-    bottom: 10px;
-    left: 12px;
-    font-variant-numeric: tabular-nums;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--dim);
-    z-index: 5;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    position: absolute; bottom: 10px; left: 12px;
+    font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600;
+    color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
   }
   
-  /* --- RANKINGS LIST --- */
+  /* RC Popup */
+  #rcPopup {
+    position: absolute; top: 56px; left: 12px; right: 12px;
+    background: rgba(255, 210, 63, 0.95); color: #000;
+    padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 700;
+    text-align: center; opacity: 0; transition: opacity 0.3s ease;
+    pointer-events: none; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  #rcPopup.show { opacity: 1; }
+  #rcPopup.red { background: rgba(255, 92, 92, 0.95); color: #fff; }
+
   #listContainer {
-    position: absolute;
-    top: calc(var(--header-height) + var(--map-height) + 8px);
-    bottom: 0;
-    left: 0; right: 0;
-    overflow-y: auto;
+    position: absolute; top: calc(var(--header-height) + var(--map-height) + 8px);
+    bottom: 0; left: 0; right: 0; overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 0 var(--map-margin) calc(20px + env(safe-area-inset-bottom));
     z-index: 5;
   }
   
   .list-header-row {
-    display: grid;
-    grid-template-columns: 24px 56px 1fr 40px 24px 60px;
-    gap: 4px;
-    padding: 12px 12px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 60px;
+    gap: 4px; padding: 12px 12px 8px; font-size: 11px;
+    font-weight: 600; color: var(--muted); text-transform: uppercase;
   }
-  .list-header-row span:nth-child(3),
-  .list-header-row span:nth-child(6) { text-align: right; }
-  .list-header-row span:nth-child(4),
-  .list-header-row span:nth-child(5) { text-align: center; }
+  .list-header-row span:nth-child(3), .list-header-row span:nth-child(6) { text-align: right; }
+  .list-header-row span:nth-child(4), .list-header-row span:nth-child(5) { text-align: center; }
   
   .driver-row {
-    background: var(--bg2);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    margin-bottom: 6px;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
+    background: var(--bg2); border: 1px solid var(--line); border-radius: 12px;
+    margin-bottom: 6px; user-select: none; touch-action: manipulation;
     transition: background 0.2s ease, border-color 0.2s ease;
-    overflow: hidden;
   }
-  .driver-row.highlighted {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.3);
-  }
+  .driver-row.highlighted { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.3); }
   
   .row-main {
-    display: grid;
-    grid-template-columns: 24px 56px 1fr 40px 24px 60px;
-    gap: 4px;
-    padding: 10px 12px;
-    align-items: center;
+    display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 60px;
+    gap: 4px; padding: 10px 12px; align-items: center;
   }
   
   .row-pos { font-size: 13px; font-weight: 700; color: var(--dim); text-align: center; }
-  
   .row-driver { display: flex; align-items: center; gap: 6px; }
   .row-circle {
-    width: 20px; height: 20px;
-    border-radius: 50%;
+    width: 22px; height: 22px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 800;
-    flex-shrink: 0;
+    font-size: 11px; font-weight: 800; flex-shrink: 0;
   }
   .row-acronym { font-size: 13px; font-weight: 700; letter-spacing: 0.3px; }
-  
   .row-gap { font-size: 12px; font-weight: 500; color: var(--dim); text-align: right; }
-  
-  .row-tyre {
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-  }
+  .row-tyre { display: flex; align-items: center; justify-content: center; }
   .tyre-circle {
-    width: 18px; height: 18px;
-    border-radius: 50%;
+    width: 22px; height: 22px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: 10px; font-weight: 800;
   }
-  .tyre-age { font-size: 9px; color: var(--muted); }
-  
   .row-laps { font-size: 12px; font-weight: 500; color: var(--dim); text-align: center; }
-  
   .row-best { font-size: 12px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
   
   .row-sectors {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    padding: 0 12px 10px 92px;
+    display: grid; grid-template-columns: 40px 40px 40px 1fr;
+    gap: 6px; padding: 0 12px 10px 44px; align-items: center;
   }
-  .sector-box {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .sector-time {
-    font-size: 11px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
+  .sector-time { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .lap-total-time { font-size: 11px; font-weight: 600; color: var(--text); text-align: right; font-variant-numeric: tabular-nums; padding-right: 4px; }
   
-  /* Sector Colors */
   .sector-time.dimmed { opacity: 0.4; }
   .sector-time.c-neutral { color: var(--dim); }
   .sector-time.c-yellow { color: var(--yellow); }
   .sector-time.c-green { color: var(--green); }
   .sector-time.c-purple { color: var(--purple); }
   
-  /* Loading Progress */
-  #progressWrap {
-    position: absolute;
-    top: 48px;
-    left: 0; right: 0;
-    height: 2px;
-    background: rgba(255,255,255,0.1);
-    display: none;
-    z-index: 6;
-  }
+  #progressWrap { position: absolute; top: 48px; left: 0; right: 0; height: 2px; background: rgba(255,255,255,0.1); display: none; z-index: 6; }
   #progressWrap.show { display: block; }
-  #progressBar {
-    height: 100%;
-    background: var(--accent);
-    width: 0%;
-    transition: width 0.1s linear;
-  }
+  #progressBar { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
 </style>
 </head>
 <body>
@@ -358,24 +232,23 @@
   <div id="mapWrap">
     <div id="mapControls">
       <button id="playBtn" class="icon-btn" disabled>▶</button>
-      <input type="range" id="slider" min="0" max="100" value="0" step="0.1" disabled>
+      <div id="sliderWrap">
+        <div id="sliderMarkers"></div>
+        <input type="range" id="slider" min="0" max="100" value="0" step="0.1" disabled>
+      </div>
       <button id="flipBtn" class="icon-btn" disabled>🔃</button>
     </div>
     <div id="progressWrap"><div id="progressBar"></div></div>
     <canvas id="trackCanvas"></canvas>
     <div id="mapEmpty">Select a session to draw the track</div>
     <div id="timeDisplay">00:00 / 00:00</div>
+    <div id="rcPopup"></div>
   </div>
 </div>
 
 <div id="listContainer">
   <div class="list-header-row">
-    <span>Pos</span>
-    <span>Driver</span>
-    <span>Gap</span>
-    <span>Tyre</span>
-    <span>Laps</span>
-    <span>Best</span>
+    <span>Pos</span><span>Driver</span><span>Gap</span><span>Tyre</span><span>Laps</span><span>Best</span>
   </div>
   <div id="rankingsList"></div>
 </div>
@@ -384,126 +257,70 @@
 (function () {
   "use strict";
 
-  /*
-   * KNOWN LIMITS:
-   * - Ordering by best lap so far can differ slightly from the official qualifying
-   *   classification, which ranks by the session stage reached (Q3, Q2, Q1).
-   * - laps.json has no flag for deleted laps as far as I know.
-   * - In qualifying, live timing may reset the sector colours at the start of Q2
-   *   and Q3. Our data has no segment boundaries, so we compare across the whole
-   *   session.
-   */
-
   var els = {
-    yearSelect: document.getElementById("yearSelect"),
-    meetingSelect: document.getElementById("meetingSelect"),
-    sessionSelect: document.getElementById("sessionSelect"),
-    dataMeter: document.getElementById("dataMeter"),
-    error: document.getElementById("error"),
-    mapWrap: document.getElementById("mapWrap"),
-    canvas: document.getElementById("trackCanvas"),
-    mapEmpty: document.getElementById("mapEmpty"),
-    playBtn: document.getElementById("playBtn"),
-    slider: document.getElementById("slider"),
-    flipBtn: document.getElementById("flipBtn"),
-    timeDisplay: document.getElementById("timeDisplay"),
-    progressWrap: document.getElementById("progressWrap"),
-    progressBar: document.getElementById("progressBar"),
-    rankingsList: document.getElementById("rankingsList")
+    yearSelect: document.getElementById("yearSelect"), meetingSelect: document.getElementById("meetingSelect"),
+    sessionSelect: document.getElementById("sessionSelect"), dataMeter: document.getElementById("dataMeter"),
+    error: document.getElementById("error"), mapWrap: document.getElementById("mapWrap"),
+    canvas: document.getElementById("trackCanvas"), mapEmpty: document.getElementById("mapEmpty"),
+    playBtn: document.getElementById("playBtn"), slider: document.getElementById("slider"),
+    sliderMarkers: document.getElementById("sliderMarkers"), flipBtn: document.getElementById("flipBtn"),
+    timeDisplay: document.getElementById("timeDisplay"), progressWrap: document.getElementById("progressWrap"),
+    progressBar: document.getElementById("progressBar"), rankingsList: document.getElementById("rankingsList"),
+    rcPopup: document.getElementById("rcPopup")
   };
 
   var state = {
-    allSessions: [],
-    currentSessionKey: null,
-    outline: null,
-    flipY: true,
-    sessionLength: 0,
-    sessionStartMs: 0,
-    drivers: {},
-    driverOrder: [],
-    laps: [],
-    stints: {},
-    currentTime: 0,
-    playing: false,
-    lastFrameTime: 0,
-    transform: null,
-    highlightedDriver: null,
-    bytesDownloaded: 0
+    allSessions: [], currentSessionKey: null, outline: null, flipY: true,
+    sessionLength: 0, sessionStartMs: 0, drivers: {}, driverOrder: [],
+    laps: [], stints: {}, raceControl: [], sessionResult: [],
+    currentTime: 0, playing: false, lastFrameTime: 0, transform: null,
+    highlightedDriver: null, bytesDownloaded: 0,
+    currentPhase: 1, q1Ended: false, q2Ended: false,
+    q1Eliminated: [], q2Eliminated: [],
+    activeRC: null, rcTimeout: null
   };
   
   var animationId = null;
   var baseCanvas = document.createElement("canvas");
   var baseCtx = baseCanvas.getContext("2d");
   var resizeTimer = null;
-  
-  var lastTapTime = 0;
-  var lastTapTarget = null;
+  var lastTapTime = 0, lastTapTarget = null;
 
-  function addBytes(len) {
-    state.bytesDownloaded += len;
-    updateMeter();
-  }
+  function addBytes(len) { state.bytesDownloaded += len; updateMeter(); }
   function updateMeter() {
-    if (state.bytesDownloaded < 1024 * 1024) {
-      els.dataMeter.textContent = Math.round(state.bytesDownloaded / 1024) + " KB";
-    } else {
-      els.dataMeter.textContent = (state.bytesDownloaded / (1024 * 1024)).toFixed(1) + " MB";
-    }
+    els.dataMeter.textContent = state.bytesDownloaded < 1048576 
+      ? Math.round(state.bytesDownloaded / 1024) + " KB"
+      : (state.bytesDownloaded / 1048576).toFixed(1) + " MB";
   }
-
   function showError(msg) {
-    els.error.textContent = msg;
-    els.error.classList.add("show");
+    els.error.textContent = msg; els.error.classList.add("show");
     setTimeout(() => els.error.classList.remove("show"), 5000);
   }
-
   function fetchJSON(url) {
-    return fetch(url, { cache: "no-store" }).then(function (res) {
+    return fetch(url, { cache: "no-store" }).then(res => {
       if (!res.ok) throw new Error("Could not load " + url + ": " + res.status);
-      return res.text().then(function(text) {
-        addBytes(text.length);
-        return JSON.parse(text);
-      });
+      return res.text().then(text => { addBytes(text.length); return JSON.parse(text); });
     });
   }
-
   function formatTime(sec) {
     if (sec === null || sec === undefined) return "";
-    var m = Math.floor(sec / 60);
-    var s = (sec % 60).toFixed(3);
-    if (s < 10) s = "0" + s;
-    return m + ":" + s;
+    var m = Math.floor(sec / 60), s = (sec % 60).toFixed(3);
+    return m + ":" + (s < 10 ? "0" + s : s);
   }
-  
-  function formatShortTime(sec) {
-    if (sec === null || sec === undefined) return "";
-    return sec.toFixed(3);
-  }
-
+  function formatShortTime(sec) { return sec === null ? "" : sec.toFixed(3); }
   function updateTimeDisplay() {
-    var m = Math.floor(state.currentTime / 60);
-    var s = Math.floor(state.currentTime % 60);
-    var totalM = Math.floor(state.sessionLength / 60);
-    var totalS = Math.floor(state.sessionLength % 60);
-    
-    var str = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
-    var strTotal = (totalM < 10 ? "0" : "") + totalM + ":" + (totalS < 10 ? "0" : "") + totalS;
-    els.timeDisplay.textContent = str + " / " + strTotal;
+    var m = Math.floor(state.currentTime / 60), s = Math.floor(state.currentTime % 60);
+    var tM = Math.floor(state.sessionLength / 60), tS = Math.floor(state.sessionLength % 60);
+    els.timeDisplay.textContent = (m<10?"0":"")+m+":"+(s<10?"0":"")+s+" / "+(tM<10?"0":"")+tM+":"+(tS<10?"0":"")+tS;
     els.slider.value = state.currentTime;
   }
-
   function getContrastColor(hex) {
     if(!hex || hex === "ffffff") return "#000";
-    var r = parseInt(hex.substr(0, 2), 16);
-    var g = parseInt(hex.substr(2, 2), 16);
-    var b = parseInt(hex.substr(4, 2), 16);
-    var yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-    return (yiq >= 128) ? '#000000' : '#ffffff';
+    var r = parseInt(hex.substr(0, 2), 16), g = parseInt(hex.substr(2, 2), 16), b = parseInt(hex.substr(4, 2), 16);
+    return (((r * 299) + (g * 587) + (b * 114)) / 1000 >= 128) ? '#000000' : '#ffffff';
   }
-  
-  function getTyreColor(compound) {
-    if (!compound) return "#555";
-    var c = compound.toUpperCase();
+  function getTyreColor(c) {
+    if (!c) return "#555"; c = c.toUpperCase();
     if (c.includes("SOFT")) return "#ff3b4e";
     if (c.includes("MED")) return "#ffd23f";
     if (c.includes("HARD")) return "#f1f3f8";
@@ -511,332 +328,206 @@
     if (c.includes("WET")) return "#4aa3ff";
     return "#555";
   }
-  
-  function getTyreLetter(compound) {
-    if (!compound) return "?";
-    var c = compound.toUpperCase();
-    if (c.includes("SOFT")) return "S";
-    if (c.includes("MED")) return "M";
-    if (c.includes("HARD")) return "H";
-    if (c.includes("INTER")) return "I";
-    if (c.includes("WET")) return "W";
-    return c[0];
-  }
 
-  fetchJSON("data/sessions.json").then(function (sessions) {
+  fetchJSON("data/sessions.json").then(sessions => {
     if (!Array.isArray(sessions) || sessions.length === 0) throw new Error("sessions.json is empty");
     state.allSessions = sessions;
-    
     var years = [...new Set(sessions.map(s => s.year || "Unknown"))].sort((a,b) => b-a);
     els.yearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
     els.yearSelect.disabled = false;
-    
     els.yearSelect.addEventListener("change", populateMeetings);
     els.meetingSelect.addEventListener("change", populateSessions);
-    els.sessionSelect.addEventListener("change", function() {
-      if (this.value) selectSession(this.value);
-    });
-    
+    els.sessionSelect.addEventListener("change", function() { if (this.value) selectSession(this.value); });
     populateMeetings();
-  }).catch(function (err) {
-    showError(err.message);
-  });
+  }).catch(err => showError(err.message));
 
   function populateMeetings() {
     var year = els.yearSelect.value;
     var filtered = state.allSessions.filter(s => String(s.year) === String(year));
-    
-    var meetings = [];
-    var seen = new Set();
-    filtered.forEach(s => {
-      if (!seen.has(s.meeting_name)) {
-        seen.add(s.meeting_name);
-        meetings.push(s.meeting_name || "Unknown");
-      }
-    });
-    
+    var meetings = [], seen = new Set();
+    filtered.forEach(s => { if (!seen.has(s.meeting_name)) { seen.add(s.meeting_name); meetings.push(s.meeting_name || "Unknown"); } });
     els.meetingSelect.innerHTML = meetings.map(m => `<option value="${m}">${m}</option>`).join("");
     els.meetingSelect.disabled = false;
     populateSessions();
   }
-
   function populateSessions() {
-    var year = els.yearSelect.value;
-    var meeting = els.meetingSelect.value;
+    var year = els.yearSelect.value, meeting = els.meetingSelect.value;
     var filtered = state.allSessions.filter(s => String(s.year) === String(year) && s.meeting_name === meeting);
-    
-    els.sessionSelect.innerHTML = filtered.map(s => 
-      `<option value="${s.session_key}">${s.session_name || "Session"}</option>`
-    ).join("");
+    els.sessionSelect.innerHTML = filtered.map(s => `<option value="${s.session_key}">${s.session_name || "Session"}</option>`).join("");
     els.sessionSelect.disabled = false;
-    
-    if (filtered.length > 0) {
-      selectSession(filtered[0].session_key);
-    }
+    if (filtered.length > 0) selectSession(filtered[0].session_key);
   }
 
   function selectSession(key) {
-    state.currentSessionKey = key;
-    state.outline = null;
-    state.drivers = {};
-    state.driverOrder = [];
-    state.laps = [];
-    state.stints = {};
-    state.highlightedDriver = null;
-    state.bytesDownloaded = 0;
+    state.currentSessionKey = key; state.outline = null; state.drivers = {};
+    state.driverOrder = []; state.laps = []; state.stints = {}; state.raceControl = []; state.sessionResult = [];
+    state.highlightedDriver = null; state.bytesDownloaded = 0; state.currentPhase = 1;
+    state.q1Ended = false; state.q2Ended = false; state.q1Eliminated = []; state.q2Eliminated = [];
     updateMeter();
+    els.playBtn.disabled = true; els.flipBtn.disabled = true; els.slider.disabled = true;
+    els.mapEmpty.style.display = "flex"; els.mapEmpty.textContent = "Loading data…";
+    els.rankingsList.innerHTML = ""; els.progressWrap.classList.add("show"); els.progressBar.style.width = "0%";
+    els.sliderMarkers.innerHTML = "";
     
-    els.playBtn.disabled = true;
-    els.flipBtn.disabled = true;
-    els.slider.disabled = true;
-    els.mapEmpty.style.display = "flex";
-    els.mapEmpty.textContent = "Loading data…";
-    els.rankingsList.innerHTML = "";
-    els.progressWrap.classList.add("show");
-    els.progressBar.style.width = "0%";
-    
-    var metaURL = "data/" + key + "/meta.json";
-    var outlineURL = "data/" + key + "/outline.json";
-    var driversURL = "data/" + key + "/drivers.json";
-    var lapsURL = "data/" + key + "/laps.json";
-    var stintsURL = "data/" + key + "/stints.json";
-
     Promise.all([
-      fetchJSON(metaURL), 
-      fetchJSON(outlineURL), 
-      fetchJSON(driversURL),
-      fetchJSON(lapsURL),
-      fetchJSON(stintsURL)
-    ]).then(function (results) {
-      var meta = results[0];
-      var outline = results[1];
-      var driversRaw = results[2];
-      state.laps = results[3];
-      var stintsRaw = results[4];
+      fetchJSON(`data/${key}/meta.json`), fetchJSON(`data/${key}/outline.json`),
+      fetchJSON(`data/${key}/drivers.json`), fetchJSON(`data/${key}/laps.json`),
+      fetchJSON(`data/${key}/stints.json`), fetchJSON(`data/${key}/race_control.json`),
+      fetchJSON(`data/${key}/session_result.json`)
+    ]).then(results => {
+      var meta = results[0], outline = results[1], driversRaw = results[2];
+      state.laps = results[3]; var stintsRaw = results[4];
+      state.raceControl = results[5]; state.sessionResult = results[6];
 
       state.sessionStartMs = new Date(meta.date_start).getTime();
-      state.sessionLength = (new Date(meta.date_end).getTime() - state.sessionStartMs) / 1000;
       state.outline = outline;
-      els.slider.max = state.sessionLength;
       
-      driversRaw.forEach(function(d) {
-        state.drivers[d.driver_number] = {
-          acronym: d.name_acronym || String(d.driver_number),
-          color: d.team_colour || "ffffff",
-          data: []
-        };
+      // Dynamic session length: use latest timestamp in laps or location
+      var maxT = 0;
+      state.laps.forEach(l => { if (l.date_start) maxT = Math.max(maxT, (new Date(l.date_start).getTime() - state.sessionStartMs)/1000 + (l.lap_duration || 0)); });
+      state.raceControl.forEach(m => { maxT = Math.max(maxT, (new Date(m.date).getTime() - state.sessionStartMs)/1000); });
+      
+      state.sessionLength = Math.max(maxT + 10, (new Date(meta.date_end).getTime() - state.sessionStartMs)/1000);
+      els.slider.max = state.sessionLength;
+
+      // Slider markers for Red Flags
+      var redStart = null;
+      state.raceControl.forEach(m => {
+        if (m.flag === "RED") redStart = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
+        else if (redStart !== null && (m.flag === "GREEN" || m.message === "TRACK CLEAR")) {
+          var redEnd = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
+          var pct = (redStart / state.sessionLength) * 100, w = ((redEnd - redStart) / state.sessionLength) * 100;
+          els.sliderMarkers.innerHTML += `<div class="slider-marker" style="left:${pct}%; width:${w}%"></div>`;
+          redStart = null;
+        }
+      });
+
+      driversRaw.forEach(d => {
+        state.drivers[d.driver_number] = { acronym: d.name_acronym || String(d.driver_number), color: d.team_colour || "ffffff", data: [] };
         state.driverOrder.push(d);
       });
-      
-      stintsRaw.forEach(function(s) {
-        if (!state.stints[s.driver_number]) state.stints[s.driver_number] = [];
-        state.stints[s.driver_number].push(s);
+      stintsRaw.forEach(s => { if (!state.stints[s.driver_number]) state.stints[s.driver_number] = []; state.stints[s.driver_number].push(s); });
+
+      // Qualifying Cutoffs using session_result
+      state.sessionResult.forEach(r => {
+        if (!r.duration || !Array.isArray(r.duration)) return;
+        var q1 = r.duration[0], q2 = r.duration[1], q3 = r.duration[2];
+        if (q1 !== null && q2 === null) state.q1Eliminated.push(r.driver_number);
+        if (q1 !== null && q2 !== null && q3 === null) state.q2Eliminated.push(r.driver_number);
       });
-      
-      // --- PRECOMPUTE SECTOR COLOURS ---
-      // We must process laps in chronological order to know what was "set before".
-      var validLaps = state.laps.filter(l => l.date_start !== null);
-      validLaps.sort((a, b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
-      
+
+      // Precompute Sector Colors
+      var validLaps = state.laps.filter(l => l.date_start !== null).sort((a,b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
       var bestS1 = Infinity, bestS2 = Infinity, bestS3 = Infinity;
-      var driverBestS1 = {}, driverBestS2 = {}, driverBestS3 = {};
+      var drvBestS1 = {}, drvBestS2 = {}, drvBestS3 = {};
       
-      validLaps.forEach(function(l) {
-        l._t_start = (new Date(l.date_start).getTime() - state.sessionStartMs) / 1000;
+      validLaps.forEach(l => {
+        l._t_start = (new Date(l.date_start).getTime() - state.sessionStartMs)/1000;
         l._t_end = l._t_start + (l.lap_duration || 0);
+        if (l.is_pit_out_lap) { l._c1 = l._c2 = l._c3 = 'c-neutral'; return; }
         
-        var isPitOut = !!l.is_pit_out_lap;
-        
-        // Sector 1
-        if (l.duration_sector_1 !== null && l.duration_sector_1 !== undefined) {
-          var val = l.duration_sector_1;
-          if (isPitOut) {
-            l._c1 = 'c-neutral';
-          } else {
-            var isPurple = val <= bestS1;
-            var isGreen = val <= (driverBestS1[l.driver_number] || Infinity);
-            l._c1 = isPurple ? 'c-purple' : (isGreen ? 'c-green' : 'c-yellow');
-            
-            if (isPurple) bestS1 = val;
-            if (isGreen && val < (driverBestS1[l.driver_number] || Infinity)) {
-              driverBestS1[l.driver_number] = val;
-            }
-          }
+        if (l.duration_sector_1) {
+          l._c1 = l.duration_sector_1 <= bestS1 ? 'c-purple' : (l.duration_sector_1 <= (drvBestS1[l.driver_number]||Infinity) ? 'c-green' : 'c-yellow');
+          if (l.duration_sector_1 < bestS1) bestS1 = l.duration_sector_1;
+          if (l.duration_sector_1 < (drvBestS1[l.driver_number]||Infinity)) drvBestS1[l.driver_number] = l.duration_sector_1;
         }
-        
-        // Sector 2
-        if (l.duration_sector_2 !== null && l.duration_sector_2 !== undefined) {
-          var val = l.duration_sector_2;
-          if (isPitOut) {
-            l._c2 = 'c-neutral';
-          } else {
-            var isPurple = val <= bestS2;
-            var isGreen = val <= (driverBestS2[l.driver_number] || Infinity);
-            l._c2 = isPurple ? 'c-purple' : (isGreen ? 'c-green' : 'c-yellow');
-            
-            if (isPurple) bestS2 = val;
-            if (isGreen && val < (driverBestS2[l.driver_number] || Infinity)) {
-              driverBestS2[l.driver_number] = val;
-            }
-          }
+        if (l.duration_sector_2) {
+          l._c2 = l.duration_sector_2 <= bestS2 ? 'c-purple' : (l.duration_sector_2 <= (drvBestS2[l.driver_number]||Infinity) ? 'c-green' : 'c-yellow');
+          if (l.duration_sector_2 < bestS2) bestS2 = l.duration_sector_2;
+          if (l.duration_sector_2 < (drvBestS2[l.driver_number]||Infinity)) drvBestS2[l.driver_number] = l.duration_sector_2;
         }
-        
-        // Sector 3
-        if (l.duration_sector_3 !== null && l.duration_sector_3 !== undefined) {
-          var val = l.duration_sector_3;
-          if (isPitOut) {
-            l._c3 = 'c-neutral';
-          } else {
-            var isPurple = val <= bestS3;
-            var isGreen = val <= (driverBestS3[l.driver_number] || Infinity);
-            l._c3 = isPurple ? 'c-purple' : (isGreen ? 'c-green' : 'c-yellow');
-            
-            if (isPurple) bestS3 = val;
-            if (isGreen && val < (driverBestS3[l.driver_number] || Infinity)) {
-              driverBestS3[l.driver_number] = val;
-            }
-          }
+        if (l.duration_sector_3) {
+          l._c3 = l.duration_sector_3 <= bestS3 ? 'c-purple' : (l.duration_sector_3 <= (drvBestS3[l.driver_number]||Infinity) ? 'c-green' : 'c-yellow');
+          if (l.duration_sector_3 < bestS3) bestS3 = l.duration_sector_3;
+          if (l.duration_sector_3 < (drvBestS3[l.driver_number]||Infinity)) drvBestS3[l.driver_number] = l.duration_sector_3;
         }
       });
 
-      var driverNums = state.driverOrder.map(d => d.driver_number);
-      var loadedCount = 0;
-      var totalDrivers = driverNums.length;
-      
-      function loadNext(idx) {
-        if (idx >= totalDrivers) return finishLoading();
-        
-        var dn = driverNums[idx];
-        var url = "data/" + key + "/location/" + dn + ".json";
-        
-        fetchJSON(url).then(function(data) {
-          state.drivers[dn].data = data;
-        }).catch(function(err) {
-          console.warn(err.message);
-        }).finally(function() {
-          loadedCount++;
-          els.progressBar.style.width = Math.round((loadedCount / totalDrivers) * 100) + "%";
-          loadNext(idx + 1);
+      var loaded = 0, total = state.driverOrder.length;
+      function next() {
+        if (loaded >= total) return finish();
+        var dn = state.driverOrder[loaded].driver_number;
+        fetchJSON(`data/${key}/location/${dn}.json`).then(d => state.drivers[dn].data = d).catch(e => console.warn(e)).finally(() => {
+          loaded++; els.progressBar.style.width = Math.round((loaded/total)*100) + "%"; next();
         });
       }
-      
-      function finishLoading() {
-        els.progressWrap.classList.remove("show");
-        els.mapEmpty.style.display = "none";
-        els.playBtn.disabled = false;
-        els.flipBtn.disabled = false;
-        els.slider.disabled = false;
-        
-        state.currentTime = 0;
-        updateTimeDisplay();
-        
-        renderRankings();
-        prepareBackground();
-        drawCars();
-        updateRankings();
+      function finish() {
+        els.progressWrap.classList.remove("show"); els.mapEmpty.style.display = "none";
+        els.playBtn.disabled = false; els.flipBtn.disabled = false; els.slider.disabled = false;
+        state.currentTime = 0; updateTimeDisplay();
+        renderRankings(); prepareBackground(); drawCars(); updateRankings();
       }
-      
-      loadNext(0);
-
-    }).catch(function (err) {
-      showError(err.message);
-      els.progressWrap.classList.remove("show");
-      els.mapEmpty.textContent = "Could not load data";
-    });
+      next();
+    }).catch(err => { showError(err.message); els.progressWrap.classList.remove("show"); els.mapEmpty.textContent = "Could not load data"; });
   }
 
   function renderRankings() {
-    els.rankingsList.innerHTML = state.driverOrder.map(function(d) {
-      var dn = d.driver_number;
-      var color = state.drivers[dn].color;
-      var textColor = getContrastColor(color);
-      var acronym = state.drivers[dn].acronym;
-      
+    els.rankingsList.innerHTML = state.driverOrder.map(d => {
+      var dn = d.driver_number, color = state.drivers[dn].color, txt = getContrastColor(color);
       return `
         <div class="driver-row" data-dn="${dn}" id="row-${dn}">
           <div class="row-main">
             <div class="row-pos" id="pos-${dn}"></div>
             <div class="row-driver">
-              <div class="row-circle" style="background:#${color}; color:${textColor}">${dn}</div>
-              <div class="row-acronym">${acronym}</div>
+              <div class="row-circle" style="background:#${color}; color:${txt}">${dn}</div>
+              <div class="row-acronym">${state.drivers[dn].acronym}</div>
             </div>
             <div class="row-gap" id="gap-${dn}"></div>
-            <div class="row-tyre">
-              <div class="tyre-circle" id="tyre-c-${dn}" style="display:none"></div>
-              <div class="tyre-age" id="tyre-a-${dn}"></div>
-            </div>
+            <div class="row-tyre"><div class="tyre-circle" id="tyre-${dn}" style="display:none"></div></div>
             <div class="row-laps" id="laps-${dn}"></div>
             <div class="row-best" id="best-${dn}"></div>
           </div>
           <div class="row-sectors">
-            <div class="sector-box">
-              <div class="sector-time" id="s1-${dn}"></div>
-            </div>
-            <div class="sector-box">
-              <div class="sector-time" id="s2-${dn}"></div>
-            </div>
-            <div class="sector-box">
-              <div class="sector-time" id="s3-${dn}"></div>
-            </div>
+            <div class="sector-time" id="s1-${dn}"></div>
+            <div class="sector-time" id="s2-${dn}"></div>
+            <div class="sector-time" id="s3-${dn}"></div>
+            <div class="lap-total-time" id="total-${dn}"></div>
           </div>
-        </div>
-      `;
+        </div>`;
     }).join("");
   }
 
   function updateRankings() {
     if (!state.drivers || Object.keys(state.drivers).length === 0) return;
-    
-    var t = state.currentTime;
-    var driversData = [];
+    var t = state.currentTime, driversData = [];
 
-    for (var i = 0; i < state.driverOrder.length; i++) {
-      var d = state.driverOrder[i];
-      var dn = d.driver_number;
+    // Check Phase Transitions & RC Popups
+    var rcInWindow = state.raceControl.filter(m => {
+      var mt = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
+      return mt <= t && mt > t - 0.5; // Just hit this second
+    });
+    if (rcInWindow.length > 0) {
+      var m = rcInWindow[0];
+      if (m.message.includes("CHEQUERED FLAG") && m.qualifying_phase === 1) state.q1Ended = true;
+      if (m.message.includes("CHEQUERED FLAG") && m.qualifying_phase === 2) state.q2Ended = true;
       
-      var driverLaps = state.laps.filter(l => l.driver_number === dn && l._t_start !== null);
-      driverLaps.sort((a,b) => a.lap_number - b.lap_number);
-      
-      var completedLaps = driverLaps.filter(l => t >= l._t_end);
-      var bestLap = Infinity;
-      completedLaps.forEach(l => {
-        if (l.lap_duration && !l.is_pit_out_lap && l.lap_duration < bestLap) bestLap = l.lap_duration;
-      });
-      if (bestLap === Infinity) bestLap = null;
-      
-      var currentLap = null;
-      var prevLap = null;
-      for (var j = driverLaps.length - 1; j >= 0; j--) {
-        if (t >= driverLaps[j]._t_start) {
-          currentLap = driverLaps[j];
-          if (j > 0) prevLap = driverLaps[j-1];
-          break;
-        }
+      if (m.message !== state.activeRC) {
+        state.activeRC = m.message;
+        els.rcPopup.textContent = m.message;
+        els.rcPopup.className = "show " + (m.flag === "RED" ? "red" : "");
+        clearTimeout(state.rcTimeout);
+        state.rcTimeout = setTimeout(() => els.rcPopup.classList.remove("show"), 3000);
       }
-      
-      var currentStint = null;
-      var driverStints = state.stints[dn] || [];
-      if (currentLap) {
-        for (var k = driverStints.length - 1; k >= 0; k--) {
-          if (currentLap.lap_number >= driverStints[k].lap_start) {
-            currentStint = driverStints[k];
-            break;
-          }
-        }
-      }
-      
-      driversData.push({
-        dn: dn,
-        acronym: state.drivers[dn].acronym,
-        color: state.drivers[dn].color,
-        bestLap: bestLap,
-        completedLaps: completedLaps.length,
-        currentLap: currentLap,
-        prevLap: prevLap,
-        currentStint: currentStint
-      });
     }
 
+    for (var i = 0; i < state.driverOrder.length; i++) {
+      var d = state.driverOrder[i], dn = d.driver_number;
+      var laps = state.laps.filter(l => l.driver_number === dn && l._t_start !== null).sort((a,b) => a.lap_number - b.lap_number);
+      
+      var bestLap = Infinity;
+      laps.forEach(l => { if (t >= l._t_end && l.lap_duration && !l.is_pit_out_lap && l.lap_duration < bestLap) bestLap = l.lap_duration; });
+      if (bestLap === Infinity) bestLap = null;
+
+      var curr = null, prev = null;
+      for (var j = laps.length - 1; j >= 0; j--) { if (t >= laps[j]._t_start) { curr = laps[j]; if (j>0) prev = laps[j-1]; break; } }
+      
+      var stint = null;
+      if (curr) { var st = state.stints[dn] || []; for (var k = st.length - 1; k >= 0; k--) { if (curr.lap_number >= st[k].lap_start) { stint = st[k]; break; } } }
+
+      driversData.push({ dn, bestLap, completedLaps: laps.filter(l => t >= l._t_end).length, curr, prev, stint });
+    }
+
+    // Sort by Best Lap
     driversData.sort((a, b) => {
       if (a.bestLap === null && b.bestLap === null) return a.dn - b.dn;
       if (a.bestLap === null) return 1;
@@ -844,332 +535,224 @@
       return a.bestLap - b.bestLap;
     });
 
-    var p1Best = driversData.length > 0 ? driversData[0].bestLap : null;
-
-    var listContainer = els.rankingsList;
-    var domOrder = [];
+    // Reorder based on Qualifying Cutoffs
+    var finalOrder = [];
+    var eliminated = new Set();
+    if (state.q1Ended) state.q1Eliminated.forEach(dn => eliminated.add(dn));
+    if (state.q2Ended) state.q2Eliminated.forEach(dn => eliminated.add(dn));
     
-    for (var i = 0; i < driversData.length; i++) {
-      var dd = driversData[i];
-      var dn = dd.dn;
-      var pos = i + 1;
-      
-      var rowEl = document.getElementById("row-" + dn);
-      domOrder.push(rowEl);
+    // Advanced drivers first (sorted by best)
+    driversData.forEach(d => { if (!eliminated.has(d.dn)) finalOrder.push(d); });
+    // Eliminated drivers next (sorted by best among themselves)
+    var elimData = driversData.filter(d => eliminated.has(d.dn));
+    finalOrder = finalOrder.concat(elimData);
+
+    var p1Best = finalOrder.length > 0 ? finalOrder[0].bestLap : null;
+    var domOrder = [];
+
+    for (var i = 0; i < finalOrder.length; i++) {
+      var dd = finalOrder[i], dn = dd.dn, pos = i + 1;
+      domOrder.push(document.getElementById("row-" + dn));
       
       setText("pos-" + dn, pos);
-      
-      var gapStr = "";
-      if (pos === 1) gapStr = ""; 
-      else if (dd.bestLap !== null && p1Best !== null) {
-        gapStr = "+" + (dd.bestLap - p1Best).toFixed(3);
-      }
-      setText("gap-" + dn, gapStr);
-      
+      setText("gap-" + dn, (pos === 1 || !dd.bestLap || !p1Best) ? "" : "+" + (dd.bestLap - p1Best).toFixed(3));
       setText("laps-" + dn, dd.completedLaps);
-      
       setText("best-" + dn, dd.bestLap ? formatTime(dd.bestLap) : "");
       
-      var tcEl = document.getElementById("tyre-c-" + dn);
-      var taEl = document.getElementById("tyre-a-" + dn);
-      if (dd.currentStint) {
-        var comp = dd.currentStint.compound;
-        var color = getTyreColor(comp);
-        var txtColor = getContrastColor(color.replace("#", ""));
-        var age = dd.currentLap.lap_number - dd.currentStint.lap_start + 1;
-        
+      var tcEl = document.getElementById("tyre-" + dn);
+      if (dd.stint) {
         tcEl.style.display = "flex";
-        tcEl.style.background = color;
-        tcEl.style.color = txtColor;
-        tcEl.textContent = getTyreLetter(comp);
-        taEl.textContent = age;
-      } else {
-        tcEl.style.display = "none";
-        taEl.textContent = "";
-      }
+        tcEl.style.background = getTyreColor(dd.stint.compound);
+        tcEl.style.color = getContrastColor(getTyreColor(dd.stint.compound).replace("#", ""));
+        tcEl.textContent = dd.curr.lap_number - dd.stint.lap_start + 1;
+      } else tcEl.style.display = "none";
       
-      updateSectors(dn, t, dd.currentLap, dd.prevLap);
+      updateSectors(dn, t, dd.curr, dd.prev);
     }
     
-    var fragment = document.createDocumentFragment();
-    domOrder.forEach(el => fragment.appendChild(el));
-    listContainer.appendChild(fragment);
+    var frag = document.createDocumentFragment();
+    domOrder.forEach(el => frag.appendChild(el));
+    els.rankingsList.appendChild(frag);
   }
 
   function updateSectors(dn, t, curr, prev) {
-    var sVal = [null, null, null];
-    var sCls = ['c-neutral', 'c-neutral', 'c-neutral'];
-    var sDim = [true, true, true];
+    var sVal = [null, null, null], sCls = ['c-neutral', 'c-neutral', 'c-neutral'], sDim = [true, true, true];
     
     if (curr) {
-      var t1 = curr.duration_sector_1 || 0;
-      var t2 = curr.duration_sector_2 || 0;
-      var t3 = curr.duration_sector_3 || 0;
-      
-      var end1 = curr._t_start + t1;
-      var end2 = end1 + t2;
-      var end3 = end2 + t3;
-      
-      if (t >= end1 && curr.duration_sector_1) {
-        sVal[0] = curr.duration_sector_1; sDim[0] = false;
-        sCls[0] = curr._c1 || 'c-neutral';
-      }
-      if (t >= end2 && curr.duration_sector_2) {
-        sVal[1] = curr.duration_sector_2; sDim[1] = false;
-        sCls[1] = curr._c2 || 'c-neutral';
-      }
-      if (t >= end3 && curr.duration_sector_3) {
-        sVal[2] = curr.duration_sector_3; sDim[2] = false;
-        sCls[2] = curr._c3 || 'c-neutral';
-      }
+      var e1 = curr._t_start + (curr.duration_sector_1 || 0);
+      var e2 = e1 + (curr.duration_sector_2 || 0);
+      var e3 = e2 + (curr.duration_sector_3 || 0);
+      if (t >= e1 && curr.duration_sector_1) { sVal[0] = curr.duration_sector_1; sDim[0] = false; sCls[0] = curr._c1; }
+      if (t >= e2 && curr.duration_sector_2) { sVal[1] = curr.duration_sector_2; sDim[1] = false; sCls[1] = curr._c2; }
+      if (t >= e3 && curr.duration_sector_3) { sVal[2] = curr.duration_sector_3; sDim[2] = false; sCls[2] = curr._c3; }
     }
-    
-    // Fill in previous lap for incomplete sectors
     if (prev) {
-      if (sVal[0] === null && prev.duration_sector_1) {
-        sVal[0] = prev.duration_sector_1;
-        sCls[0] = prev._c1 || 'c-neutral';
-      }
-      if (sVal[1] === null && prev.duration_sector_2) {
-        sVal[1] = prev.duration_sector_2;
-        sCls[1] = prev._c2 || 'c-neutral';
-      }
-      if (sVal[2] === null && prev.duration_sector_3) {
-        sVal[2] = prev.duration_sector_3;
-        sCls[2] = prev._c3 || 'c-neutral';
-      }
+      if (sVal[0] === null && prev.duration_sector_1) { sVal[0] = prev.duration_sector_1; sCls[0] = prev._c1; }
+      if (sVal[1] === null && prev.duration_sector_2) { sVal[1] = prev.duration_sector_2; sCls[1] = prev._c2; }
+      if (sVal[2] === null && prev.duration_sector_3) { sVal[2] = prev.duration_sector_3; sCls[2] = prev._c3; }
     }
-    
+
+    var totalEl = document.getElementById("total-" + dn);
+    if (totalEl) totalEl.textContent = (sVal[0] && sVal[1] && sVal[2]) ? (sVal[0]+sVal[1]+sVal[2]).toFixed(3) : "";
+
     for (var k = 0; k < 3; k++) {
-      var timeEl = document.getElementById("s" + (k+1) + "-" + dn);
-      if (!timeEl) continue;
-      
-      var timeStr = sVal[k] ? formatShortTime(sVal[k]) : "";
-      if (timeEl.textContent !== timeStr) {
-        timeEl.textContent = timeStr;
-      }
-      
-      var newCls = "sector-time " + sCls[k] + (sDim[k] ? " dimmed" : "");
-      if (timeEl.className !== newCls) {
-        timeEl.className = newCls;
-      }
-    }
-  }
-  
-  function setText(id, val) {
-    var el = document.getElementById(id);
-    if (el && el.textContent !== String(val)) {
-      el.textContent = val;
+      var el = document.getElementById("s" + (k+1) + "-" + dn);
+      if (!el) continue;
+      var str = sVal[k] ? formatShortTime(sVal[k]) : "";
+      if (el.textContent !== str) el.textContent = str;
+      var cls = "sector-time " + sCls[k] + (sDim[k] ? " dimmed" : "");
+      if (el.className !== cls) el.className = cls;
     }
   }
 
+  function setText(id, val) { var el = document.getElementById(id); if (el && el.textContent !== String(val)) el.textContent = val; }
+  
   function toggleHighlight(dn) {
-    if (state.highlightedDriver === dn) {
-      state.highlightedDriver = null;
-    } else {
-      state.highlightedDriver = dn;
-    }
-    
-    var rows = document.querySelectorAll(".driver-row");
-    rows.forEach(r => {
-      if (parseInt(r.getAttribute("data-dn"), 10) === state.highlightedDriver) {
-        r.classList.add("highlighted");
-      } else {
-        r.classList.remove("highlighted");
-      }
-    });
-    
+    state.highlightedDriver = (state.highlightedDriver === dn) ? null : dn;
+    document.querySelectorAll(".driver-row").forEach(r => r.classList.toggle("highlighted", parseInt(r.getAttribute("data-dn"), 10) === state.highlightedDriver));
     drawCars();
   }
 
-  els.rankingsList.addEventListener("click", function(e) {
-    var row = e.target.closest(".driver-row");
-    if (!row) return;
-    var dn = parseInt(row.getAttribute("data-dn"), 10);
-    
-    var now = Date.now();
-    if (now - lastTapTime < 300 && lastTapTarget === dn) {
-      toggleHighlight(dn);
-      lastTapTime = 0;
-    } else {
-      lastTapTime = now;
-      lastTapTarget = dn;
-    }
+  els.rankingsList.addEventListener("click", e => {
+    var row = e.target.closest(".driver-row"); if (!row) return;
+    var dn = parseInt(row.getAttribute("data-dn"), 10), now = Date.now();
+    if (now - lastTapTime < 300 && lastTapTarget === dn) { toggleHighlight(dn); lastTapTime = 0; }
+    else { lastTapTime = now; lastTapTarget = dn; }
   });
 
-  els.canvas.addEventListener("click", function(e) {
+  els.canvas.addEventListener("click", e => {
     if (!state.transform || state.mapEmpty.style.display !== "none") return;
-    
-    var rect = els.canvas.getBoundingClientRect();
-    var touchX = e.clientX - rect.left;
-    var touchY = e.clientY - rect.top;
-    var actualY = touchY - 48;
-    if (actualY < 0) return;
-
-    var t = state.transform;
-    var hitDn = null;
-    
-    var dns = Object.keys(state.drivers).reverse();
-    for (var i = 0; i < dns.length; i++) {
-      var dn = dns[i];
-      var loc = getCarLocation(state.drivers[dn].data, state.currentTime);
+    var rect = els.canvas.getBoundingClientRect(), tx = e.clientX - rect.left, ty = e.clientY - rect.top - 48;
+    if (ty < 0) return;
+    var t = state.transform, hitDn = null;
+    for (var i = Object.keys(state.drivers).length - 1; i >= 0; i--) {
+      var dn = Object.keys(state.drivers)[i], loc = getCarLocation(state.drivers[dn].data, state.currentTime);
       if (!loc) continue;
-      
-      var cx = (loc[0] - t.minX) * t.scale + t.offsetX;
-      var cy = (loc[1] - t.minY) * t.scale + t.offsetY;
+      var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
       if (state.flipY) cy = t.cssH - cy;
-      
-      var dist = Math.sqrt(Math.pow(touchX - cx, 2) + Math.pow(actualY - cy, 2));
-      if (dist < 22) {
-        hitDn = parseInt(dn, 10);
-        break;
-      }
+      if (Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2)) < 22) { hitDn = parseInt(dn, 10); break; }
     }
-    
     if (hitDn) {
       var now = Date.now();
-      if (now - lastTapTime < 300 && lastTapTarget === hitDn) {
-        toggleHighlight(hitDn);
-        lastTapTime = 0;
-      } else {
-        lastTapTime = now;
-        lastTapTarget = hitDn;
-      }
+      if (now - lastTapTime < 300 && lastTapTarget === hitDn) { toggleHighlight(hitDn); lastTapTime = 0; }
+      else { lastTapTime = now; lastTapTarget = hitDn; }
     }
   });
 
   function prepareBackground() {
     if (!state.outline) return;
-    var wrap = els.mapWrap;
-    var dpr = window.devicePixelRatio || 1;
-    var cssW = wrap.clientWidth;
-    var cssH = wrap.clientHeight - 48;
+    var wrap = els.mapWrap, dpr = window.devicePixelRatio || 1, cssW = wrap.clientWidth, cssH = wrap.clientHeight - 48;
     if (cssW === 0 || cssH === 0) return;
-
-    els.canvas.width = Math.round(cssW * dpr);
-    els.canvas.height = Math.round(cssH * dpr);
+    els.canvas.width = Math.round(cssW * dpr); els.canvas.height = Math.round(cssH * dpr);
+    baseCanvas.width = els.canvas.width; baseCanvas.height = els.canvas.height;
+    baseCtx.setTransform(dpr, 0, 0, dpr, 0, 0); baseCtx.clearRect(0, 0, cssW, cssH);
     
-    baseCanvas.width = els.canvas.width;
-    baseCanvas.height = els.canvas.height;
-
-    baseCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    baseCtx.clearRect(0, 0, cssW, cssH);
-
-    var pts = state.outline.points;
-    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (var i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1];
-      if (x < minX) minX = x; if (x > maxX) maxX = x;
-      if (y < minY) minY = y; if (y > maxY) maxY = y;
-    }
+    var pts = state.outline.points, minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    pts.forEach(p => { minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]); minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]); });
     var w = maxX - minX, h = maxY - minY;
     if (w <= 0 || h <= 0) return;
 
-    var pad = 20;
-    var availW = cssW - pad * 2;
-    var availH = cssH - pad * 2;
-    var scale = Math.min(availW / w, availH / h);
-    var offsetX = pad + (availW - w * scale) / 2;
-    var offsetY = pad + (availH - h * scale) / 2;
-
+    var pad = 20, availW = cssW - pad * 2, availH = cssH - pad * 2;
+    var scale = Math.min(availW / w, availH / h), offsetX = pad + (availW - w * scale) / 2, offsetY = pad + (availH - h * scale) / 2;
     state.transform = { minX, minY, scale, offsetX, offsetY, cssW, cssH };
 
     function toCanvas(px, py) {
-      var cx = (px - minX) * scale + offsetX;
-      var cy = (py - minY) * scale + offsetY;
+      var cx = (px - minX) * scale + offsetX, cy = (py - minY) * scale + offsetY;
       if (state.flipY) cy = cssH - cy;
       return [cx, cy];
     }
 
-    baseCtx.beginPath();
-    var p0 = toCanvas(pts[0][0], pts[0][1]);
-    baseCtx.moveTo(p0[0], p0[1]);
-    for (var j = 1; j < pts.length; j++) {
-      var c = toCanvas(pts[j][0], pts[j][1]);
-      baseCtx.lineTo(c[0], c[1]);
+    // Detect Red Flag for track colour
+    var isRed = false;
+    var recentRC = state.raceControl.filter(m => {
+      var mt = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
+      return mt <= state.currentTime;
+    });
+    if (recentRC.length > 0) {
+      var last = recentRC[recentRC.length - 1];
+      if (last.flag === "RED" || (last.message.includes("SAFETY CAR") && !last.message.includes("VIRTUAL"))) isRed = true;
+      // Clear red if green or clear comes after
+      if (last.flag === "GREEN" || last.message === "TRACK CLEAR") isRed = false;
     }
-    baseCtx.closePath();
-    baseCtx.lineWidth = 4;
-    baseCtx.lineJoin = "round";
-    baseCtx.strokeStyle = "#2a3454";
-    baseCtx.stroke();
-
-    var p1 = toCanvas(pts[1][0], pts[1][1]);
-    var dx = p1[0] - p0[0];
-    var dy = p1[1] - p0[1];
-    var len = Math.sqrt(dx*dx + dy*dy);
-    var nx = -dy / len;
-    var ny = dx / len;
-    var lineLen = 12;
 
     baseCtx.beginPath();
-    baseCtx.moveTo(p0[0] - nx * lineLen, p0[1] - ny * lineLen);
-    baseCtx.lineTo(p0[0] + nx * lineLen, p0[1] + ny * lineLen);
-    baseCtx.lineWidth = 3;
-    baseCtx.strokeStyle = "#ffffff";
+    var p0 = toCanvas(pts[0][0], pts[0][1]); baseCtx.moveTo(p0[0], p0[1]);
+    for (var j = 1; j < pts.length; j++) { var c = toCanvas(pts[j][0], pts[j][1]); baseCtx.lineTo(c[0], c[1]); }
+    baseCtx.closePath();
+    baseCtx.lineWidth = 4; baseCtx.lineJoin = "round";
+    baseCtx.strokeStyle = isRed ? "#ff5c5c" : "#2a3454";
     baseCtx.stroke();
+
+    // Start line
+    var p1 = toCanvas(pts[1][0], pts[1][1]);
+    var dx = p1[0] - p0[0], dy = p1[1] - p0[1], len = Math.sqrt(dx*dx + dy*dy);
+    var nx = -dy / len, ny = dx / len, lineLen = 12;
+    baseCtx.beginPath(); baseCtx.moveTo(p0[0] - nx * lineLen, p0[1] - ny * lineLen);
+    baseCtx.lineTo(p0[0] + nx * lineLen, p0[1] + ny * lineLen);
+    baseCtx.lineWidth = 3; baseCtx.strokeStyle = "#ffffff"; baseCtx.stroke();
+
+    // Calculate Sector Lines from fastest lap
+    var validLaps = state.laps.filter(l => l.date_start && !l.is_pit_out_lap && l.duration_sector_1 && l.duration_sector_2 && l.duration_sector_3);
+    if (validLaps.length > 0) {
+      var fastest = validLaps.reduce((a, b) => a.lap_duration < b.lap_duration ? a : b);
+      var startMs = new Date(fastest.date_start).getTime();
+      var s1Ms = startMs + (fastest.duration_sector_1 * 1000);
+      var s2Ms = s1Ms + (fastest.duration_sector_2 * 1000);
+      var refData = state.drivers[fastest.driver_number] ? state.drivers[fastest.driver_number].data : [];
+      
+      function findCoord(targetMs) {
+        var targetT = (targetMs - state.sessionStartMs) / 1000;
+        for (var i = 0; i < refData.length - 1; i++) {
+          if (refData[i][0] <= targetT && refData[i+1][0] >= targetT) {
+            var ratio = (targetT - refData[i][0]) / (refData[i+1][0] - refData[i][0]);
+            return [refData[i][1] + (refData[i+1][1] - refData[i][1]) * ratio, refData[i][2] + (refData[i+1][2] - refData[i][2]) * ratio];
+          }
+        }
+        return null;
+      }
+      
+      [s1Ms, s2Ms].forEach(tgtMs => {
+        var coord = findCoord(tgtMs);
+        if (coord) {
+          var c = toCanvas(coord[0], coord[1]);
+          baseCtx.beginPath(); baseCtx.moveTo(c[0] - nx * 8, c[1] - ny * 8); baseCtx.lineTo(c[0] + nx * 8, c[1] + ny * 8);
+          baseCtx.lineWidth = 2; baseCtx.strokeStyle = "rgba(255,255,255,0.4)"; baseCtx.stroke();
+        }
+      });
+    }
   }
 
   function drawCars() {
     if (!state.outline || !state.transform) return;
-    var ctx = els.canvas.getContext("2d");
-    var t = state.transform;
-    
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
+    var ctx = els.canvas.getContext("2d"), t = state.transform;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
     ctx.drawImage(baseCanvas, 0, 0);
-
     ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
     
     for (var dn in state.drivers) {
-      var car = state.drivers[dn];
-      var loc = getCarLocation(car.data, state.currentTime);
+      var car = state.drivers[dn], loc = getCarLocation(car.data, state.currentTime);
       if (!loc) continue;
-      
-      var cx = (loc[0] - t.minX) * t.scale + t.offsetX;
-      var cy = (loc[1] - t.minY) * t.scale + t.offsetY;
+      var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
       if (state.flipY) cy = t.cssH - cy;
 
       if (state.highlightedDriver === parseInt(dn, 10)) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, 16, 0, Math.PI * 2);
-        ctx.fillStyle = "#" + car.color;
-        ctx.globalAlpha = 0.3;
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
+        ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2); ctx.fillStyle = "#" + car.color; ctx.globalAlpha = 0.3; ctx.fill(); ctx.globalAlpha = 1.0;
       }
-
-      ctx.beginPath();
-      ctx.arc(cx, cy, 10, 0, Math.PI * 2);
-      ctx.fillStyle = "#" + car.color;
-      ctx.fill();
-
-      ctx.fillStyle = getContrastColor(car.color);
-      ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(dn, cx, cy);
+      ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI * 2); ctx.fillStyle = "#" + car.color; ctx.fill();
+      ctx.fillStyle = getContrastColor(car.color); ctx.font = "bold 11px -apple-system, sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(dn, cx, cy);
     }
   }
 
   function getCarLocation(data, t) {
     if (data.length === 0) return null;
     if (t < data[0][0] || t > data[data.length - 1][0]) return null;
-
-    var i = data.length - 1;
-    while (i > 0 && data[i][0] > t) i--;
-    
+    var i = data.length - 1; while (i > 0 && data[i][0] > t) i--;
     if (i === data.length - 1) return [data[i][1], data[i][2]];
-    
-    var p1 = data[i];
-    var p2 = data[i + 1];
-    
+    var p1 = data[i], p2 = data[i + 1];
     if (p2[0] - p1[0] > 5) return null;
-
     var ratio = (t - p1[0]) / (p2[0] - p1[0]);
-    var x = p1[1] + (p2[1] - p1[1]) * ratio;
-    var y = p1[2] + (p2[2] - p1[2]) * ratio;
-    
+    var x = p1[1] + (p2[1] - p1[1]) * ratio, y = p1[2] + (p2[2] - p1[2]) * ratio;
     if (x === 0 && y === 0) return null;
     return [x, y];
   }
@@ -1177,78 +760,23 @@
   function loop(timestamp) {
     if (!state.playing) return;
     if (!state.lastFrameTime) state.lastFrameTime = timestamp;
-    
-    var dt = (timestamp - state.lastFrameTime) / 1000;
-    state.lastFrameTime = timestamp;
-    state.currentTime += dt;
-    
-    if (state.currentTime >= state.sessionLength) {
-      state.currentTime = state.sessionLength;
-      pausePlayback();
-    }
-
-    updateTimeDisplay();
-    drawCars();
-    updateRankings();
-    
+    var dt = (timestamp - state.lastFrameTime) / 1000; state.lastFrameTime = timestamp; state.currentTime += dt;
+    if (state.currentTime >= state.sessionLength) { state.currentTime = state.sessionLength; pausePlayback(); }
+    updateTimeDisplay(); drawCars(); updateRankings();
     if (state.playing) animationId = requestAnimationFrame(loop);
   }
-
-  function playPlayback() {
-    if (state.playing) return;
-    if (state.currentTime >= state.sessionLength) state.currentTime = 0;
-    state.playing = true;
-    state.lastFrameTime = 0;
-    els.playBtn.textContent = "⏸";
-    animationId = requestAnimationFrame(loop);
-  }
-
-  function pausePlayback() {
-    state.playing = false;
-    els.playBtn.textContent = "▶";
-    if (animationId) cancelAnimationFrame(animationId);
-  }
-
-  els.playBtn.addEventListener("click", function() {
-    if (state.playing) pausePlayback();
-    else playPlayback();
-  });
-
-  var wasPlayingBeforeScrub = false;
-  els.slider.addEventListener("input", function() {
-    state.currentTime = parseFloat(els.slider.value);
-    updateTimeDisplay();
-    drawCars();
-    updateRankings();
-  });
-  els.slider.addEventListener("touchstart", function() {
-    wasPlayingBeforeScrub = state.playing;
-    pausePlayback();
-  });
-  els.slider.addEventListener("touchend", function() {
-    if (wasPlayingBeforeScrub) playPlayback();
-  });
-
-  els.flipBtn.addEventListener("click", function () {
-    state.flipY = !state.flipY;
-    prepareBackground();
-    drawCars();
-  });
-
-  window.addEventListener("resize", function() {
-    if (resizeTimer) clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(function() {
-      prepareBackground();
-      drawCars();
-    }, 100);
-  });
-  window.addEventListener("orientationchange", function() {
-    if (resizeTimer) clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(function() {
-      prepareBackground();
-      drawCars();
-    }, 100);
-  });
+  function playPlayback() { if (state.playing) return; if (state.currentTime >= state.sessionLength) state.currentTime = 0; state.playing = true; state.lastFrameTime = 0; els.playBtn.textContent = "⏸"; animationId = requestAnimationFrame(loop); }
+  function pausePlayback() { state.playing = false; els.playBtn.textContent = "▶"; if (animationId) cancelAnimationFrame(animationId); }
+  
+  els.playBtn.addEventListener("click", () => { if (state.playing) pausePlayback(); else playPlayback(); });
+  var wasPlaying = false;
+  els.slider.addEventListener("input", () => { state.currentTime = parseFloat(els.slider.value); updateTimeDisplay(); drawCars(); updateRankings(); });
+  els.slider.addEventListener("touchstart", () => { wasPlaying = state.playing; pausePlayback(); });
+  els.slider.addEventListener("touchend", () => { if (wasPlaying) playPlayback(); });
+  
+  els.flipBtn.addEventListener("click", () => { state.flipY = !state.flipY; prepareBackground(); drawCars(); });
+  window.addEventListener("resize", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); }, 100); });
+  window.addEventListener("orientationchange", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); }, 100); });
 
 })();
 </script>
