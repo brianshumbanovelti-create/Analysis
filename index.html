@@ -1,1158 +1,178 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#080d19">
-<title>F1 ↪️</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg0: #070b16; --bg1: #0c1322; --bg2: rgba(255, 255, 255, .055);
-    --bg3: rgba(255, 255, 255, .09); --line: rgba(255, 255, 255, .09);
-    --text: #eef1f8; --dim: #a6b0c7; --muted: #707c98;
-    --accent: #ff5c7a; --err: #ff5c5c;
-    --purple: #c58bff; --green: #4ade80; --yellow: #ffd23f; --amber: #ffb347;
-    --header-height: 100px; --map-height: 45vh; --map-margin: 12px;
-  }
-  
-  html, body {
-    height: 100%; background: var(--bg0); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 15px; -webkit-font-smoothing: antialiased;
-    overflow: hidden; overscroll-behavior-y: none;
-  }
-  
-  /* HEADER */
-  #header {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 20;
-    height: var(--header-height);
-    background: radial-gradient(60% 40% at 15% -5%, rgba(86,120,255,.22), transparent 70%), radial-gradient(50% 35% at 100% 8%, rgba(190,90,255,.14), transparent 70%), var(--bg0);
-    padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top));
-    display: flex; flex-direction: column; justify-content: space-between;
-  }
-  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
-  .title i { font-style: normal; color: var(--muted); font-weight: 500; }
-  .download-meter { font-size: 11px; font-weight: 500; color: var(--dim); background: var(--bg2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; }
-  
-  .selector-row { display: flex; gap: 8px; width: 100%; }
-  .selector-row select {
-    flex: 1; min-width: 0; appearance: none; -webkit-appearance: none;
-    background: var(--bg2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a6b0c7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center;
-    color: var(--text); border: 1px solid var(--line); border-radius: 14px;
-    padding: 10px 30px 10px 12px; font-size: 13px; font-weight: 500;
-  }
-  .selector-row select:disabled { opacity: 0.5; }
-  
-  #error { position: fixed; top: calc(var(--header-height) + 8px); left: 12px; right: 12px; z-index: 30; display: none; background: rgba(255,92,92,0.95); color: #fff; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-  #error.show { display: block; }
-  
-  /* MAP */
-  #mapContainer { position: fixed; top: var(--header-height); left: 0; right: 0; height: var(--map-height); z-index: 10; padding: 0 var(--map-margin); background: var(--bg0); }
-  #mapWrap { position: relative; width: 100%; height: 100%; background: var(--bg1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-  
-  #mapControls { position: absolute; top: 0; left: 0; right: 0; height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: rgba(12, 19, 34, 0.85); border-bottom: 1px solid var(--line); z-index: 5; }
-  .icon-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--bg3); border: none; color: var(--text); font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-  .icon-btn:active { background: rgba(255,255,255,0.2); }
-  .icon-btn:disabled { opacity: 0.4; }
-  
-  #sliderWrap { flex: 1; position: relative; display: flex; align-items: center; height: 32px; }
-  #slider { width: 100%; min-height: 32px; accent-color: var(--text); position: relative; z-index: 2; background: transparent; }
-  #sliderMarkers { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; pointer-events: none; overflow: hidden; border-radius: 4px; }
-  .slider-marker { position: absolute; top: 0; bottom: 0; width: 4px; }
-  .slider-marker.red { background: rgba(255, 92, 92, 0.4); }
-  .slider-marker.sc { background: rgba(255, 210, 63, 0.5); }
-  .slider-marker.vsc { background: rgba(255, 179, 71, 0.5); }
-  
-  #trackCanvas { position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; }
-  #circleCanvas { display: none; position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; z-index: 2; }
-  .map-ring-mode #trackCanvas { display: none !important; }
-  .map-ring-mode #circleCanvas { display: block !important; }
-  
-  #mapEmpty { position: absolute; inset: 48px 0 0 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; text-align: center; padding: 20px; pointer-events: none; }
-  
-  .map-overlay-bl { position: absolute; bottom: 10px; left: 12px; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8); display: flex; gap: 10px; align-items: center; }
-  .map-overlay-br { position: absolute; bottom: 10px; right: 12px; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
-  .lap-counter { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
-  
-  #rcPopup { position: absolute; top: 56px; left: 12px; right: 12px; background: #ffffff; color: #333333; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-  #rcPopup.show { opacity: 1; }
+import sys
+import json
+import time
+import urllib.request
+import urllib.error
+import urllib.parse
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
-  /* TABS & LIST */
-  #tabContainer { position: absolute; top: calc(var(--header-height) + var(--map-height) + 8px); bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; z-index: 5; }
-  
-  .tab-bar { display: flex; gap: 4px; padding: 0 var(--map-margin) 8px; }
-  .tab-btn { flex: 1; padding: 8px 0; font-size: 12px; font-weight: 600; color: var(--dim); background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
-  .tab-btn.active { background: var(--bg3); color: var(--text); border-color: rgba(255,255,255,0.2); }
-  
-  .panel { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 var(--map-margin) calc(20px + env(safe-area-inset-bottom)); display: none; }
-  .panel.active { display: block; }
+BASE = "https://api.openf1.org/v1"
+OUT_ROOT = Path("data")
+WINDOW_MINUTES = 10
+MIN_GAP = 0.35
+_req_times = []
 
-  /* TIMING LIST */
-  .list-header-row { display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 60px; gap: 4px; padding: 4px 12px 8px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; }
-  .list-header-row span:nth-child(3), .list-header-row span:nth-child(6) { text-align: right; }
-  .list-header-row span:nth-child(4), .list-header-row span:nth-child(5) { text-align: center; }
-  
-  .driver-row { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 6px; user-select: none; touch-action: manipulation; transition: background 0.2s ease; overflow: hidden; }
-  .driver-row.highlighted { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.3); }
-  
-  .row-main { display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 60px; gap: 4px; padding: 10px 12px; align-items: center; }
-  .row-pos { font-size: 13px; font-weight: 700; color: var(--dim); text-align: center; }
-  .row-driver { display: flex; align-items: center; gap: 6px; }
-  .row-circle { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
-  .row-acronym { font-size: 13px; font-weight: 700; letter-spacing: 0.3px; }
-  .row-gap { font-size: 12px; font-weight: 500; color: var(--dim); text-align: right; }
-  .row-tyre { display: flex; align-items: center; justify-content: center; }
-  .tyre-circle { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
-  .row-laps { font-size: 12px; font-weight: 500; color: var(--dim); text-align: center; }
-  .row-best { font-size: 12px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
-  
-  .row-sectors { display: grid; grid-template-columns: 40px 40px 40px 1fr; gap: 6px; padding: 0 12px 10px 44px; align-items: center; }
-  .sector-time { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .lap-total-time { font-size: 11px; font-weight: 600; color: var(--text); text-align: right; font-variant-numeric: tabular-nums; padding-right: 4px; }
-  .sector-time.dimmed { opacity: 0.4; }
-  .sector-time.c-neutral { color: var(--dim); }
-  .sector-time.c-yellow { color: var(--yellow); }
-  .sector-time.c-green { color: var(--green); }
-  .sector-time.c-purple { color: var(--purple); }
+def _wait_for_slot():
+    now = time.time()
+    if _req_times:
+        elapsed = now - _req_times[-1]
+        if elapsed < MIN_GAP:
+            time.sleep(MIN_GAP - elapsed)
+            now = time.time()
+    cutoff = now - 60
+    _req_times[:] = [t for t in _req_times if t > cutoff]
+    if len(_req_times) >= 30:
+        sleep_for = 60 - (now - _req_times[0]) + 0.1
+        time.sleep(sleep_for)
+        now = time.time()
+        _req_times[:] = [t for t in _req_times if t > now - 60]
+    _req_times.append(now)
 
-  /* MODAL */
-  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(3,6,14,.62); z-index: 100; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-  .modal-backdrop.open { display: flex; align-items: flex-end; justify-content: center; animation: fadeIn .2s; }
-  .modal-box { width: 100%; max-width: 680px; max-height: 85dvh; display: flex; flex-direction: column; background: linear-gradient(180deg, #1c263e 0%, #0e1424 100%); border: 1px solid var(--line); border-bottom: none; border-radius: 26px 26px 0 0; box-shadow: 0 -20px 60px -20px rgba(0,0,0,.8); animation: slideUp .3s ease; }
-  .modal-box::before { content: ""; display: block; width: 38px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.22); margin: 9px auto 0; }
-  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px 8px; }
-  .modal-title { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-  .modal-close { background: rgba(255,255,255,.08); border: none; color: var(--dim); width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; }
-  .modal-tabs { display: flex; gap: 2px; margin: 2px 16px 8px; padding: 3px; background: rgba(255,255,255,.06); border-radius: 999px; }
-  .modal-tab { flex: 1; font-size: 13px; font-weight: 600; padding: 8px 10px; border: none; background: none; color: var(--dim); cursor: pointer; border-radius: 999px; transition: all .2s; }
-  .modal-tab.active { background: rgba(255,255,255,.16); color: #fff; }
-  .modal-body { padding: 4px 16px 24px; overflow-y: auto; min-height: 0; }
-  
-  .lap-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .lap-table th { color: var(--muted); font-size: 11px; font-weight: 500; padding: 4px 5px 8px; text-align: left; }
-  .lap-table td { padding: 7px 5px; border-top: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
-  .lap-table td:first-child { color: var(--muted); }
-  .lap-table td.lt { color: var(--text); font-weight: 500; }
-  .lap-table td.pb { color: var(--green); font-weight: 600; }
-  .lap-table td.ob { color: var(--purple); font-weight: 700; }
-  .lap-table tr.off td { opacity: .55; }
-  .note { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.08); color: var(--dim); }
-  .note.pit { background: rgba(255,107,122,.16); color: var(--err); }
-  .note.push { background: rgba(197,139,255,.16); color: var(--purple); }
-  .note.run { background: rgba(124,183,255,.14); color: #7cb7ff; }
+def api_get(path, params=None):
+    url = BASE + path
+    if params: url += "?" + urllib.parse.urlencode(params)
+    for attempt in range(5):
+        _wait_for_slot()
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "f1-replay/1.0"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return data, len(data) if isinstance(data, list) else 1, True
+        except urllib.error.HTTPError as e:
+            if e.code == 404: return [], 0, True
+            if e.code in (429, 500, 502, 503, 504):
+                time.sleep(2 ** attempt)
+                continue
+            return [], 0, False
+        except Exception:
+            time.sleep(2 ** attempt)
+    return [], 0, False
 
-  @keyframes fadeIn { from{opacity:0}to{opacity:1} }
-  @keyframes slideUp { from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1} }
-</style>
-</head>
-<body>
+def fetch_all(endpoint, session_key):
+    data, _, success = api_get(f"/{endpoint}", {"session_key": session_key})
+    return data, success
 
-<div id="header">
-  <div class="header-top">
-    <span class="title">F1<i> ↪️</i></span>
-    <span class="download-meter" id="dataMeter">0 KB</span>
-  </div>
-  <div class="selector-row">
-    <select id="sessionSelect" disabled><option>Loading sessions…</option></select>
-  </div>
-</div>
+def downsample_location(samples, start_dt):
+    if not samples: return []
+    samples.sort(key=lambda s: s.get("date", ""))
+    samples = [s for s in samples if not (s.get("x") == 0 and s.get("y") == 0)]
+    kept, last_sec = [], None
+    for s in samples:
+        try:
+            dt = datetime.fromisoformat(s["date"].replace("Z", "+00:00"))
+            t = (dt - start_dt).total_seconds()
+        except Exception: continue
+        sec = int(t)
+        if sec != last_sec:
+            kept.append([round(t, 2), s.get("x"), s.get("y")])
+            last_sec = sec
+    return kept
 
-<div id="error"></div>
+def main():
+    if len(sys.argv) < 2: sys.exit(1)
+    session_key = sys.argv[1]
+    force = "--force" in sys.argv
+    max_drivers, max_minutes = None, None
+    for arg in sys.argv[2:]:
+        if arg.startswith("--max_drivers="): max_drivers = int(arg.split("=")[1])
+        elif arg.startswith("--max_minutes="): max_minutes = int(arg.split("=")[1])
 
-<div id="mapContainer">
-  <div id="mapWrap">
-    <div id="mapControls">
-      <button id="playBtn" class="icon-btn" disabled>▶</button>
-      <div id="sliderWrap">
-        <div id="sliderMarkers"></div>
-        <input type="range" id="slider" min="0" max="100" value="0" step="0.1" disabled>
-      </div>
-      <button id="flipBtn" class="icon-btn" disabled>🔃</button>
-    </div>
-    <div id="progressWrap"><div id="progressBar"></div></div>
-    <canvas id="trackCanvas"></canvas>
-    <canvas id="circleCanvas"></canvas>
-    <div id="mapEmpty">Select a session to draw the track</div>
-    <div class="map-overlay-bl">
-      <span id="timeDisplay">00:00</span>
-      <span id="lapCounter" class="lap-counter" style="display:none">0/0</span>
-      <span id="statusLabel"></span>
-    </div>
-    <div class="map-overlay-br" id="durationTicker">00:00</div>
-    <div id="rcPopup"></div>
-  </div>
-</div>
+    out_dir = OUT_ROOT / session_key
+    loc_dir = out_dir / "location"
+    loc_dir.mkdir(parents=True, exist_ok=True)
 
-<div id="tabContainer">
-  <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('timing')">Timing</button>
-    <button class="tab-btn" onclick="switchTab('analysis')">Analysis</button>
-    <button class="tab-btn" onclick="switchTab('ontrack')">On Track</button>
-  </div>
-  
-  <div class="panel active" id="panel-timing">
-    <div class="list-header-row">
-      <span>Pos</span><span>Driver</span><span>Gap</span><span>Tyre</span><span>Laps</span><span>Best</span>
-    </div>
-    <div id="rankingsList"></div>
-  </div>
-  
-  <div class="panel" id="panel-analysis">
-    <div style="display: flex; gap: 8px; margin-bottom: 12px; padding: 0 4px;">
-      <select id="analysisDriver1" style="flex:1; padding: 8px; background: var(--bg2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-size: 13px;"></select>
-      <select id="analysisDriver2" style="flex:1; padding: 8px; background: var(--bg2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-size: 13px;"></select>
-    </div>
-    <div id="analysisResults"></div>
-  </div>
-  
-  <div class="panel" id="panel-ontrack">
-    <div style="text-align:center; padding: 20px; color: var(--muted);">Tapping a chip selects the driver. SC position approx.</div>
-  </div>
-</div>
-
-<div class="modal-backdrop" id="driverModal" onclick="if(event.target===this) closeModal()">
-  <div class="modal-box">
-    <div class="modal-head">
-      <span class="modal-title" id="modalTitle">Driver</span>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-tabs">
-      <button class="modal-tab active" onclick="switchModalTab('laps')">Laps</button>
-      <button class="modal-tab" onclick="switchModalTab('stints')">Stints</button>
-    </div>
-    <div class="modal-body" id="modalBody"></div>
-  </div>
-</div>
-
-<script>
-(function () {
-  "use strict";
-
-  var SC_GAP_SECONDS = 1.5;
-  var PIT_THRESHOLD = 120; // ~12m in API units
-
-  var els = {
-    sessionSelect: document.getElementById("sessionSelect"), dataMeter: document.getElementById("dataMeter"),
-    error: document.getElementById("error"), mapWrap: document.getElementById("mapWrap"),
-    canvas: document.getElementById("trackCanvas"), circleCanvas: document.getElementById("circleCanvas"),
-    mapEmpty: document.getElementById("mapEmpty"), playBtn: document.getElementById("playBtn"),
-    slider: document.getElementById("slider"), sliderMarkers: document.getElementById("sliderMarkers"),
-    flipBtn: document.getElementById("flipBtn"), timeDisplay: document.getElementById("timeDisplay"),
-    lapCounter: document.getElementById("lapCounter"), statusLabel: document.getElementById("statusLabel"),
-    durationTicker: document.getElementById("durationTicker"), progressWrap: document.getElementById("progressWrap"),
-    progressBar: document.getElementById("progressBar"), rankingsList: document.getElementById("rankingsList"),
-    rcPopup: document.getElementById("rcPopup"), driverModal: document.getElementById("driverModal"),
-    modalTitle: document.getElementById("modalTitle"), modalBody: document.getElementById("modalBody")
-  };
-
-  var state = {
-    allSessions: [], currentSessionKey: null, outline: null, flipY: true,
-    sessionLength: 0, sessionStartMs: 0, drivers: {}, driverOrder: [],
-    laps: [], stints: {}, raceControl: [], sessionResult: [], scPeriods: [],
-    currentTime: 0, playing: false, lastFrameTime: 0, transform: null,
-    highlightedDriver: null, bytesDownloaded: 0,
-    q1Ended: false, q2Ended: false, q1Eliminated: [], q2Eliminated: [],
-    activeRC: null, rcTimeout: null, lastFlagState: null,
-    currentModalDriver: null, currentModalTab: 'laps'
-  };
-  
-  var animationId = null;
-  var baseCanvas = document.createElement("canvas");
-  var baseCtx = baseCanvas.getContext("2d");
-  var resizeTimer = null;
-  var lastTapTime = 0, lastTapTarget = null;
-
-  window.switchTab = function(tab) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    var wrap = document.getElementById('mapWrap');
-    if(tab === 'timing') { document.querySelector('.tab-btn:nth-child(1)').classList.add('active'); document.getElementById('panel-timing').classList.add('active'); wrap.classList.remove('map-ring-mode'); }
-    if(tab === 'analysis') { document.querySelector('.tab-btn:nth-child(2)').classList.add('active'); document.getElementById('panel-analysis').classList.add('active'); wrap.classList.remove('map-ring-mode'); initAnalysis(); }
-    if(tab === 'ontrack') { document.querySelector('.tab-btn:nth-child(3)').classList.add('active'); document.getElementById('panel-ontrack').classList.add('active'); wrap.classList.add('map-ring-mode'); drawCircleOfDoom(); }
-  };
-
-  function addBytes(len) { state.bytesDownloaded += len; updateMeter(); }
-  function updateMeter() {
-    els.dataMeter.textContent = state.bytesDownloaded < 1048576 
-      ? Math.round(state.bytesDownloaded / 1024) + " KB"
-      : (state.bytesDownloaded / 1048576).toFixed(1) + " MB";
-  }
-  function showError(msg) { els.error.textContent = msg; els.error.classList.add("show"); setTimeout(() => els.error.classList.remove("show"), 6000); }
-  function fetchJSON(url) {
-    return fetch(url, { cache: "no-store" }).then(res => {
-      if (!res.ok) throw new Error("Could not load " + url + ": " + res.status);
-      return res.text().then(text => { addBytes(text.length); return JSON.parse(text); });
-    });
-  }
-  
-  function formatTime(sec) {
-    if (sec === null || sec === undefined) return "";
-    var m = Math.floor(sec / 60), s = (sec % 60).toFixed(3);
-    return m + ":" + (s < 10 ? "0" + s : s);
-  }
-  function formatShortTime(sec) { return sec === null ? "" : sec.toFixed(3); }
-
-  function updateTimeDisplay() {
-    var now = new Date(state.sessionStartMs + state.currentTime * 1000);
-    var fmt = d => (d.getHours()<10?"0":"") + d.getHours() + ":" + (d.getMinutes()<10?"0":"") + d.getMinutes();
-    els.timeDisplay.textContent = fmt(now);
+    print(f"=== session_key={session_key} ===")
+    sessions, _ = fetch_all("sessions", session_key)
+    if not sessions: sys.exit(1)
+    sess = sessions[0]
     
-    var elapsed = Math.floor(state.currentTime);
-    var m = Math.floor(elapsed / 60), s = elapsed % 60;
-    els.durationTicker.textContent = (m<10?"0":"")+m+":"+(s<10?"0":"")+s;
-    
-    var maxLap = 0;
-    state.laps.forEach(l => {
-      var lt = (new Date(l.date_start).getTime() - state.sessionStartMs)/1000;
-      if (state.currentTime >= lt && l.lap_number > maxLap) maxLap = l.lap_number;
-    });
-    if (maxLap > 0) {
-      els.lapCounter.style.display = "inline-block";
-      els.lapCounter.textContent = maxLap + "/" + (state.sessionResult.length > 0 ? state.sessionResult[0].number_of_laps : "?");
-    } else {
-      els.lapCounter.style.display = "none";
+    meeting_key = sess.get("meeting_key")
+    meetings = []
+    if meeting_key:
+        year = None
+        try: year = datetime.fromisoformat(sess["date_start"].replace("Z","+00:00")).year
+        except: pass
+        if year:
+            meeting_data, _, _ = api_get("/meetings", {"year": year})
+            meetings = [m for m in meeting_data if m.get("meeting_key") == meeting_key]
+    meeting = meetings[0] if meetings else {}
+
+    meta = {
+        "session_key": session_key, "session_name": sess.get("session_name"),
+        "date_start": sess.get("date_start"), "date_end": sess.get("date_end"),
+        "year": meeting.get("year"),
+        "meeting_name": meeting.get("meeting_name") or meeting.get("circuit_short_name"),
     }
+    (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+
+    laps, _ = fetch_all("laps", session_key); (out_dir / "laps.json").write_text(json.dumps(laps))
+    race_control, _ = fetch_all("race_control", session_key); (out_dir / "race_control.json").write_text(json.dumps(race_control))
+    session_result, _ = fetch_all("session_result", session_key); (out_dir / "session_result.json").write_text(json.dumps(session_result))
+    drivers, _ = fetch_all("drivers", session_key); (out_dir / "drivers.json").write_text(json.dumps(drivers))
+    stints, _ = fetch_all("stints", session_key); (out_dir / "stints.json").write_text(json.dumps(stints))
+
+    start_dt, end_dt = None, None
+    if race_control:
+        valid_rc = [m for m in race_control if m.get("date")]
+        if valid_rc:
+            start_dt = datetime.fromisoformat(valid_rc[0]["date"].replace("Z", "+00:00"))
+            end_dt = datetime.fromisoformat(valid_rc[-1]["date"].replace("Z", "+00:00"))
+    if not start_dt:
+        try: start_dt = datetime.fromisoformat(sess["date_start"].replace("Z", "+00:00"))
+        except: start_dt = datetime(1970, 1, 1, tzinfo=timezone.utc)
+    if not end_dt: end_dt = start_dt + timedelta(hours=3)
+
+    outline_file = out_dir / "outline.json"
+    if not outline_file.exists() or force:
+        valid_laps = [l for l in laps if l.get("lap_duration") and not l.get("is_pit_out_lap") and l.get("date_start")]
+        if valid_laps:
+            fastest = min(valid_laps, key=lambda l: l["lap_duration"])
+            dn, lap_num, dur = fastest["driver_number"], fastest["lap_number"], fastest["lap_duration"]
+            try:
+                start_dt_outline = datetime.fromisoformat(fastest["date_start"].replace("Z", "+00:00"))
+                end_dt_outline = start_dt_outline + timedelta(seconds=dur + 1)
+                date_gt_o = start_dt_outline.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
+                date_lt_o = end_dt_outline.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
+                rows_o, _, success_o = api_get("/location", {"session_key": session_key, "driver_number": dn, "date>": date_gt_o, "date<": date_lt_o})
+                if success_o and rows_o:
+                    points = []
+                    for r in rows_o:
+                        if r.get("x") == 0 and r.get("y") == 0: continue
+                        t_offset = (datetime.fromisoformat(r["date"].replace("Z", "+00:00")) - start_dt_outline).total_seconds()
+                        points.append([r["x"], r["y"], t_offset])
+                    outline_file.write_text(json.dumps({"driver": dn, "lap": lap_num, "lap_duration": dur, "points": points}))
+            except Exception: pass
+
+    driver_nums = [d["driver_number"] for d in drivers if "driver_number" in d]
+    if max_drivers: driver_nums = driver_nums[:max_drivers]
     
-    var status = getTrackStatus(state.currentTime);
-    els.statusLabel.textContent = status;
-    els.statusLabel.style.color = status === "Red" ? "var(--err)" : status === "SC" ? "var(--yellow)" : status === "VSC" ? "var(--amber)" : "var(--green)";
-    
-    els.slider.value = state.currentTime;
-  }
+    window = timedelta(minutes=WINDOW_MINUTES)
+    if max_minutes: end_dt = min(end_dt, start_dt + timedelta(minutes=max_minutes))
 
-  function getContrastColor(hex) {
-    if(!hex || hex === "ffffff") return "#000";
-    var r = parseInt(hex.substr(0, 2), 16), g = parseInt(hex.substr(2, 2), 16), b = parseInt(hex.substr(4, 2), 16);
-    return (((r * 299) + (g * 587) + (b * 114)) / 1000 >= 128) ? '#000000' : '#ffffff';
-  }
-  function getTyreColor(c) {
-    if (!c) return "#555"; c = c.toUpperCase();
-    if (c.includes("SOFT")) return "#ff3b4e"; if (c.includes("MED")) return "#ffd23f";
-    if (c.includes("HARD")) return "#f1f3f8"; if (c.includes("INTER")) return "#3ddc84";
-    if (c.includes("WET")) return "#4aa3ff"; return "#555";
-  }
-  function getTyreLetter(c) {
-    if (!c) return "?"; c = c.toUpperCase();
-    if (c.includes("SOFT")) return "S"; if (c.includes("MED")) return "M";
-    if (c.includes("HARD")) return "H"; if (c.includes("INTER")) return "I";
-    if (c.includes("WET")) return "W"; return c[0];
-  }
+    for dn in driver_nums:
+        loc_file = loc_dir / f"{dn}.json"
+        if loc_file.exists() and not force: continue
+        all_samples, cur = [], start_dt
+        while cur < end_dt:
+            nxt = min(cur + window, end_dt)
+            date_gt = cur.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
+            date_lt = nxt.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
+            rows, _, success = api_get("/location", {"session_key": session_key, "driver_number": dn, "date>": date_gt, "date<": date_lt})
+            if success and rows: all_samples.extend(rows)
+            cur = nxt
+        if all_samples:
+            (loc_dir / f"{dn}.json").write_text(json.dumps(downsample_location(all_samples, start_dt)))
+        time.sleep(MIN_GAP)
 
-  fetchJSON("data/sessions.json").then(sessions => {
-    if (!Array.isArray(sessions) || sessions.length === 0) throw new Error("sessions.json is empty");
-    state.allSessions = sessions;
-    els.sessionSelect.innerHTML = `<option value="">Choose a session…</option>` + 
-      sessions.map(s => `<option value="${s.session_key}">${s.year} ${s.meeting_name} - ${s.session_name}</option>`).join("");
-    els.sessionSelect.disabled = false;
-    els.sessionSelect.addEventListener("change", function() { if (this.value) selectSession(this.value); });
-    if (sessions.length > 0) selectSession(sessions[0].session_key);
-  }).catch(err => showError(err.message));
+    idx_path = OUT_ROOT / "sessions.json"
+    idx = []
+    if idx_path.exists():
+        try: idx = json.loads(idx_path.read_text())
+        except: pass
+    idx = [e for e in idx if str(e.get("session_key")) != str(session_key)]
+    idx.append({"session_key": session_key, "year": meta.get("year"), "meeting_name": meta.get("meeting_name"), "session_name": meta.get("session_name")})
+    idx_path.write_text(json.dumps(idx, indent=2))
+    print("=== DONE ===")
 
-  function getTrackStatus(t) {
-    var status = "Clear";
-    for (var i = 0; i < state.raceControl.length; i++) {
-      var m = state.raceControl[i];
-      var mt = (new Date(m.date).getTime() - state.sessionStartMs) / 1000;
-      if (mt > t) break;
-      
-      if (m.flag === "RED") status = "Red";
-      else if (m.category === "SafetyCar") {
-        if (m.message.includes("VIRTUAL")) status = "VSC";
-        else status = "SC";
-      }
-      else if (m.flag === "GREEN" || m.message === "TRACK CLEAR") status = "Clear";
-    }
-    return status;
-  }
-
-  function selectSession(key) {
-    state.currentSessionKey = key; state.outline = null; state.drivers = {};
-    state.driverOrder = []; state.laps = []; state.stints = {}; state.raceControl = []; state.sessionResult = []; state.scPeriods = [];
-    state.highlightedDriver = null; state.bytesDownloaded = 0;
-    state.q1Ended = false; state.q2Ended = false; state.q1Eliminated = []; state.q2Eliminated = [];
-    state.lastFlagState = null; closeModal();
-    updateMeter();
-    els.playBtn.disabled = true; els.flipBtn.disabled = true; els.slider.disabled = true;
-    els.mapEmpty.style.display = "flex"; els.mapEmpty.textContent = "Loading data…";
-    els.rankingsList.innerHTML = ""; els.progressWrap.classList.add("show"); els.progressBar.style.width = "0%";
-    els.sliderMarkers.innerHTML = "";
-    
-    Promise.all([
-      fetchJSON(`data/${key}/meta.json`), fetchJSON(`data/${key}/outline.json`),
-      fetchJSON(`data/${key}/drivers.json`), fetchJSON(`data/${key}/laps.json`),
-      fetchJSON(`data/${key}/stints.json`), fetchJSON(`data/${key}/race_control.json`),
-      fetchJSON(`data/${key}/session_result.json`)
-    ]).then(results => {
-      var meta = results[0], outline = results[1], driversRaw = results[2];
-      state.laps = results[3]; var stintsRaw = results[4];
-      state.raceControl = results[5]; state.sessionResult = results[6];
-
-      state.sessionStartMs = new Date(meta.date_start).getTime();
-      
-      if (state.raceControl.length > 0) {
-        state.sessionStartMs = new Date(state.raceControl[0].date).getTime();
-        var endMs = new Date(state.raceControl[state.raceControl.length-1].date).getTime();
-        state.sessionLength = (endMs - state.sessionStartMs) / 1000;
-      } else {
-        state.sessionLength = (new Date(meta.date_end).getTime() - state.sessionStartMs) / 1000;
-      }
-
-      if (outline.points[0].length < 3) {
-        var numPts = outline.points.length;
-        outline.points = outline.points.map((p, i) => [p[0], p[1], (i / (numPts - 1)) * outline.lap_duration]);
-        showError("Note: Outline uses equal time spacing. Re-run fetch for precise times.");
-      }
-      state.outline = outline;
-      els.slider.max = state.sessionLength;
-
-      // Build SC periods
-      var activeSC = null;
-      state.raceControl.forEach(m => {
-        var mt = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
-        if (m.category === "SafetyCar" || (m.message && m.message.includes("SAFETY CAR"))) {
-          var isVSC = m.message.includes("VIRTUAL");
-          if (!activeSC) {
-            activeSC = { type: isVSC ? "VSC" : "SC", start: mt, end: state.sessionLength };
-          } else if (activeSC.type === "VSC" && !isVSC) {
-            activeSC.type = "SC"; // Upgrade VSC to SC
-          }
-        }
-        if (activeSC && (m.flag === "GREEN" || m.message === "TRACK CLEAR" || m.message.includes("ENDING"))) {
-          if (mt > activeSC.start) { activeSC.end = mt; state.scPeriods.push(activeSC); activeSC = null; }
-        }
-      });
-      if (activeSC) state.scPeriods.push(activeSC);
-
-      state.scPeriods.forEach(p => {
-        var cls = p.type === "SC" ? "sc" : "vsc";
-        var pct = (p.start / state.sessionLength) * 100, w = ((p.end - p.start) / state.sessionLength) * 100;
-        els.sliderMarkers.innerHTML += `<div class="slider-marker ${cls}" style="left:${pct}%; width:${w}%"></div>`;
-      });
-
-      driversRaw.forEach(d => {
-        state.drivers[d.driver_number] = { acronym: d.name_acronym || String(d.driver_number), color: d.team_colour || "ffffff", data: [] };
-        state.driverOrder.push(d);
-      });
-      stintsRaw.forEach(s => { if (!state.stints[s.driver_number]) state.stints[s.driver_number] = []; state.stints[s.driver_number].push(s); });
-
-      state.sessionResult.forEach(r => {
-        if (!r.duration || !Array.isArray(r.duration)) return;
-        if (r.duration[0] !== null && r.duration[1] === null) state.q1Eliminated.push(r.driver_number);
-        if (r.duration[0] !== null && r.duration[1] !== null && r.duration[2] === null) state.q2Eliminated.push(r.driver_number);
-      });
-
-      var validLaps = state.laps.filter(l => l.date_start !== null).sort((a,b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
-      var bestS1 = Infinity, bestS2 = Infinity, bestS3 = Infinity;
-      var drvBestS1 = {}, drvBestS2 = {}, drvBestS3 = {};
-      
-      validLaps.forEach(l => {
-        l._t_start = (new Date(l.date_start).getTime() - state.sessionStartMs) / 1000;
-        l._t_end = l._t_start + (l.lap_duration || 0);
-        if (l.is_pit_out_lap) { l._c1 = l._c2 = l._c3 = 'c-neutral'; return; }
-        
-        if (l.duration_sector_1) {
-          l._c1 = l.duration_sector_1 <= bestS1 ? 'c-purple' : (l.duration_sector_1 <= (drvBestS1[l.driver_number]||Infinity) ? 'c-green' : 'c-yellow');
-          if (l.duration_sector_1 < bestS1) bestS1 = l.duration_sector_1;
-          if (l.duration_sector_1 < (drvBestS1[l.driver_number]||Infinity)) drvBestS1[l.driver_number] = l.duration_sector_1;
-        }
-        if (l.duration_sector_2) {
-          l._c2 = l.duration_sector_2 <= bestS2 ? 'c-purple' : (l.duration_sector_2 <= (drvBestS2[l.driver_number]||Infinity) ? 'c-green' : 'c-yellow');
-          if (l.duration_sector_2 < bestS2) bestS2 = l.duration_sector_2;
-          if (l.duration_sector_2 < (drvBestS2[l.driver_number]||Infinity)) drvBestS2[l.driver_number] = l.duration_sector_2;
-        }
-        if (l.duration_sector_3) {
-          l._c3 = l.duration_sector_3 <= bestS3 ? 'c-purple' : (l.duration_sector_3 <= (drvBestS3[l.driver_number]||Infinity) ? 'c-green' : 'c-yellow');
-          if (l.duration_sector_3 < bestS3) bestS3 = l.duration_sector_3;
-          if (l.duration_sector_3 < (drvBestS3[l.driver_number]||Infinity)) drvBestS3[l.driver_number] = l.duration_sector_3;
-        }
-      });
-
-      var loaded = 0, total = state.driverOrder.length;
-      function next() {
-        if (loaded >= total) return finish();
-        var dn = state.driverOrder[loaded].driver_number;
-        fetchJSON(`data/${key}/location/${dn}.json`).then(d => state.drivers[dn].data = d).catch(e => console.warn(e)).finally(() => {
-          loaded++; els.progressBar.style.width = Math.round((loaded/total)*100) + "%"; next();
-        });
-      }
-      function finish() {
-        els.progressWrap.classList.remove("show"); els.mapEmpty.style.display = "none";
-        els.playBtn.disabled = false; els.flipBtn.disabled = false; els.slider.disabled = false;
-        state.currentTime = 0; updateTimeDisplay();
-        renderRankings(); prepareBackground(); drawCars(); updateRankings();
-      }
-      next();
-    }).catch(err => { showError(err.message); els.progressWrap.classList.remove("show"); els.mapEmpty.textContent = "Could not load data"; });
-  }
-
-  function renderRankings() {
-    els.rankingsList.innerHTML = state.driverOrder.map(d => {
-      var dn = d.driver_number, color = state.drivers[dn].color, txt = getContrastColor(color);
-      return `
-        <div class="driver-row" data-dn="${dn}" id="row-${dn}">
-          <div class="row-main">
-            <div class="row-pos" id="pos-${dn}"></div>
-            <div class="row-driver">
-              <div class="row-circle" style="background:#${color}; color:${txt}">${dn}</div>
-              <div class="row-acronym">${state.drivers[dn].acronym}</div>
-            </div>
-            <div class="row-gap" id="gap-${dn}"></div>
-            <div class="row-tyre"><div class="tyre-circle" id="tyre-${dn}" style="display:none"></div></div>
-            <div class="row-laps" id="laps-${dn}"></div>
-            <div class="row-best" id="best-${dn}"></div>
-          </div>
-          <div class="row-sectors">
-            <div class="sector-time" id="s1-${dn}"></div>
-            <div class="sector-time" id="s2-${dn}"></div>
-            <div class="sector-time" id="s3-${dn}"></div>
-            <div class="lap-total-time" id="total-${dn}"></div>
-          </div>
-        </div>`;
-    }).join("");
-  }
-
-  function updateRankings() {
-    if (!state.drivers || Object.keys(state.drivers).length === 0) return;
-    var t = state.currentTime, driversData = [];
-
-    var rcInWindow = state.raceControl.filter(m => {
-      var mt = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
-      return mt <= t && mt > t - 0.5;
-    });
-    if (rcInWindow.length > 0) {
-      var m = rcInWindow[0];
-      if (m.message.includes("CHEQUERED FLAG") && m.qualifying_phase === 1) state.q1Ended = true;
-      if (m.message.includes("CHEQUERED FLAG") && m.qualifying_phase === 2) state.q2Ended = true;
-      
-      if (m.message !== state.activeRC) {
-        state.activeRC = m.message;
-        els.rcPopup.textContent = m.message;
-        els.rcPopup.className = "show";
-        clearTimeout(state.rcTimeout);
-        state.rcTimeout = setTimeout(() => els.rcPopup.classList.remove("show"), 4000);
-      }
-    }
-
-    for (var i = 0; i < state.driverOrder.length; i++) {
-      var d = state.driverOrder[i], dn = d.driver_number;
-      var laps = state.laps.filter(l => l.driver_number === dn && l._t_start !== null).sort((a,b) => a.lap_number - b.lap_number);
-      
-      var bestLap = Infinity;
-      laps.forEach(l => { if (t >= l._t_end && l.lap_duration && !l.is_pit_out_lap && l.lap_duration < bestLap) bestLap = l.lap_duration; });
-      if (bestLap === Infinity) bestLap = null;
-
-      var curr = null, prev = null;
-      for (var j = laps.length - 1; j >= 0; j--) { if (t >= laps[j]._t_start) { curr = laps[j]; if (j>0) prev = laps[j-1]; break; } }
-      
-      var stint = null;
-      if (curr) { var st = state.stints[dn] || []; for (var k = st.length - 1; k >= 0; k--) { if (curr.lap_number >= st[k].lap_start) { stint = st[k]; break; } } }
-
-      driversData.push({ dn, bestLap, completedLaps: laps.filter(l => t >= l._t_end).length, curr, prev, stint });
-    }
-
-    driversData.sort((a, b) => {
-      if (a.bestLap === null && b.bestLap === null) return a.dn - b.dn;
-      if (a.bestLap === null) return 1;
-      if (b.bestLap === null) return -1;
-      return a.bestLap - b.bestLap;
-    });
-
-    var finalOrder = [];
-    var eliminated = new Set();
-    if (state.q1Ended) state.q1Eliminated.forEach(dn => eliminated.add(dn));
-    if (state.q2Ended) state.q2Eliminated.forEach(dn => eliminated.add(dn));
-    
-    driversData.forEach(d => { if (!eliminated.has(d.dn)) finalOrder.push(d); });
-    finalOrder = finalOrder.concat(driversData.filter(d => eliminated.has(d.dn)));
-
-    var p1Best = finalOrder.length > 0 ? finalOrder[0].bestLap : null;
-    var domOrder = [];
-
-    for (var i = 0; i < finalOrder.length; i++) {
-      var dd = finalOrder[i], dn = dd.dn, pos = i + 1;
-      domOrder.push(document.getElementById("row-" + dn));
-      
-      setText("pos-" + dn, pos);
-      setText("gap-" + dn, (pos === 1 || !dd.bestLap || !p1Best) ? "" : "+" + (dd.bestLap - p1Best).toFixed(3));
-      setText("laps-" + dn, dd.completedLaps);
-      setText("best-" + dn, dd.bestLap ? formatTime(dd.bestLap) : "");
-      
-      var tcEl = document.getElementById("tyre-" + dn);
-      if (dd.stint) {
-        tcEl.style.display = "flex";
-        tcEl.style.background = getTyreColor(dd.stint.compound);
-        tcEl.style.color = getContrastColor(getTyreColor(dd.stint.compound).replace("#", ""));
-        tcEl.textContent = dd.curr.lap_number - dd.stint.lap_start + 1;
-      } else tcEl.style.display = "none";
-      
-      updateSectors(dn, t, dd.curr, dd.prev);
-    }
-    
-    var frag = document.createDocumentFragment();
-    domOrder.forEach(el => frag.appendChild(el));
-    els.rankingsList.appendChild(frag);
-  }
-
-  function updateSectors(dn, t, curr, prev) {
-    var sVal = [null, null, null], sCls = ['c-neutral', 'c-neutral', 'c-neutral'], sDim = [true, true, true];
-    
-    if (curr) {
-      var e1 = curr._t_start + (curr.duration_sector_1 || 0);
-      var e2 = e1 + (curr.duration_sector_2 || 0);
-      var e3 = e2 + (curr.duration_sector_3 || 0);
-      if (t >= e1 && curr.duration_sector_1) { sVal[0] = curr.duration_sector_1; sDim[0] = false; sCls[0] = curr._c1; }
-      if (t >= e2 && curr.duration_sector_2) { sVal[1] = curr.duration_sector_2; sDim[1] = false; sCls[1] = curr._c2; }
-      if (t >= e3 && curr.duration_sector_3) { sVal[2] = curr.duration_sector_3; sDim[2] = false; sCls[2] = curr._c3; }
-    }
-    if (prev && prev.lap_duration && t < (curr ? curr._t_end : Infinity)) {
-      if (sVal[0] === null && prev.duration_sector_1) { sVal[0] = prev.duration_sector_1; sCls[0] = prev._c1; }
-      if (sVal[1] === null && prev.duration_sector_2) { sVal[1] = prev.duration_sector_2; sCls[1] = prev._c2; }
-      if (sVal[2] === null && prev.duration_sector_3) { sVal[2] = prev.duration_sector_3; sCls[2] = prev._c3; }
-    }
-
-    var totalEl = document.getElementById("total-" + dn);
-    if (totalEl) {
-      if (curr && curr.lap_duration && !sDim[0] && !sDim[1] && !sDim[2]) {
-        totalEl.textContent = formatTime(curr.lap_duration);
-      } else {
-        totalEl.textContent = "";
-      }
-    }
-
-    for (var k = 0; k < 3; k++) {
-      var el = document.getElementById("s" + (k+1) + "-" + dn);
-      if (!el) continue;
-      var str = sVal[k] ? formatShortTime(sVal[k]) : "";
-      if (el.textContent !== str) el.textContent = str;
-      var cls = "sector-time " + sCls[k] + (sDim[k] ? " dimmed" : "");
-      if (el.className !== cls) el.className = cls;
-    }
-  }
-
-  function setText(id, val) { var el = document.getElementById(id); if (el && el.textContent !== String(val)) el.textContent = val; }
-  
-  function toggleHighlight(dn) {
-    state.highlightedDriver = (state.highlightedDriver === dn) ? null : dn;
-    document.querySelectorAll(".driver-row").forEach(r => r.classList.toggle("highlighted", parseInt(r.getAttribute("data-dn"), 10) === state.highlightedDriver));
-    drawCars(); drawCircleOfDoom();
-  }
-
-  // Modal Logic
-  window.closeModal = function() {
-    els.driverModal.classList.remove("open");
-    state.currentModalDriver = null;
-  };
-  window.switchModalTab = function(tab) {
-    state.currentModalTab = tab;
-    document.querySelectorAll(".modal-tab").forEach(t => t.classList.remove("active"));
-    document.querySelector(`.modal-tab:nth-child(${tab === 'laps' ? 1 : 2})`).classList.add("active");
-    renderModalBody();
-  };
-  
-  function openModal(dn) {
-    state.currentModalDriver = dn;
-    var driver = state.drivers[dn];
-    els.modalTitle.innerHTML = `<span class="row-circle" style="background:#${driver.color}; color:${getContrastColor(driver.color)}">${dn}</span> ${driver.acronym}`;
-    els.driverModal.classList.add("open");
-    switchModalTab('laps');
-  }
-
-  function renderModalBody() {
-    var dn = state.currentModalDriver;
-    if (!dn) return;
-    var driverLaps = state.laps.filter(l => l.driver_number === dn && l.date_start !== null).sort((a,b) => a.lap_number - b.lap_number);
-    
-    if (state.currentModalTab === 'stints') {
-      els.modalBody.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted)">Stints view coming soon</div>`;
-      return;
-    }
-
-    var html = `<table class="lap-table"><thead><tr><th>Lap</th><th>Time</th><th>S1</th><th>S2</th><th>S3</th><th>Tyre</th><th></th></tr></thead><tbody>`;
-    
-    var bestLapTime = Infinity;
-    driverLaps.forEach(l => { if (l.lap_duration && !l.is_pit_out_lap && l.lap_duration < bestLapTime) bestLapTime = l.lap_duration; });
-
-    driverLaps.forEach(l => {
-      var stint = null;
-      var st = state.stints[dn] || [];
-      for (var k = st.length - 1; k >= 0; k--) {
-        if (l.lap_number >= st[k].lap_start && l.lap_number <= (st[k].lap_end || 999)) { stint = st[k]; break; }
-      }
-      
-      var tCls = l.lap_duration === bestLapTime ? "pb" : (l.lap_duration ? "lt" : "");
-      var isOff = l.is_pit_out_lap ? 'off' : '';
-      
-      var note = '';
-      if (l.is_pit_out_lap) note = '<span class="note pit">OUTPIT</span>';
-      else if (l.lap_duration && l.lap_duration < bestLapTime * 1.02) note = '<span class="note push">Push</span>';
-      else if (l.lap_duration) note = '<span class="note">Run</span>';
-
-      html += `<tr class="${isOff}">
-        <td>${l.lap_number}</td>
-        <td class="${tCls}">${l.lap_duration ? formatTime(l.lap_duration) : '-'}</td>
-        <td>${l.duration_sector_1 ? l.duration_sector_1.toFixed(3) : '-'}</td>
-        <td>${l.duration_sector_2 ? l.duration_sector_2.toFixed(3) : '-'}</td>
-        <td>${l.duration_sector_3 ? l.duration_sector_3.toFixed(3) : '-'}</td>
-        <td>${stint ? `<span style="background:#${getTyreColor(stint.compound).replace('#','')}; color:#fff; padding:2px 6px; border-radius:10px; font-size:10px">${getTyreLetter(stint.compound)}</span>` : '-'}</td>
-        <td>${note}</td>
-      </tr>`;
-    });
-    
-    html += `</tbody></table>`;
-    els.modalBody.innerHTML = html;
-  }
-
-  els.rankingsList.addEventListener("click", e => {
-    var row = e.target.closest(".driver-row"); if (!row) return;
-    var dn = parseInt(row.getAttribute("data-dn"), 10), now = Date.now();
-    if (now - lastTapTime < 300 && lastTapTarget === dn) { 
-      toggleHighlight(dn); 
-      openModal(dn);
-      lastTapTime = 0; 
-    }
-    else { lastTapTime = now; lastTapTarget = dn; }
-  });
-
-  function handleCanvasClick(e, isCircle) {
-    if (!state.transform || els.mapEmpty.style.display !== "none") return;
-    var rect = els.canvas.getBoundingClientRect(), tx = e.clientX - rect.left, ty = e.clientY - rect.top - 48;
-    if (ty < 0) return;
-    
-    var hitDn = null;
-    if (isCircle) {
-      var cx = rect.width/2, cy = (rect.height-48)/2, r = Math.min(rect.width, rect.height-48)*0.35;
-      for (var dn in state.drivers) {
-        var pos = getTrackPosition(...getCarLocation(state.drivers[dn].data, state.currentTime));
-        if (pos.dist > PIT_THRESHOLD) continue;
-        var angle = (pos.t / state.outline.lap_duration) * Math.PI * 2 - (Math.PI/2);
-        var chipX = cx + Math.cos(angle) * (r + 20), chipY = cy + Math.sin(angle) * (r + 20);
-        if (Math.sqrt(Math.pow(tx - chipX, 2) + Math.pow(ty - chipY, 2)) < 30) { hitDn = parseInt(dn, 10); break; }
-      }
-    } else {
-      var t = state.transform;
-      for (var i = Object.keys(state.drivers).length - 1; i >= 0; i--) {
-        var dn = Object.keys(state.drivers)[i], loc = getCarLocation(state.drivers[dn].data, state.currentTime);
-        if (!loc) continue;
-        var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-        if (state.flipY) cy = t.cssH - cy;
-        if (Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2)) < 22) { hitDn = parseInt(dn, 10); break; }
-      }
-    }
-    
-    if (hitDn) {
-      var now = Date.now();
-      if (now - lastTapTime < 300 && lastTapTarget === hitDn) { toggleHighlight(hitDn); lastTapTime = 0; }
-      else { lastTapTime = now; lastTapTarget = hitDn; }
-    }
-  }
-
-  els.canvas.addEventListener("click", e => handleCanvasClick(e, false));
-  els.circleCanvas.addEventListener("click", e => handleCanvasClick(e, true));
-
-  function prepareBackground() {
-    if (!state.outline) return;
-    var wrap = els.mapWrap, dpr = window.devicePixelRatio || 1, cssW = wrap.clientWidth, cssH = wrap.clientHeight - 48;
-    if (cssW === 0 || cssH === 0) return;
-    els.canvas.width = Math.round(cssW * dpr); els.canvas.height = Math.round(cssH * dpr);
-    baseCanvas.width = els.canvas.width; baseCanvas.height = els.canvas.height;
-    baseCtx.setTransform(dpr, 0, 0, dpr, 0, 0); baseCtx.clearRect(0, 0, cssW, cssH);
-    
-    var pts = state.outline.points, minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    pts.forEach(p => { minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]); minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]); });
-    var w = maxX - minX, h = maxY - minY;
-    if (w <= 0 || h <= 0) return;
-
-    var pad = 20, availW = cssW - pad * 2, availH = cssH - pad * 2;
-    var scale = Math.min(availW / w, availH / h), offsetX = pad + (availW - w * scale) / 2, offsetY = pad + (availH - h * scale) / 2;
-    state.transform = { minX, minY, scale, offsetX, offsetY, cssW, cssH };
-
-    function toCanvas(px, py) {
-      var cx = (px - minX) * scale + offsetX, cy = (py - minY) * scale + offsetY;
-      if (state.flipY) cy = cssH - cy;
-      return [cx, cy];
-    }
-
-    var trackStatus = getTrackStatus(state.currentTime);
-    var strokeColor = trackStatus === "Red" ? "#ff5c5c" : trackStatus === "SC" ? "var(--yellow)" : trackStatus === "VSC" ? "var(--amber)" : "#2a3454";
-
-    baseCtx.beginPath();
-    var p0 = toCanvas(pts[0][0], pts[0][1]); baseCtx.moveTo(p0[0], p0[1]);
-    for (var j = 1; j < pts.length; j++) { var c = toCanvas(pts[j][0], pts[j][1]); baseCtx.lineTo(c[0], c[1]); }
-    baseCtx.closePath();
-    baseCtx.lineWidth = 4; baseCtx.lineJoin = "round";
-    baseCtx.strokeStyle = strokeColor;
-    baseCtx.stroke();
-
-    var p1 = toCanvas(pts[1][0], pts[1][1]);
-    var dx = p1[0] - p0[0], dy = p1[1] - p0[1], len = Math.sqrt(dx*dx + dy*dy);
-    var nx = -dy / len, ny = dx / len, lineLen = 12;
-    baseCtx.beginPath(); baseCtx.moveTo(p0[0] - nx * lineLen, p0[1] - ny * lineLen);
-    baseCtx.lineTo(p0[0] + nx * lineLen, p0[1] + ny * lineLen);
-    baseCtx.lineWidth = 3; baseCtx.strokeStyle = "#ffffff"; baseCtx.stroke();
-
-    var validLaps = state.laps.filter(l => l.date_start && !l.is_pit_out_lap && l.duration_sector_1 && l.duration_sector_2 && l.duration_sector_3);
-    if (validLaps.length > 0) {
-      var fastest = validLaps.reduce((a, b) => a.lap_duration < b.lap_duration ? a : b);
-      var startMs = new Date(fastest.date_start).getTime();
-      var s1Ms = startMs + (fastest.duration_sector_1 * 1000);
-      var s2Ms = s1Ms + (fastest.duration_sector_2 * 1000);
-      var refData = state.drivers[fastest.driver_number] ? state.drivers[fastest.driver_number].data : [];
-      
-      function findCoord(targetMs) {
-        var targetT = (targetMs - state.sessionStartMs) / 1000;
-        for (var i = 0; i < refData.length - 1; i++) {
-          if (refData[i][0] <= targetT && refData[i+1][0] >= targetT) {
-            var ratio = (targetT - refData[i][0]) / (refData[i+1][0] - refData[i][0]);
-            return [refData[i][1] + (refData[i+1][1] - refData[i][1]) * ratio, refData[i][2] + (refData[i+1][2] - refData[i][2]) * ratio];
-          }
-        }
-        return null;
-      }
-      
-      [s1Ms, s2Ms].forEach(tgtMs => {
-        var coord = findCoord(tgtMs);
-        if (coord) {
-          var c = toCanvas(coord[0], coord[1]);
-          baseCtx.beginPath(); baseCtx.moveTo(c[0] - nx * 8, c[1] - ny * 8); baseCtx.lineTo(c[0] + nx * 8, c[1] + ny * 8);
-          baseCtx.lineWidth = 2; baseCtx.strokeStyle = "rgba(255,255,255,0.4)"; baseCtx.stroke();
-        }
-      });
-    }
-  }
-
-  function drawCars() {
-    if (!state.outline || !state.transform) return;
-    var ctx = els.canvas.getContext("2d"), t = state.transform;
-    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
-    ctx.drawImage(baseCanvas, 0, 0);
-    ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
-    
-    var trackStatus = getTrackStatus(state.currentTime);
-    
-    for (var dn in state.drivers) {
-      var car = state.drivers[dn], loc = getCarLocation(car.data, state.currentTime);
-      if (!loc) continue;
-      var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-      if (state.flipY) cy = t.cssH - cy;
-
-      if (state.highlightedDriver === parseInt(dn, 10)) {
-        ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2); ctx.fillStyle = "#" + car.color; ctx.globalAlpha = 0.3; ctx.fill(); ctx.globalAlpha = 1.0;
-      }
-      ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI * 2); ctx.fillStyle = "#" + car.color; ctx.fill();
-      ctx.fillStyle = getContrastColor(car.color); ctx.font = "bold 11px -apple-system, sans-serif";
-      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(dn, cx, cy);
-    }
-    
-    // Draw SC icon
-    if (trackStatus === "SC") {
-      var scPos = getSCPosition();
-      if (scPos) {
-        var scPts = state.outline.points;
-        for (var i = 0; i < scPts.length - 1; i++) {
-          if (scPts[i][2] <= scPos && scPts[i+1][2] >= scPos) {
-            var ratio = (scPos - scPts[i][2]) / (scPts[i+1][2] - scPts[i][2]);
-            var px = scPts[i][0] + (scPts[i+1][0] - scPts[i][0]) * ratio;
-            var py = scPts[i][1] + (scPts[i+1][1] - scPts[i][1]) * ratio;
-            var cx = (px - t.minX) * t.scale + t.offsetX, cy = (py - t.minY) * t.scale + t.offsetY;
-            if (state.flipY) cy = t.cssH - cy;
-            
-            ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2);
-            ctx.fillStyle = "var(--yellow)"; ctx.fill();
-            ctx.fillStyle = "#000"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-            ctx.fillText("SC", cx, cy);
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  function getCarLocation(data, t) {
-    if (data.length === 0) return null;
-    if (t > data[data.length - 1][0]) {
-      var last = data[data.length - 1];
-      return (last[1] === 0 && last[2] === 0) ? null : [last[1], last[2]];
-    }
-    if (t < data[0][0]) return null;
-
-    var i = data.length - 1;
-    while (i > 0 && data[i][0] > t) i--;
-    if (i === data.length - 1) return [data[i][1], data[i][2]];
-    
-    var p1 = data[i], p2 = data[i + 1];
-    if (p2[0] - p1[0] > 5) return [p1[1], p1[2]];
-
-    var ratio = (t - p1[0]) / (p2[0] - p1[0]);
-    var x = p1[1] + (p2[1] - p1[1]) * ratio, y = p1[2] + (p2[2] - p1[2]) * ratio;
-    if (x === 0 && y === 0) return null;
-    return [x, y];
-  }
-
-  function getTrackPosition(x, y) {
-    if (!state.outline || !state.outline.points[0][2]) return { dist: 9999, t: 0 };
-    var pts = state.outline.points;
-    var minDist = Infinity, bestT = 0;
-    for (var i = 0; i < pts.length - 1; i++) {
-      var x1 = pts[i][0], y1 = pts[i][1], t1 = pts[i][2];
-      var x2 = pts[i+1][0], y2 = pts[i+1][1], t2 = pts[i+1][2];
-      
-      var dx = x2 - x1, dy = y2 - y1;
-      var lenSq = dx*dx + dy*dy;
-      if (lenSq === 0) continue;
-      
-      var u = ((x - x1) * dx + (y - y1) * dy) / lenSq;
-      u = Math.max(0, Math.min(1, u));
-      
-      var px = x1 + u * dx, py = y1 + u * dy;
-      var dist = Math.sqrt(Math.pow(x - px, 2) + Math.pow(y - py, 2));
-      
-      if (dist < minDist) {
-        minDist = dist;
-        bestT = t1 + u * (t2 - t1);
-      }
-    }
-    return { dist: minDist, t: bestT };
-  }
-
-  function getSCPosition() {
-    var currentT = state.currentTime;
-    var heads = [];
-    for (var dn in state.drivers) {
-      var loc = getCarLocation(state.drivers[dn].data, currentT);
-      if (!loc) continue;
-      var pos = getTrackPosition(loc[0], loc[1]);
-      if (pos.dist > PIT_THRESHOLD) continue;
-      
-      var laps = state.laps.filter(l => l.driver_number == dn && l._t_start !== null).sort((a,b) => a.lap_number - b.lap_number);
-      var lapCount = 0;
-      for (var i = laps.length - 1; i >= 0; i--) {
-        if (currentT >= laps[i]._t_start) { lapCount = laps[i].lap_number; break; }
-      }
-      heads.push({ dn, progress: lapCount * 1000 + pos.t });
-    }
-    if (heads.length === 0) return null;
-    heads.sort((a, b) => b.progress - a.progress);
-    var leaderT = getTrackPosition(...getCarLocation(state.drivers[heads[0].dn].data, currentT)).t;
-    return (leaderT + SC_GAP_SECONDS) % state.outline.lap_duration;
-  }
-
-  function loop(timestamp) {
-    if (!state.playing) return;
-    if (!state.lastFrameTime) state.lastFrameTime = timestamp;
-    var dt = (timestamp - state.lastFrameTime) / 1000; state.lastFrameTime = timestamp; state.currentTime += dt;
-    if (state.currentTime >= state.sessionLength) { state.currentTime = state.sessionLength; pausePlayback(); }
-    
-    updateTimeDisplay();
-    var currentFlagState = getTrackStatus(state.currentTime);
-    if (state.lastFlagState !== currentFlagState) {
-      state.lastFlagState = currentFlagState;
-      prepareBackground();
-    }
-    drawCars(); updateRankings();
-    
-    if (document.getElementById('panel-ontrack') && document.getElementById('panel-ontrack').classList.contains('active')) {
-      drawCircleOfDoom();
-    }
-    
-    if (state.playing) animationId = requestAnimationFrame(loop);
-  }
-  
-  function playPlayback() { if (state.playing) return; if (state.currentTime >= state.sessionLength) state.currentTime = 0; state.playing = true; state.lastFrameTime = 0; els.playBtn.textContent = "⏸"; animationId = requestAnimationFrame(loop); }
-  function pausePlayback() { state.playing = false; els.playBtn.textContent = "▶"; if (animationId) cancelAnimationFrame(animationId); }
-  
-  els.playBtn.addEventListener("click", () => { if (state.playing) pausePlayback(); else playPlayback(); });
-  var wasPlaying = false;
-  els.slider.addEventListener("input", () => {
-    state.currentTime = parseFloat(els.slider.value);
-    updateTimeDisplay();
-    var currentFlagState = getTrackStatus(state.currentTime);
-    if (state.lastFlagState !== currentFlagState) {
-      state.lastFlagState = currentFlagState;
-      prepareBackground();
-    }
-    drawCars(); updateRankings();
-    if (document.getElementById('panel-ontrack').classList.contains('active')) drawCircleOfDoom();
-  });
-  els.slider.addEventListener("touchstart", () => { wasPlaying = state.playing; pausePlayback(); });
-  els.slider.addEventListener("touchend", () => { if (wasPlaying) playPlayback(); });
-  
-  els.flipBtn.addEventListener("click", () => { state.flipY = !state.flipY; prepareBackground(); drawCars(); });
-  window.addEventListener("resize", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); drawCircleOfDoom(); }, 100); });
-  window.addEventListener("orientationchange", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); drawCircleOfDoom(); }, 100); });
-
-  // --- CIRCLE OF DOOM LOGIC ---
-  function drawCircleOfDoom() {
-    if (!state.drivers || Object.keys(state.drivers).length === 0) return;
-    var canvas = els.circleCanvas;
-    var ctx = canvas.getContext("2d");
-    var wrap = canvas.parentElement;
-    var dpr = window.devicePixelRatio || 1;
-    var w = wrap.clientWidth, h = wrap.clientHeight - 48;
-    if (w === 0 || h === 0) return;
-
-    canvas.width = w * dpr; canvas.height = h * dpr;
-    canvas.style.width = w + "px"; canvas.style.height = h + "px";
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    var cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.35;
-    var status = getTrackStatus(state.currentTime);
-    
-    // Ring background
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.lineWidth = 12;
-    ctx.strokeStyle = status === "SC" ? "var(--yellow)" : status === "VSC" ? "var(--amber)" : "#2a3454";
-    ctx.stroke();
-
-    var refLap = state.outline;
-    if (refLap && refLap.duration_sector_1 && refLap.duration_sector_2) {
-      var s1Angle = (refLap.duration_sector_1 / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
-      var s2Angle = ((refLap.duration_sector_1 + refLap.duration_sector_2) / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
-      
-      [s1Angle, s2Angle].forEach(a => {
-        ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(a) * (r - 6), cy + Math.sin(a) * (r - 6));
-        ctx.lineTo(cx + Math.cos(a) * (r + 6), cy + Math.sin(a) * (r + 6));
-        ctx.lineWidth = 2; ctx.strokeStyle = "#888"; ctx.stroke();
-      });
-    }
-
-    var currentT = state.currentTime;
-    var driversData = [];
-    
-    for (var dn in state.drivers) {
-      var loc = getCarLocation(state.drivers[dn].data, currentT);
-      if (!loc) continue;
-      
-      var pos = getTrackPosition(loc[0], loc[1]);
-      if (pos.dist > PIT_THRESHOLD) {
-        driversData.push({ dn, inPit: true });
-      } else {
-        var angle = (pos.t / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
-        driversData.push({ dn, inPit: false, angle: angle });
-      }
-    }
-    
-    var chipData = [];
-    driversData.forEach(d => {
-      var car = state.drivers[d.dn];
-      var x, y;
-      
-      if (d.inPit) {
-        var pAngle = -Math.PI/2 + (Math.random() * 0.4 - 0.2);
-        x = cx + Math.cos(pAngle) * (r - 20);
-        y = cy + Math.sin(pAngle) * (r - 20);
-        ctx.fillStyle = "#" + car.color; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
-      } else {
-        x = cx + Math.cos(d.angle) * r;
-        y = cy + Math.sin(d.angle) * r;
-        ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = "#" + car.color; ctx.fill();
-        ctx.strokeStyle = (state.highlightedDriver === parseInt(d.dn)) ? "#fff" : "#0a0e1a";
-        ctx.lineWidth = (state.highlightedDriver === parseInt(d.dn)) ? 3 : 2;
-        ctx.stroke();
-        
-        var chipX = cx + Math.cos(d.angle) * (r + 20);
-        var chipY = cy + Math.sin(d.angle) * (r + 20);
-        chipData.push({ dn: d.dn, x: chipX, y: chipY, angle: d.angle });
-      }
-    });
-    
-    // Draw SC Chip if active
-    if (status === "SC") {
-      var scPos = getSCPosition();
-      if (scPos) {
-        var scAngle = (scPos / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
-        var scX = cx + Math.cos(scAngle) * (r + 20);
-        var scY = cy + Math.sin(scAngle) * (r + 20);
-        chipData.push({ dn: "SC", x: scX, y: scY, angle: scAngle, isSC: true });
-      }
-    }
-    
-    chipData.forEach(c => {
-      var car = c.isSC ? { color: "ffd23f", acronym: "SC" } : state.drivers[c.dn];
-      ctx.fillStyle = "rgba(12, 19, 34, 0.8)";
-      ctx.strokeStyle = "#" + car.color;
-      ctx.lineWidth = 1;
-      
-      var text = car.acronym;
-      ctx.font = "bold 10px sans-serif";
-      var textW = ctx.measureText(text).width;
-      
-      ctx.beginPath();
-      ctx.roundRect(c.x - textW/2 - 4, c.y - 8, textW + 8, 16, 4);
-      ctx.fill(); ctx.stroke();
-      
-      ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(text, c.x, c.y);
-    });
-
-    ctx.fillStyle = "#fff"; ctx.font = "bold 24px sans-serif"; ctx.textAlign = "center";
-    var lap = 1, total = 58;
-    state.laps.forEach(l => {
-      var lt = (new Date(l.date_start).getTime() - state.sessionStartMs)/1000;
-      if (currentT >= lt && l.lap_number > lap) lap = l.lap_number;
-    });
-    ctx.fillText(lap + "/" + (state.sessionResult.length > 0 ? state.sessionResult[0].number_of_laps : "58"), cx, cy - 10);
-    
-    ctx.fillStyle = status === "SC" ? "var(--yellow)" : status === "VSC" ? "var(--amber)" : "#4ade80"; 
-    ctx.font = "12px sans-serif";
-    ctx.fillText(status, cx, cy + 15);
-  }
-
-  // --- ANALYSIS TAB LOGIC ---
-  function initAnalysis() {
-    var d1 = document.getElementById("analysisDriver1");
-    var d2 = document.getElementById("analysisDriver2");
-    if (!d1 || !d2 || d1.options.length > 0) return; 
-
-    var opts = state.driverOrder.map(d => `<option value="${d.driver_number}">${state.drivers[d.driver_number].acronym}</option>`).join("");
-    d1.innerHTML = opts;
-    d2.innerHTML = opts;
-    if (state.driverOrder.length > 1) d2.selectedIndex = 1;
-    
-    d1.onchange = renderAnalysis;
-    d2.onchange = renderAnalysis;
-    renderAnalysis();
-  }
-
-  function renderAnalysis() {
-    var dn1 = parseInt(document.getElementById("analysisDriver1").value);
-    var dn2 = parseInt(document.getElementById("analysisDriver2").value);
-    if (!dn1 || !dn2 || dn1 === dn2) {
-      document.getElementById("analysisResults").innerHTML = `<div style="text-align:center; padding:20px; color:var(--muted)">Select two different drivers.</div>`;
-      return;
-    }
-
-    var laps1 = state.laps.filter(l => l.driver_number === dn1 && l.lap_duration);
-    var laps2 = state.laps.filter(l => l.driver_number === dn2 && l.lap_duration);
-    
-    var html = `<table class="lap-table"><thead><tr><th>Lap</th><th>${state.drivers[dn1].acronym}</th><th>${state.drivers[dn2].acronym}</th><th>Delta</th></tr></thead><tbody>`;
-    
-    for (var i = 1; i <= Math.max(laps1.length, laps2.length); i++) {
-      var l1 = laps1.find(l => l.lap_number === i);
-      var l2 = laps2.find(l => l.lap_number === i);
-      
-      var t1 = l1 ? formatTime(l1.lap_duration) : "-";
-      var t2 = l2 ? formatTime(l2.lap_duration) : "-";
-      var delta = "-";
-      var deltaCls = "";
-      
-      if (l1 && l2) {
-        var d = l1.lap_duration - l2.lap_duration;
-        delta = (d > 0 ? "+" : "") + d.toFixed(3);
-        deltaCls = d > 0 ? "style='color:var(--err)'" : "style='color:var(--green)'";
-      }
-      
-      html += `<tr><td>${i}</td><td>${t1}</td><td>${t2}</td><td ${deltaCls}>${delta}</td></tr>`;
-    }
-    html += `</tbody></table>`;
-    document.getElementById("analysisResults").innerHTML = html;
-  }
-
-})();
-</script>
-</body>
-</html>
+if __name__ == "__main__": main()
