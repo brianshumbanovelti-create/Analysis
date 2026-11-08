@@ -10,7 +10,6 @@ from pathlib import Path
 BASE = "https://api.openf1.org/v1"
 OUT_ROOT = Path("data")
 WINDOW_MINUTES = 10
-
 MIN_GAP = 0.35
 _req_times = []
 
@@ -25,7 +24,6 @@ def _wait_for_slot():
     _req_times[:] = [t for t in _req_times if t > cutoff]
     if len(_req_times) >= 30:
         sleep_for = 60 - (now - _req_times[0]) + 0.1
-        print(f"  [rate] 30/min reached, sleeping {sleep_for:.1f}s")
         time.sleep(sleep_for)
         now = time.time()
         _req_times[:] = [t for t in _req_times if t > now - 60]
@@ -33,34 +31,22 @@ def _wait_for_slot():
 
 def api_get(path, params=None):
     url = BASE + path
-    if params:
-        url += "?" + urllib.parse.urlencode(params)
+    if params: url += "?" + urllib.parse.urlencode(params)
     for attempt in range(5):
         _wait_for_slot()
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "f1-replay-fetch/1.0"})
+            req = urllib.request.Request(url, headers={"User-Agent": "f1-replay/1.0"})
             with urllib.request.urlopen(req, timeout=30) as resp:
-                raw = resp.read().decode("utf-8")
-                data = json.loads(raw)
-                count = len(data) if isinstance(data, list) else 1
-                print(f"  GET {path} {params or ''} -> {count} rows")
-                return data, count, True
+                data = json.loads(resp.read().decode("utf-8"))
+                return data, len(data) if isinstance(data, list) else 1, True
         except urllib.error.HTTPError as e:
-            if e.code == 404:
-                print(f"  GET {path} {params or ''} -> 404 (no rows)")
-                return [], 0, True
-            if e.code == 429 or e.code >= 500:
-                wait = 2 ** attempt
-                print(f"  GET {path} -> HTTP {e.code}, retry in {wait}s")
-                time.sleep(wait)
+            if e.code == 404: return [], 0, True
+            if e.code in (429, 500, 502, 503, 504):
+                time.sleep(2 ** attempt)
                 continue
-            print(f"  GET {path} -> HTTP {e.code} (giving up)")
             return [], 0, False
-        except Exception as e:
-            wait = 2 ** attempt
-            print(f"  GET {path} -> {e}, retry in {wait}s")
-            time.sleep(wait)
-    print(f"  GET {path} -> exhausted retries")
+        except Exception:
+            time.sleep(2 ** attempt)
     return [], 0, False
 
 def fetch_all(endpoint, session_key):
@@ -71,14 +57,12 @@ def downsample_location(samples, start_dt):
     if not samples: return []
     samples.sort(key=lambda s: s.get("date", ""))
     samples = [s for s in samples if not (s.get("x") == 0 and s.get("y") == 0)]
-    kept = []
-    last_sec = None
+    kept, last_sec = [], None
     for s in samples:
         try:
             dt = datetime.fromisoformat(s["date"].replace("Z", "+00:00"))
             t = (dt - start_dt).total_seconds()
-        except Exception:
-            continue
+        except Exception: continue
         sec = int(t)
         if sec != last_sec:
             kept.append([round(t, 2), s.get("x"), s.get("y")])
@@ -86,14 +70,10 @@ def downsample_location(samples, start_dt):
     return kept
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python scripts/fetch_session.py <session_key> [--force] [--max_drivers=N] [--max_minutes=N]")
-        sys.exit(1)
-        
+    if len(sys.argv) < 2: sys.exit(1)
     session_key = sys.argv[1]
     force = "--force" in sys.argv
-    max_drivers = None
-    max_minutes = None
+    max_drivers, max_minutes = None, None
     for arg in sys.argv[2:]:
         if arg.startswith("--max_drivers="): max_drivers = int(arg.split("=")[1])
         elif arg.startswith("--max_minutes="): max_minutes = int(arg.split("=")[1])
@@ -104,9 +84,7 @@ def main():
 
     print(f"=== session_key={session_key} ===")
     sessions, _ = fetch_all("sessions", session_key)
-    if not sessions:
-        print("FATAL: no session info returned")
-        sys.exit(1)
+    if not sessions: sys.exit(1)
     sess = sessions[0]
     
     meeting_key = sess.get("meeting_key")
@@ -121,48 +99,30 @@ def main():
     meeting = meetings[0] if meetings else {}
 
     meta = {
-        "session_key": session_key,
-        "session_name": sess.get("session_name"),
-        "date_start": sess.get("date_start"),
-        "date_end": sess.get("date_end"),
+        "session_key": session_key, "session_name": sess.get("session_name"),
+        "date_start": sess.get("date_start"), "date_end": sess.get("date_end"),
         "year": meeting.get("year"),
         "meeting_name": meeting.get("meeting_name") or meeting.get("circuit_short_name"),
     }
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
 
-    # Fetch laps, race control, session result
-    laps, _ = fetch_all("laps", session_key)
-    (out_dir / "laps.json").write_text(json.dumps(laps))
-    
-    race_control, _ = fetch_all("race_control", session_key)
-    (out_dir / "race_control.json").write_text(json.dumps(race_control))
-    
-    session_result, _ = fetch_all("session_result", session_key)
-    (out_dir / "session_result.json").write_text(json.dumps(session_result))
+    laps, _ = fetch_all("laps", session_key); (out_dir / "laps.json").write_text(json.dumps(laps))
+    race_control, _ = fetch_all("race_control", session_key); (out_dir / "race_control.json").write_text(json.dumps(race_control))
+    session_result, _ = fetch_all("session_result", session_key); (out_dir / "session_result.json").write_text(json.dumps(session_result))
+    drivers, _ = fetch_all("drivers", session_key); (out_dir / "drivers.json").write_text(json.dumps(drivers))
+    stints, _ = fetch_all("stints", session_key); (out_dir / "stints.json").write_text(json.dumps(stints))
 
-    drivers, _ = fetch_all("drivers", session_key)
-    (out_dir / "drivers.json").write_text(json.dumps(drivers))
-    
-    stints, _ = fetch_all("stints", session_key)
-    (out_dir / "stints.json").write_text(json.dumps(stints))
-
-    # Anchor to Race Control
-    start_dt = None
-    end_dt = None
+    start_dt, end_dt = None, None
     if race_control:
         valid_rc = [m for m in race_control if m.get("date")]
         if valid_rc:
             start_dt = datetime.fromisoformat(valid_rc[0]["date"].replace("Z", "+00:00"))
             end_dt = datetime.fromisoformat(valid_rc[-1]["date"].replace("Z", "+00:00"))
-            print(f"Anchored to Race Control: {start_dt} -> {end_dt}")
-    
     if not start_dt:
         try: start_dt = datetime.fromisoformat(sess["date_start"].replace("Z", "+00:00"))
         except: start_dt = datetime(1970, 1, 1, tzinfo=timezone.utc)
-    if not end_dt:
-        end_dt = start_dt + timedelta(hours=3)
+    if not end_dt: end_dt = start_dt + timedelta(hours=3)
 
-    # Outline
     outline_file = out_dir / "outline.json"
     if not outline_file.exists() or force:
         valid_laps = [l for l in laps if l.get("lap_duration") and not l.get("is_pit_out_lap") and l.get("date_start")]
@@ -174,75 +134,45 @@ def main():
                 end_dt_outline = start_dt_outline + timedelta(seconds=dur + 1)
                 date_gt_o = start_dt_outline.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
                 date_lt_o = end_dt_outline.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
-                rows_o, _, success_o = api_get("/location", {
-                    "session_key": session_key, "driver_number": dn,
-                    "date>": date_gt_o, "date<": date_lt_o,
-                })
+                rows_o, _, success_o = api_get("/location", {"session_key": session_key, "driver_number": dn, "date>": date_gt_o, "date<": date_lt_o})
                 if success_o and rows_o:
-                    points = [[r["x"], r["y"]] for r in rows_o if not (r.get("x") == 0 and r.get("y") == 0)]
-                    outline_data = {"driver": dn, "lap": lap_num, "lap_duration": dur, "points": points}
-                    outline_file.write_text(json.dumps(outline_data))
-            except Exception as e: print(f"WARN: outline failed: {e}")
+                    points = []
+                    for r in rows_o:
+                        if r.get("x") == 0 and r.get("y") == 0: continue
+                        t_offset = (datetime.fromisoformat(r["date"].replace("Z", "+00:00")) - start_dt_outline).total_seconds()
+                        points.append([r["x"], r["y"], t_offset])
+                    outline_file.write_text(json.dumps({"driver": dn, "lap": lap_num, "lap_duration": dur, "points": points}))
+            except Exception: pass
 
-    # Location
     driver_nums = [d["driver_number"] for d in drivers if "driver_number" in d]
     if max_drivers: driver_nums = driver_nums[:max_drivers]
     
     window = timedelta(minutes=WINDOW_MINUTES)
-    if max_minutes:
-        end_dt = min(end_dt, start_dt + timedelta(minutes=max_minutes))
+    if max_minutes: end_dt = min(end_dt, start_dt + timedelta(minutes=max_minutes))
 
-    failed_windows = []
-    
     for dn in driver_nums:
         loc_file = loc_dir / f"{dn}.json"
         if loc_file.exists() and not force: continue
-
-        all_samples = []
-        cur = start_dt
-        driver_has_failures = False
-        
+        all_samples, cur = [], start_dt
         while cur < end_dt:
             nxt = min(cur + window, end_dt)
             date_gt = cur.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
             date_lt = nxt.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
-            
-            rows, count, success = api_get("/location", {
-                "session_key": session_key, "driver_number": dn,
-                "date>": date_gt, "date<": date_lt,
-            })
-            
-            if not success:
-                driver_has_failures = True
-                failed_windows.append(f"Driver {dn}: {cur} to {nxt}")
-                
-            if rows: all_samples.extend(rows)
+            rows, _, success = api_get("/location", {"session_key": session_key, "driver_number": dn, "date>": date_gt, "date<": date_lt})
+            if success and rows: all_samples.extend(rows)
             cur = nxt
-
-        if not driver_has_failures and all_samples:
-            down = downsample_location(all_samples, start_dt)
-            (loc_dir / f"{dn}.json").write_text(json.dumps(down))
-            
+        if all_samples:
+            (loc_dir / f"{dn}.json").write_text(json.dumps(downsample_location(all_samples, start_dt)))
         time.sleep(MIN_GAP)
 
     idx_path = OUT_ROOT / "sessions.json"
     idx = []
     if idx_path.exists():
         try: idx = json.loads(idx_path.read_text())
-        except: idx = []
+        except: pass
     idx = [e for e in idx if str(e.get("session_key")) != str(session_key)]
-    idx.append({
-        "session_key": session_key, "year": meta.get("year"),
-        "meeting_name": meta.get("meeting_name"), "session_name": meta.get("session_name"),
-        "date_start": meta.get("date_start"),
-    })
+    idx.append({"session_key": session_key, "year": meta.get("year"), "meeting_name": meta.get("meeting_name"), "session_name": meta.get("session_name")})
     idx_path.write_text(json.dumps(idx, indent=2))
-
-    if failed_windows:
-        for w in failed_windows: print(f"  - {w}")
-        sys.exit(1)
-        
     print("=== DONE ===")
 
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__": main()
