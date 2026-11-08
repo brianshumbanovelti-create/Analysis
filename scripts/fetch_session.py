@@ -65,8 +65,6 @@ def api_get(path, params=None):
 
 def fetch_all(endpoint, session_key):
     data, _, success = api_get(f"/{endpoint}", {"session_key": session_key})
-    if data:
-        print(f"  sample {endpoint}: {json.dumps(data[0], default=str)[:300]}")
     return data, success
 
 def downsample_location(samples, start_dt):
@@ -131,22 +129,10 @@ def main():
         "meeting_name": meeting.get("meeting_name") or meeting.get("circuit_short_name"),
     }
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
-    print("meta.json written")
 
-    try: start_dt = datetime.fromisoformat(sess["date_start"].replace("Z", "+00:00"))
-    except: start_dt = None
-
-    drivers, _ = fetch_all("drivers", session_key)
-    (out_dir / "drivers.json").write_text(json.dumps(drivers))
-    
+    # Fetch laps, race control, session result
     laps, _ = fetch_all("laps", session_key)
     (out_dir / "laps.json").write_text(json.dumps(laps))
-    
-    positions, _ = fetch_all("position", session_key)
-    (out_dir / "positions.json").write_text(json.dumps(positions))
-    
-    stints, _ = fetch_all("stints", session_key)
-    (out_dir / "stints.json").write_text(json.dumps(stints))
     
     race_control, _ = fetch_all("race_control", session_key)
     (out_dir / "race_control.json").write_text(json.dumps(race_control))
@@ -154,6 +140,29 @@ def main():
     session_result, _ = fetch_all("session_result", session_key)
     (out_dir / "session_result.json").write_text(json.dumps(session_result))
 
+    drivers, _ = fetch_all("drivers", session_key)
+    (out_dir / "drivers.json").write_text(json.dumps(drivers))
+    
+    stints, _ = fetch_all("stints", session_key)
+    (out_dir / "stints.json").write_text(json.dumps(stints))
+
+    # Anchor to Race Control
+    start_dt = None
+    end_dt = None
+    if race_control:
+        valid_rc = [m for m in race_control if m.get("date")]
+        if valid_rc:
+            start_dt = datetime.fromisoformat(valid_rc[0]["date"].replace("Z", "+00:00"))
+            end_dt = datetime.fromisoformat(valid_rc[-1]["date"].replace("Z", "+00:00"))
+            print(f"Anchored to Race Control: {start_dt} -> {end_dt}")
+    
+    if not start_dt:
+        try: start_dt = datetime.fromisoformat(sess["date_start"].replace("Z", "+00:00"))
+        except: start_dt = datetime(1970, 1, 1, tzinfo=timezone.utc)
+    if not end_dt:
+        end_dt = start_dt + timedelta(hours=3)
+
+    # Outline
     outline_file = out_dir / "outline.json"
     if not outline_file.exists() or force:
         valid_laps = [l for l in laps if l.get("lap_duration") and not l.get("is_pit_out_lap") and l.get("date_start")]
@@ -175,20 +184,7 @@ def main():
                     outline_file.write_text(json.dumps(outline_data))
             except Exception as e: print(f"WARN: outline failed: {e}")
 
-    print("Fetching location (per driver, windowed)...")
-    if start_dt is None and laps:
-        try: start_dt = datetime.fromisoformat(laps[0]["date_start"].replace("Z", "+00:00"))
-        except: pass
-    if start_dt is None: start_dt = datetime(1970, 1, 1, tzinfo=timezone.utc)
-
-    end_dt = None
-    try: end_dt = datetime.fromisoformat(sess["date_end"].replace("Z", "+00:00"))
-    except:
-        if laps:
-            try: end_dt = datetime.fromisoformat(laps[-1]["date_start"].replace("Z", "+00:00")) + timedelta(minutes=5)
-            except: pass
-    if end_dt is None: end_dt = start_dt + timedelta(hours=3)
-
+    # Location
     driver_nums = [d["driver_number"] for d in drivers if "driver_number" in d]
     if max_drivers: driver_nums = driver_nums[:max_drivers]
     
@@ -200,8 +196,7 @@ def main():
     
     for dn in driver_nums:
         loc_file = loc_dir / f"{dn}.json"
-        if loc_file.exists() and not force:
-            continue
+        if loc_file.exists() and not force: continue
 
         all_samples = []
         cur = start_dt
@@ -224,9 +219,7 @@ def main():
             if rows: all_samples.extend(rows)
             cur = nxt
 
-        if driver_has_failures:
-            print(f"  driver {dn}: FAILED windows")
-        elif all_samples:
+        if not driver_has_failures and all_samples:
             down = downsample_location(all_samples, start_dt)
             (loc_dir / f"{dn}.json").write_text(json.dumps(down))
             
@@ -245,7 +238,6 @@ def main():
     })
     idx_path.write_text(json.dumps(idx, indent=2))
 
-    print(f"Failed windows: {len(failed_windows)}")
     if failed_windows:
         for w in failed_windows: print(f"  - {w}")
         sys.exit(1)
