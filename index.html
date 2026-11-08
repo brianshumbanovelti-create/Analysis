@@ -2,218 +2,291 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0a0e1a">
-<title>F1 Replay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#080d19">
+<title>F1 ↪️</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0a0e1a;
-    --panel: #141a2e;
-    --line: rgba(255,255,255,0.12);
+    --bg0: #070b16;
+    --bg1: #0c1322;
+    --bg2: rgba(255, 255, 255, .055);
+    --bg3: rgba(255, 255, 255, .09);
+    --line: rgba(255, 255, 255, .09);
     --text: #eef1f8;
-    --dim: #8a94ad;
+    --dim: #a6b0c7;
+    --muted: #707c98;
     --accent: #ff5c7a;
-    --ok: #4ade80;
     --err: #ff5c5c;
+    
+    --header-height: 100px;
+    --map-height: 45vh;
+    --map-margin: 12px;
   }
+  
   html, body {
     height: 100%;
-    background: var(--bg);
+    background: var(--bg0);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 15px;
     -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    overscroll-behavior-y: none;
   }
-  #app {
+  
+  /* --- HEADER --- */
+  #header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+    height: var(--header-height);
+    background: radial-gradient(60% 40% at 15% -5%, rgba(86,120,255,.22), transparent 70%), radial-gradient(50% 35% at 100% 8%, rgba(190,90,255,.14), transparent 70%), var(--bg0);
+    padding: 10px 14px;
+    padding-top: calc(10px + env(safe-area-inset-top));
     display: flex;
     flex-direction: column;
-    min-height: 100%;
-    padding: 12px;
-    padding-top: calc(12px + env(safe-area-inset-top));
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    justify-content: space-between;
   }
-  header { margin-bottom: 12px; }
-  h1 {
-    font-size: 18px;
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .title {
+    font-size: 20px;
     font-weight: 700;
     letter-spacing: -0.3px;
-    margin-bottom: 10px;
   }
-  label {
-    display: block;
-    font-size: 12px;
+  .title i {
+    font-style: normal;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .download-meter {
+    font-size: 11px;
+    font-weight: 500;
     color: var(--dim);
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 5px 11px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
   }
-  select, button {
+  
+  /* --- SELECTORS --- */
+  .selector-row {
+    display: flex;
+    gap: 8px;
     width: 100%;
-    min-height: 44px;
-    background: var(--panel);
+  }
+  .selector-row select {
+    flex: 1;
+    min-width: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--bg2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a6b0c7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center;
     color: var(--text);
     border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 15px;
-    font-family: inherit;
+    border-radius: 14px;
+    padding: 10px 30px 10px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    text-overflow: ellipsis;
   }
-  select:disabled, button:disabled { opacity: 0.5; }
-  button {
-    cursor: pointer;
-    margin-top: 10px;
+  .selector-row select:disabled { opacity: 0.5; }
+  .selector-row select:first-child { flex: 0 0 90px; }
+  .selector-row select option { background: #101828; color: var(--text); }
+  
+  /* --- ERROR BANNER --- */
+  #error {
+    position: fixed;
+    top: calc(var(--header-height) + 8px);
+    left: 12px; right: 12px;
+    z-index: 30;
+    display: none;
+    background: rgba(255,92,92,0.95);
+    color: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 13px;
     font-weight: 600;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   }
-  button:active { background: #1c2440; }
+  #error.show { display: block; }
+  
+  /* --- MAP CONTAINER (FIXED) --- */
+  #mapContainer {
+    position: fixed;
+    top: var(--header-height);
+    left: 0; right: 0;
+    height: var(--map-height);
+    z-index: 10;
+    padding: 0 var(--map-margin);
+    background: var(--bg0); /* Covers scrolling list behind it */
+  }
   #mapWrap {
     position: relative;
     width: 100%;
-    background: var(--panel);
+    height: 100%;
+    background: var(--bg1);
     border: 1px solid var(--line);
     border-radius: 14px;
     overflow: hidden;
-    margin-top: 14px;
-    aspect-ratio: 1 / 1;
   }
+  
+  /* Map Controls */
+  #mapControls {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    background: rgba(12, 19, 34, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+    z-index: 5;
+  }
+  .icon-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: none;
+    color: var(--text);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .icon-btn:active { background: rgba(255,255,255,0.2); }
+  .icon-btn:disabled { opacity: 0.4; }
+  #slider {
+    flex: 1;
+    min-height: 32px;
+    accent-color: var(--text);
+  }
+  
   #trackCanvas {
-    display: block;
+    position: absolute;
+    top: 48px;
+    left: 0;
     width: 100%;
-    height: 100%;
+    height: calc(100% - 48px);
+    touch-action: manipulation; /* Prevents double tap zoom */
   }
   #mapEmpty {
     position: absolute;
-    inset: 0;
+    inset: 48px 0 0 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--dim);
-    font-size: 14px;
+    color: var(--muted);
+    font-size: 13px;
     text-align: center;
     padding: 20px;
-  }
-  #info {
-    margin-top: 14px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 14px;
-  }
-  #info .row {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 0;
-    font-size: 14px;
-    border-bottom: 1px solid var(--line);
-  }
-  #info .row:last-child { border-bottom: none; }
-  #info .k { color: var(--dim); }
-  #info .v { color: var(--text); font-weight: 600; text-align: right; }
-  #info .title {
-    font-weight: 700;
-    font-size: 16px;
-    margin-bottom: 8px;
-    color: var(--text);
-  }
-  #error {
-    display: none;
-    margin-top: 12px;
-    background: rgba(255,92,92,0.12);
-    border: 1px solid var(--err);
-    color: #ffd0d0;
-    border-radius: 10px;
-    padding: 12px;
-    font-size: 13px;
-    line-height: 1.5;
-    word-break: break-word;
-  }
-  #error.show { display: block; }
-  #status {
-    color: var(--dim);
-    font-size: 13px;
-    margin-top: 8px;
-    min-height: 18px;
-  }
-  .flipRow { display: flex; gap: 8px; margin-top: 10px; }
-  .flipRow button { margin-top: 0; }
-  
-  /* Cars */
-  .car-label {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 10px;
-    font-weight: 800;
-    paint-order: stroke fill;
+    pointer-events: none;
   }
   
-  /* Controls */
-  #controls {
-    margin-top: 14px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 14px;
-    display: none;
-  }
-  #controls.show { display: block; }
-  .playback-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-  #playBtn {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    padding: 0;
-    margin: 0;
-    font-size: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  #slider {
-    flex: 1;
-    min-height: 44px;
-    accent-color: var(--accent);
-  }
-  .time-display {
+  /* Clock at bottom left */
+  #timeDisplay {
+    position: absolute;
+    bottom: 10px;
+    left: 12px;
     font-variant-numeric: tabular-nums;
-    font-size: 14px;
+    font-size: 12px;
+    font-weight: 600;
     color: var(--dim);
-    white-space: nowrap;
+    z-index: 5;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
   }
-  .speed-row {
+  
+  /* --- RANKINGS LIST (SCROLLING) --- */
+  #listContainer {
+    position: absolute;
+    top: calc(var(--header-height) + var(--map-height) + 8px);
+    bottom: 0;
+    left: 0; right: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 var(--map-margin) calc(20px + env(safe-area-inset-bottom));
+    z-index: 5;
+  }
+  
+  /* List placeholder styling */
+  .list-header {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 4px 8px;
+  }
+  
+  .driver-row {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    gap: 12px;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation; /* Prevent double tap zoom */
+    transition: background 0.2s ease, border-color 0.2s ease;
   }
-  .speed-btn {
-    flex: 1;
-    padding: 0;
-    margin: 0;
-    font-size: 13px;
-    background: transparent;
+  .driver-row.highlighted {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
   }
-  .speed-btn.active {
-    background: var(--text);
-    color: var(--bg);
-  }
-  #visibleCount {
-    font-size: 13px;
+  
+  .row-pos {
+    font-size: 14px;
+    font-weight: 700;
     color: var(--dim);
-    margin-top: 8px;
+    width: 20px;
     text-align: center;
   }
   
-  /* Loading bar */
+  .row-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    color: #000; /* Will invert based on team color in JS */
+    flex-shrink: 0;
+  }
+  
+  .row-name {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  
+  /* Loading Progress */
   #progressWrap {
-    display: none;
-    margin-top: 10px;
-    height: 6px;
+    position: absolute;
+    top: 48px;
+    left: 0; right: 0;
+    height: 2px;
     background: rgba(255,255,255,0.1);
-    border-radius: 3px;
-    overflow: hidden;
+    display: none;
+    z-index: 6;
   }
   #progressWrap.show { display: block; }
   #progressBar {
@@ -225,53 +298,38 @@
 </style>
 </head>
 <body>
-<div id="app">
-  <header>
-    <h1>F1 Replay</h1>
-    <label for="sessionSelect">Session</label>
-    <select id="sessionSelect" disabled>
-      <option value="">Loading sessions…</option>
-    </select>
-    <div id="status"></div>
-  </header>
 
+<div id="header">
+  <div class="header-top">
+    <span class="title">F1<i> ↪️</i></span>
+    <span class="download-meter" id="dataMeter">0 KB</span>
+  </div>
+  <div class="selector-row">
+    <select id="yearSelect" disabled><option>Year</option></select>
+    <select id="meetingSelect" disabled><option>Grand Prix</option></select>
+    <select id="sessionSelect" disabled><option>Session</option></select>
+  </div>
+</div>
+
+<div id="error"></div>
+
+<div id="mapContainer">
   <div id="mapWrap">
+    <div id="mapControls">
+      <button id="playBtn" class="icon-btn" disabled>▶</button>
+      <input type="range" id="slider" min="0" max="100" value="0" step="0.1" disabled>
+      <button id="flipBtn" class="icon-btn" disabled>🔃</button>
+    </div>
+    <div id="progressWrap"><div id="progressBar"></div></div>
     <canvas id="trackCanvas"></canvas>
     <div id="mapEmpty">Select a session to draw the track</div>
+    <div id="timeDisplay">00:00 / 00:00</div>
   </div>
+</div>
 
-  <div id="progressWrap"><div id="progressBar"></div></div>
-
-  <div class="flipRow">
-    <button id="flipBtn" disabled>Un-flip Y axis</button>
-  </div>
-
-  <div id="visibleCount"></div>
-
-  <div id="controls">
-    <div class="playback-row">
-      <button id="playBtn" disabled>▶</button>
-      <input type="range" id="slider" min="0" max="100" value="0" step="0.1" disabled>
-      <div class="time-display"><span id="timeCurrent">00:00</span> / <span id="timeTotal">00:00</span></div>
-    </div>
-    <div class="speed-row">
-      <button class="speed-btn active" data-speed="1">1x</button>
-      <button class="speed-btn" data-speed="2">2x</button>
-      <button class="speed-btn" data-speed="4">4x</button>
-      <button class="speed-btn" data-speed="16">16x</button>
-    </div>
-  </div>
-
-  <div id="info" style="display:none">
-    <div class="title" id="infoTitle"></div>
-    <div class="row"><span class="k">Session</span><span class="v" id="infoSession">—</span></div>
-    <div class="row"><span class="k">Driver</span><span class="v" id="infoDriver">—</span></div>
-    <div class="row"><span class="k">Lap</span><span class="v" id="infoLap">—</span></div>
-    <div class="row"><span class="k">Lap time</span><span class="v" id="infoLapTime">—</span></div>
-    <div class="row"><span class="k">Outline points</span><span class="v" id="infoPoints">—</span></div>
-  </div>
-
-  <div id="error"></div>
+<div id="listContainer">
+  <div class="list-header">Rankings (Placeholder)</div>
+  <div id="rankingsList"></div>
 </div>
 
 <script>
@@ -279,69 +337,73 @@
   "use strict";
 
   var els = {
-    select: document.getElementById("sessionSelect"),
-    status: document.getElementById("status"),
-    canvas: document.getElementById("trackCanvas"),
-    mapWrap: document.getElementById("mapWrap"),
-    mapEmpty: document.getElementById("mapEmpty"),
-    flipBtn: document.getElementById("flipBtn"),
-    info: document.getElementById("info"),
-    infoTitle: document.getElementById("infoTitle"),
-    infoSession: document.getElementById("infoSession"),
-    infoDriver: document.getElementById("infoDriver"),
-    infoLap: document.getElementById("infoLap"),
-    infoLapTime: document.getElementById("infoLapTime"),
-    infoPoints: document.getElementById("infoPoints"),
+    yearSelect: document.getElementById("yearSelect"),
+    meetingSelect: document.getElementById("meetingSelect"),
+    sessionSelect: document.getElementById("sessionSelect"),
+    dataMeter: document.getElementById("dataMeter"),
     error: document.getElementById("error"),
-    progressWrap: document.getElementById("progressWrap"),
-    progressBar: document.getElementById("progressBar"),
-    visibleCount: document.getElementById("visibleCount"),
-    controls: document.getElementById("controls"),
+    mapWrap: document.getElementById("mapWrap"),
+    canvas: document.getElementById("trackCanvas"),
+    mapEmpty: document.getElementById("mapEmpty"),
     playBtn: document.getElementById("playBtn"),
     slider: document.getElementById("slider"),
-    timeCurrent: document.getElementById("timeCurrent"),
-    timeTotal: document.getElementById("timeTotal")
+    flipBtn: document.getElementById("flipBtn"),
+    timeDisplay: document.getElementById("timeDisplay"),
+    progressWrap: document.getElementById("progressWrap"),
+    progressBar: document.getElementById("progressBar"),
+    rankingsList: document.getElementById("rankingsList")
   };
 
   var state = {
-    sessions: [],
+    allSessions: [],
     currentSessionKey: null,
     outline: null,
-    flipY: true, // FLIPPED BY DEFAULT
+    flipY: true,
     sessionLength: 0,
-    drivers: {}, // dn -> { acronym, color, data: [] }
-    startTime: 0,
+    drivers: {},
+    driverOrder: [], // For rankings placeholder
     currentTime: 0,
     playing: false,
-    speed: 1,
     lastFrameTime: 0,
-    transform: null
+    transform: null,
+    highlightedDriver: null,
+    bytesDownloaded: 0
   };
   
   var animationId = null;
   var baseCanvas = document.createElement("canvas");
   var baseCtx = baseCanvas.getContext("2d");
   var resizeTimer = null;
+  
+  // Double-tap tracking
+  var lastTapTime = 0;
+  var lastTapTarget = null;
+
+  function addBytes(len) {
+    state.bytesDownloaded += len;
+    updateMeter();
+  }
+  function updateMeter() {
+    if (state.bytesDownloaded < 1024 * 1024) {
+      els.dataMeter.textContent = Math.round(state.bytesDownloaded / 1024) + " KB";
+    } else {
+      els.dataMeter.textContent = (state.bytesDownloaded / (1024 * 1024)).toFixed(1) + " MB";
+    }
+  }
 
   function showError(msg) {
     els.error.textContent = msg;
     els.error.classList.add("show");
-  }
-  function clearError() {
-    els.error.classList.remove("show");
-    els.error.textContent = "";
-  }
-  function setStatus(msg) {
-    els.status.textContent = msg || "";
+    setTimeout(() => els.error.classList.remove("show"), 5000);
   }
 
-  function loadJSON(url) {
+  function fetchJSON(url) {
     return fetch(url, { cache: "no-store" }).then(function (res) {
       if (!res.ok) throw new Error("Could not load " + url + ": " + res.status);
-      return res.json();
-    }).catch(function (err) {
-      if (err && err.message && err.message.indexOf("Could not load") === 0) throw err;
-      throw new Error("Could not load " + url + ": " + (err && err.message ? err.message : "network error"));
+      return res.text().then(function(text) {
+        addBytes(text.length);
+        return JSON.parse(text);
+      });
     });
   }
 
@@ -352,121 +414,132 @@
   }
 
   function updateTimeDisplay() {
-    els.timeCurrent.textContent = formatTime(state.currentTime);
+    els.timeDisplay.textContent = formatTime(state.currentTime) + " / " + formatTime(state.sessionLength);
     els.slider.value = state.currentTime;
   }
 
-  function loadSessions() {
-    setStatus("Loading sessions…");
-    loadJSON("data/sessions.json").then(function (sessions) {
-      if (!Array.isArray(sessions) || sessions.length === 0) {
-        throw new Error("data/sessions.json is empty — run the Actions workflow first");
-      }
-      state.sessions = sessions;
-      populateSelect(sessions);
-      els.select.disabled = false;
-      setStatus(sessions.length + " session" + (sessions.length === 1 ? "" : "s") + " available");
-    }).catch(function (err) {
-      showError(err.message);
-      setStatus("");
-    });
+  // Determine contrast color for circle
+  function getContrastColor(hex) {
+    if(!hex || hex === "ffffff") return "#000";
+    var r = parseInt(hex.substr(0, 2), 16);
+    var g = parseInt(hex.substr(2, 2), 16);
+    var b = parseInt(hex.substr(4, 2), 16);
+    var yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128) ? '#000000' : '#ffffff';
   }
 
-  function populateSelect(sessions) {
-    els.select.innerHTML = "";
-    var placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "Choose a session…";
-    els.select.appendChild(placeholder);
-
-    sessions.forEach(function (s) {
-      var year = s.year || "";
-      var name = s.meeting_name || "Unknown meeting";
-      var sess = s.session_name || "";
-      var label = year ? (year + " " + name + (sess ? " - " + sess : "")) : (name + (sess ? " - " + sess : ""));
-      var opt = document.createElement("option");
-      opt.value = String(s.session_key);
-      opt.textContent = label;
-      els.select.appendChild(opt);
+  // --- INIT & DROPDOWNS ---
+  fetchJSON("data/sessions.json").then(function (sessions) {
+    if (!Array.isArray(sessions) || sessions.length === 0) throw new Error("sessions.json is empty");
+    state.allSessions = sessions;
+    
+    // Populate Years
+    var years = [...new Set(sessions.map(s => s.year || "Unknown"))].sort((a,b) => b-a);
+    els.yearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
+    els.yearSelect.disabled = false;
+    
+    els.yearSelect.addEventListener("change", populateMeetings);
+    els.meetingSelect.addEventListener("change", populateSessions);
+    els.sessionSelect.addEventListener("change", function() {
+      if (this.value) selectSession(this.value);
     });
-  }
-
-  els.select.addEventListener("change", function () {
-    var key = els.select.value;
-    if (!key) return;
-    selectSession(key);
+    
+    populateMeetings();
+  }).catch(function (err) {
+    showError(err.message);
   });
 
+  function populateMeetings() {
+    var year = els.yearSelect.value;
+    var filtered = state.allSessions.filter(s => String(s.year) === String(year));
+    
+    var meetings = [];
+    var seen = new Set();
+    filtered.forEach(s => {
+      if (!seen.has(s.meeting_name)) {
+        seen.add(s.meeting_name);
+        meetings.push(s.meeting_name || "Unknown");
+      }
+    });
+    
+    els.meetingSelect.innerHTML = meetings.map(m => `<option value="${m}">${m}</option>`).join("");
+    els.meetingSelect.disabled = false;
+    populateSessions();
+  }
+
+  function populateSessions() {
+    var year = els.yearSelect.value;
+    var meeting = els.meetingSelect.value;
+    var filtered = state.allSessions.filter(s => String(s.year) === String(year) && s.meeting_name === meeting);
+    
+    els.sessionSelect.innerHTML = filtered.map(s => 
+      `<option value="${s.session_key}">${s.session_name || "Session"}</option>`
+    ).join("");
+    els.sessionSelect.disabled = false;
+    
+    if (filtered.length > 0) {
+      selectSession(filtered[0].session_key);
+    }
+  }
+
+  // --- SESSION LOADING ---
   function selectSession(key) {
-    clearError();
     state.currentSessionKey = key;
     state.outline = null;
     state.drivers = {};
+    state.highlightedDriver = null;
+    state.bytesDownloaded = 0;
+    updateMeter();
+    
+    els.playBtn.disabled = true;
     els.flipBtn.disabled = true;
-    els.info.style.display = "none";
-    els.controls.classList.remove("show");
-    els.progressWrap.classList.add("show");
-    els.progressBar.style.width = "0%";
+    els.slider.disabled = true;
     els.mapEmpty.style.display = "flex";
     els.mapEmpty.textContent = "Loading data…";
-    setStatus("Loading session data…");
-
+    els.rankingsList.innerHTML = "";
+    els.progressWrap.classList.add("show");
+    els.progressBar.style.width = "0%";
+    
     var metaURL = "data/" + key + "/meta.json";
     var outlineURL = "data/" + key + "/outline.json";
     var driversURL = "data/" + key + "/drivers.json";
 
-    Promise.all([loadJSON(metaURL), loadJSON(outlineURL), loadJSON(driversURL)]).then(function (results) {
+    Promise.all([fetchJSON(metaURL), fetchJSON(outlineURL), fetchJSON(driversURL)]).then(function (results) {
       var meta = results[0];
       var outline = results[1];
       var driversRaw = results[2];
 
-      if (!outline || !Array.isArray(outline.points) || outline.points.length === 0) throw new Error("outline.json has no points");
-      
-      var startMs = new Date(meta.date_start).getTime();
-      var endMs = new Date(meta.date_end).getTime();
-      state.sessionLength = (endMs - startMs) / 1000;
-      state.startTime = startMs;
+      state.sessionLength = (new Date(meta.date_end).getTime() - new Date(meta.date_start).getTime()) / 1000;
+      state.outline = outline;
       
       els.slider.max = state.sessionLength;
-      els.timeTotal.textContent = formatTime(state.sessionLength);
-
-      state.outline = outline;
-      renderInfo(meta, outline);
       
-      var driverNums = [];
       driversRaw.forEach(function(d) {
         state.drivers[d.driver_number] = {
           acronym: d.name_acronym || String(d.driver_number),
           color: d.team_colour || "ffffff",
           data: []
         };
-        driverNums.push(d.driver_number);
+        state.driverOrder.push(d);
       });
 
+      var driverNums = state.driverOrder.map(d => d.driver_number);
       var loadedCount = 0;
       var totalDrivers = driverNums.length;
       
       function loadNext(idx) {
-        if (idx >= totalDrivers) {
-          finishLoading();
-          return;
-        }
+        if (idx >= totalDrivers) return finishLoading();
         
         var dn = driverNums[idx];
         var url = "data/" + key + "/location/" + dn + ".json";
         
-        fetch(url).then(function(r) {
-          if (!r.ok) throw new Error("Could not load " + url + ": " + r.status);
-          return r.json();
-        }).then(function(data) {
+        fetchJSON(url).then(function(data) {
           state.drivers[dn].data = data;
         }).catch(function(err) {
           console.warn(err.message);
         }).finally(function() {
           loadedCount++;
-          var pct = Math.round((loadedCount / totalDrivers) * 100);
-          els.progressBar.style.width = pct + "%";
-          setStatus("Loading " + loadedCount + "/" + totalDrivers);
+          els.progressBar.style.width = Math.round((loadedCount / totalDrivers) * 100) + "%";
           loadNext(idx + 1);
         });
       }
@@ -474,16 +547,15 @@
       function finishLoading() {
         els.progressWrap.classList.remove("show");
         els.mapEmpty.style.display = "none";
-        els.flipBtn.disabled = false;
-        els.controls.classList.add("show");
         els.playBtn.disabled = false;
+        els.flipBtn.disabled = false;
         els.slider.disabled = false;
-        setStatus("Ready");
         
-        prepareBackground();
         state.currentTime = 0;
-        els.slider.value = 0;
         updateTimeDisplay();
+        
+        renderRankings();
+        prepareBackground();
         drawCars();
       }
       
@@ -496,28 +568,111 @@
     });
   }
 
-  function renderInfo(meta, outline) {
-    els.info.style.display = "block";
-    els.infoTitle.textContent = (meta.meeting_name || "—") + " · " + (meta.session_name || "");
-    els.infoSession.textContent = meta.session_name || "—";
-    els.infoDriver.textContent = "#" + outline.driver;
-    els.infoLap.textContent = "Lap " + outline.lap;
-    els.infoLapTime.textContent = (outline.lap_duration || 0).toFixed(3) + " s";
-    els.infoPoints.textContent = outline.points.length;
+  // --- RANKINGS PLACEHOLDER ---
+  function renderRankings() {
+    // PLACEHOLDER: Just listing drivers by driver_number order for now.
+    // Real ranking order comes later.
+    els.rankingsList.innerHTML = state.driverOrder.map(function(d, i) {
+      var dn = d.driver_number;
+      var color = state.drivers[dn].color;
+      var textColor = getContrastColor(color);
+      var acronym = state.drivers[dn].acronym;
+      var isHighlighted = state.highlightedDriver === dn;
+      
+      return `
+        <div class="driver-row ${isHighlighted ? 'highlighted' : ''}" data-dn="${dn}">
+          <div class="row-pos">${i + 1}</div>
+          <div class="row-circle" style="background:#${color}; color:${textColor}">${dn}</div>
+          <div class="row-name">${acronym}</div>
+        </div>
+      `;
+    }).join("");
   }
 
+  // --- HIGHLIGHT LOGIC ---
+  function toggleHighlight(dn) {
+    if (state.highlightedDriver === dn) {
+      state.highlightedDriver = null;
+    } else {
+      state.highlightedDriver = dn;
+    }
+    renderRankings();
+    drawCars();
+  }
+
+  // List double tap
+  els.rankingsList.addEventListener("click", function(e) {
+    var row = e.target.closest(".driver-row");
+    if (!row) return;
+    var dn = parseInt(row.getAttribute("data-dn"), 10);
+    
+    var now = Date.now();
+    if (now - lastTapTime < 300 && lastTapTarget === dn) {
+      toggleHighlight(dn);
+      lastTapTime = 0; // reset
+    } else {
+      lastTapTime = now;
+      lastTapTarget = dn;
+    }
+  });
+
+  // Map double tap
+  els.canvas.addEventListener("click", function(e) {
+    if (!state.transform || state.mapEmpty.style.display !== "none") return;
+    
+    var rect = els.canvas.getBoundingClientRect();
+    var touchX = e.clientX - rect.left;
+    var touchY = e.clientY - rect.top;
+    
+    // Adjust for canvas offset
+    var scaleFactor = window.devicePixelRatio || 1;
+    var actualY = touchY - 48; // Map top is offset by 48px for controls
+    if (actualY < 0) return;
+
+    var t = state.transform;
+    var hitDn = null;
+    
+    // Hit test backwards (topmost first)
+    var dns = Object.keys(state.drivers).reverse();
+    for (var i = 0; i < dns.length; i++) {
+      var dn = dns[i];
+      var loc = getCarLocation(state.drivers[dn].data, state.currentTime);
+      if (!loc) continue;
+      
+      var cx = (loc[0] - t.minX) * t.scale + t.offsetX;
+      var cy = (loc[1] - t.minY) * t.scale + t.offsetY;
+      if (state.flipY) cy = t.cssH - cy;
+      
+      var dist = Math.sqrt(Math.pow(touchX - cx, 2) + Math.pow(actualY - cy, 2));
+      if (dist < 22) {
+        hitDn = parseInt(dn, 10);
+        break;
+      }
+    }
+    
+    if (hitDn) {
+      var now = Date.now();
+      if (now - lastTapTime < 300 && lastTapTarget === hitDn) {
+        toggleHighlight(hitDn);
+        lastTapTime = 0;
+      } else {
+        lastTapTime = now;
+        lastTapTarget = hitDn;
+      }
+    }
+  });
+
+  // --- MAP DRAWING ---
   function prepareBackground() {
     if (!state.outline) return;
     var wrap = els.mapWrap;
     var dpr = window.devicePixelRatio || 1;
     var cssW = wrap.clientWidth;
-    var cssH = wrap.clientHeight;
+    var cssH = wrap.clientHeight - 48; // Exclude top control bar
     if (cssW === 0 || cssH === 0) return;
 
     els.canvas.width = Math.round(cssW * dpr);
     els.canvas.height = Math.round(cssH * dpr);
-    els.canvas.style.width = cssW + "px";
-    els.canvas.style.height = cssH + "px";
     
     baseCanvas.width = els.canvas.width;
     baseCanvas.height = els.canvas.height;
@@ -551,9 +706,10 @@
       return [cx, cy];
     }
 
-    var first = toCanvas(pts[0][0], pts[0][1]);
+    // Draw outline
     baseCtx.beginPath();
-    baseCtx.moveTo(first[0], first[1]);
+    var p0 = toCanvas(pts[0][0], pts[0][1]);
+    baseCtx.moveTo(p0[0], p0[1]);
     for (var j = 1; j < pts.length; j++) {
       var c = toCanvas(pts[j][0], pts[j][1]);
       baseCtx.lineTo(c[0], c[1]);
@@ -564,10 +720,21 @@
     baseCtx.strokeStyle = "#2a3454";
     baseCtx.stroke();
 
+    // Draw start/finish white line
+    var p1 = toCanvas(pts[1][0], pts[1][1]);
+    var dx = p1[0] - p0[0];
+    var dy = p1[1] - p0[1];
+    var len = Math.sqrt(dx*dx + dy*dy);
+    var nx = -dy / len;
+    var ny = dx / len;
+    var lineLen = 12; // Half width
+
     baseCtx.beginPath();
-    baseCtx.arc(first[0], first[1], 4, 0, Math.PI * 2);
-    baseCtx.fillStyle = "#4ade80";
-    baseCtx.fill();
+    baseCtx.moveTo(p0[0] - nx * lineLen, p0[1] - ny * lineLen);
+    baseCtx.lineTo(p0[0] + nx * lineLen, p0[1] + ny * lineLen);
+    baseCtx.lineWidth = 3;
+    baseCtx.strokeStyle = "#ffffff";
+    baseCtx.stroke();
   }
 
   function drawCars() {
@@ -581,55 +748,38 @@
 
     ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
     
-    var currentT = state.currentTime;
-    var visibleCount = 0;
-
     for (var dn in state.drivers) {
       var car = state.drivers[dn];
-      var loc = getCarLocation(car.data, currentT);
+      var loc = getCarLocation(car.data, state.currentTime);
       if (!loc) continue;
-      
-      visibleCount++;
       
       var cx = (loc[0] - t.minX) * t.scale + t.offsetX;
       var cy = (loc[1] - t.minY) * t.scale + t.offsetY;
       if (state.flipY) cy = t.cssH - cy;
 
-      ctx.beginPath();
-      ctx.arc(cx, cy, 6, 0, Math.PI * 2);
-      ctx.fillStyle = "#" + car.color;
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#0a0e1a";
-      ctx.stroke();
-
-      ctx.font = "10px -apple-system, BlinkMacSystemFont, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      
-      var offsetType = (parseInt(dn) || 0) % 3;
-      var labelX = cx;
-      var labelY = cy;
-      
-      if (offsetType === 0) {
-        labelY -= 12;
-        ctx.textAlign = "center";
-      } else if (offsetType === 1) {
-        labelY += 14;
-        ctx.textAlign = "center";
-      } else {
-        labelX += 12;
-        ctx.textAlign = "left";
+      // Glow for highlighted
+      if (state.highlightedDriver === parseInt(dn, 10)) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+        ctx.fillStyle = "#" + car.color;
+        ctx.globalAlpha = 0.3;
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
       }
 
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "#0a0e1a";
-      ctx.strokeText(car.acronym, labelX, labelY);
-
+      // Car circle
+      ctx.beginPath();
+      ctx.arc(cx, cy, 10, 0, Math.PI * 2);
       ctx.fillStyle = "#" + car.color;
-      ctx.fillText(car.acronym, labelX, labelY);
+      ctx.fill();
+
+      // Number inside
+      ctx.fillStyle = getContrastColor(car.color);
+      ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(dn, cx, cy);
     }
-    els.visibleCount.textContent = visibleCount + " cars visible";
   }
 
   function getCarLocation(data, t) {
@@ -654,14 +804,14 @@
     return [x, y];
   }
 
+  // --- PLAYBACK ---
   function loop(timestamp) {
     if (!state.playing) return;
-    
     if (!state.lastFrameTime) state.lastFrameTime = timestamp;
+    
     var dt = (timestamp - state.lastFrameTime) / 1000;
     state.lastFrameTime = timestamp;
-
-    state.currentTime += dt * state.speed;
+    state.currentTime += dt;
     
     if (state.currentTime >= state.sessionLength) {
       state.currentTime = state.sessionLength;
@@ -670,16 +820,12 @@
 
     updateTimeDisplay();
     drawCars();
-    
-    if (state.playing) {
-      animationId = requestAnimationFrame(loop);
-    }
+    if (state.playing) animationId = requestAnimationFrame(loop);
   }
 
   function playPlayback() {
     if (state.playing) return;
     if (state.currentTime >= state.sessionLength) state.currentTime = 0;
-    
     state.playing = true;
     state.lastFrameTime = 0;
     els.playBtn.textContent = "⏸";
@@ -711,18 +857,8 @@
     if (wasPlayingBeforeScrub) playPlayback();
   });
 
-  var speedBtns = document.querySelectorAll(".speed-btn");
-  speedBtns.forEach(function(btn) {
-    btn.addEventListener("click", function() {
-      speedBtns.forEach(function(b) { b.classList.remove("active"); });
-      btn.classList.add("active");
-      state.speed = parseInt(btn.getAttribute("data-speed"), 10);
-    });
-  });
-
   els.flipBtn.addEventListener("click", function () {
     state.flipY = !state.flipY;
-    els.flipBtn.textContent = state.flipY ? "Un-flip Y axis" : "Flip Y axis";
     prepareBackground();
     drawCars();
   });
@@ -742,7 +878,6 @@
     }, 100);
   });
 
-  loadSessions();
 })();
 </script>
 </body>
