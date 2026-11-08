@@ -12,7 +12,7 @@
     --bg3: rgba(255, 255, 255, .09); --line: rgba(255, 255, 255, .09);
     --text: #eef1f8; --dim: #a6b0c7; --muted: #707c98;
     --accent: #ff5c7a; --err: #ff5c5c;
-    --purple: #c58bff; --green: #4ade80; --yellow: #ffd23f;
+    --purple: #c58bff; --green: #4ade80; --yellow: #ffd23f; --amber: #ffb347;
     --header-height: 100px; --map-height: 45vh; --map-margin: 12px;
   }
   
@@ -60,12 +60,19 @@
   #sliderWrap { flex: 1; position: relative; display: flex; align-items: center; height: 32px; }
   #slider { width: 100%; min-height: 32px; accent-color: var(--text); position: relative; z-index: 2; background: transparent; }
   #sliderMarkers { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; pointer-events: none; overflow: hidden; border-radius: 4px; }
-  .slider-marker { position: absolute; top: 0; bottom: 0; width: 4px; background: rgba(255, 92, 92, 0.4); }
+  .slider-marker { position: absolute; top: 0; bottom: 0; width: 4px; }
+  .slider-marker.red { background: rgba(255, 92, 92, 0.4); }
+  .slider-marker.sc { background: rgba(255, 210, 63, 0.5); }
+  .slider-marker.vsc { background: rgba(255, 179, 71, 0.5); }
   
   #trackCanvas { position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; }
+  #circleCanvas { display: none; position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; z-index: 2; }
+  .map-ring-mode #trackCanvas { display: none !important; }
+  .map-ring-mode #circleCanvas { display: block !important; }
+  
   #mapEmpty { position: absolute; inset: 48px 0 0 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; text-align: center; padding: 20px; pointer-events: none; }
   
-  .map-overlay-bl { position: absolute; bottom: 10px; left: 12px; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8); display: flex; gap: 10px; }
+  .map-overlay-bl { position: absolute; bottom: 10px; left: 12px; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8); display: flex; gap: 10px; align-items: center; }
   .map-overlay-br { position: absolute; bottom: 10px; right: 12px; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
   .lap-counter { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
   
@@ -166,10 +173,12 @@
     </div>
     <div id="progressWrap"><div id="progressBar"></div></div>
     <canvas id="trackCanvas"></canvas>
+    <canvas id="circleCanvas"></canvas>
     <div id="mapEmpty">Select a session to draw the track</div>
     <div class="map-overlay-bl">
       <span id="timeDisplay">00:00</span>
       <span id="lapCounter" class="lap-counter" style="display:none">0/0</span>
+      <span id="statusLabel"></span>
     </div>
     <div class="map-overlay-br" id="durationTicker">00:00</div>
     <div id="rcPopup"></div>
@@ -199,9 +208,7 @@
   </div>
   
   <div class="panel" id="panel-ontrack">
-    <div style="position: relative; width: 100%; aspect-ratio: 1; max-height: 400px; margin-top: 10px;">
-      <canvas id="circleCanvas"></canvas>
-    </div>
+    <div style="text-align:center; padding: 20px; color: var(--muted);">Tapping a chip selects the driver. SC position approx.</div>
   </div>
 </div>
 
@@ -223,13 +230,17 @@
 (function () {
   "use strict";
 
+  var SC_GAP_SECONDS = 1.5;
+  var PIT_THRESHOLD = 120; // ~12m in API units
+
   var els = {
     sessionSelect: document.getElementById("sessionSelect"), dataMeter: document.getElementById("dataMeter"),
     error: document.getElementById("error"), mapWrap: document.getElementById("mapWrap"),
-    canvas: document.getElementById("trackCanvas"), mapEmpty: document.getElementById("mapEmpty"),
-    playBtn: document.getElementById("playBtn"), slider: document.getElementById("slider"),
-    sliderMarkers: document.getElementById("sliderMarkers"), flipBtn: document.getElementById("flipBtn"),
-    timeDisplay: document.getElementById("timeDisplay"), lapCounter: document.getElementById("lapCounter"),
+    canvas: document.getElementById("trackCanvas"), circleCanvas: document.getElementById("circleCanvas"),
+    mapEmpty: document.getElementById("mapEmpty"), playBtn: document.getElementById("playBtn"),
+    slider: document.getElementById("slider"), sliderMarkers: document.getElementById("sliderMarkers"),
+    flipBtn: document.getElementById("flipBtn"), timeDisplay: document.getElementById("timeDisplay"),
+    lapCounter: document.getElementById("lapCounter"), statusLabel: document.getElementById("statusLabel"),
     durationTicker: document.getElementById("durationTicker"), progressWrap: document.getElementById("progressWrap"),
     progressBar: document.getElementById("progressBar"), rankingsList: document.getElementById("rankingsList"),
     rcPopup: document.getElementById("rcPopup"), driverModal: document.getElementById("driverModal"),
@@ -239,11 +250,11 @@
   var state = {
     allSessions: [], currentSessionKey: null, outline: null, flipY: true,
     sessionLength: 0, sessionStartMs: 0, drivers: {}, driverOrder: [],
-    laps: [], stints: {}, raceControl: [], sessionResult: [],
+    laps: [], stints: {}, raceControl: [], sessionResult: [], scPeriods: [],
     currentTime: 0, playing: false, lastFrameTime: 0, transform: null,
     highlightedDriver: null, bytesDownloaded: 0,
     q1Ended: false, q2Ended: false, q1Eliminated: [], q2Eliminated: [],
-    activeRC: null, rcTimeout: null, lastFlagState: false,
+    activeRC: null, rcTimeout: null, lastFlagState: null,
     currentModalDriver: null, currentModalTab: 'laps'
   };
   
@@ -256,9 +267,10 @@
   window.switchTab = function(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    if(tab === 'timing') { document.querySelector('.tab-btn:nth-child(1)').classList.add('active'); document.getElementById('panel-timing').classList.add('active'); }
-    if(tab === 'analysis') { document.querySelector('.tab-btn:nth-child(2)').classList.add('active'); document.getElementById('panel-analysis').classList.add('active'); initAnalysis(); }
-    if(tab === 'ontrack') { document.querySelector('.tab-btn:nth-child(3)').classList.add('active'); document.getElementById('panel-ontrack').classList.add('active'); drawCircleOfDoom(); }
+    var wrap = document.getElementById('mapWrap');
+    if(tab === 'timing') { document.querySelector('.tab-btn:nth-child(1)').classList.add('active'); document.getElementById('panel-timing').classList.add('active'); wrap.classList.remove('map-ring-mode'); }
+    if(tab === 'analysis') { document.querySelector('.tab-btn:nth-child(2)').classList.add('active'); document.getElementById('panel-analysis').classList.add('active'); wrap.classList.remove('map-ring-mode'); initAnalysis(); }
+    if(tab === 'ontrack') { document.querySelector('.tab-btn:nth-child(3)').classList.add('active'); document.getElementById('panel-ontrack').classList.add('active'); wrap.classList.add('map-ring-mode'); drawCircleOfDoom(); }
   };
 
   function addBytes(len) { state.bytesDownloaded += len; updateMeter(); }
@@ -267,7 +279,7 @@
       ? Math.round(state.bytesDownloaded / 1024) + " KB"
       : (state.bytesDownloaded / 1048576).toFixed(1) + " MB";
   }
-  function showError(msg) { els.error.textContent = msg; els.error.classList.add("show"); setTimeout(() => els.error.classList.remove("show"), 5000); }
+  function showError(msg) { els.error.textContent = msg; els.error.classList.add("show"); setTimeout(() => els.error.classList.remove("show"), 6000); }
   function fetchJSON(url) {
     return fetch(url, { cache: "no-store" }).then(res => {
       if (!res.ok) throw new Error("Could not load " + url + ": " + res.status);
@@ -303,6 +315,10 @@
       els.lapCounter.style.display = "none";
     }
     
+    var status = getTrackStatus(state.currentTime);
+    els.statusLabel.textContent = status;
+    els.statusLabel.style.color = status === "Red" ? "var(--err)" : status === "SC" ? "var(--yellow)" : status === "VSC" ? "var(--amber)" : "var(--green)";
+    
     els.slider.value = state.currentTime;
   }
 
@@ -334,24 +350,29 @@
     if (sessions.length > 0) selectSession(sessions[0].session_key);
   }).catch(err => showError(err.message));
 
-  function getTrackFlagState(t) {
-    var isRed = false;
+  function getTrackStatus(t) {
+    var status = "Clear";
     for (var i = 0; i < state.raceControl.length; i++) {
       var m = state.raceControl[i];
       var mt = (new Date(m.date).getTime() - state.sessionStartMs) / 1000;
       if (mt > t) break;
-      if (m.flag === "RED") isRed = true;
-      if (m.flag === "GREEN" || m.message === "TRACK CLEAR" || (m.message && m.message.includes("SAFETY CAR"))) isRed = false;
+      
+      if (m.flag === "RED") status = "Red";
+      else if (m.category === "SafetyCar") {
+        if (m.message.includes("VIRTUAL")) status = "VSC";
+        else status = "SC";
+      }
+      else if (m.flag === "GREEN" || m.message === "TRACK CLEAR") status = "Clear";
     }
-    return isRed;
+    return status;
   }
 
   function selectSession(key) {
     state.currentSessionKey = key; state.outline = null; state.drivers = {};
-    state.driverOrder = []; state.laps = []; state.stints = {}; state.raceControl = []; state.sessionResult = [];
+    state.driverOrder = []; state.laps = []; state.stints = {}; state.raceControl = []; state.sessionResult = []; state.scPeriods = [];
     state.highlightedDriver = null; state.bytesDownloaded = 0;
     state.q1Ended = false; state.q2Ended = false; state.q1Eliminated = []; state.q2Eliminated = [];
-    state.lastFlagState = false; closeModal();
+    state.lastFlagState = null; closeModal();
     updateMeter();
     els.playBtn.disabled = true; els.flipBtn.disabled = true; els.slider.disabled = true;
     els.mapEmpty.style.display = "flex"; els.mapEmpty.textContent = "Loading data…";
@@ -378,17 +399,36 @@
         state.sessionLength = (new Date(meta.date_end).getTime() - state.sessionStartMs) / 1000;
       }
 
+      if (outline.points[0].length < 3) {
+        var numPts = outline.points.length;
+        outline.points = outline.points.map((p, i) => [p[0], p[1], (i / (numPts - 1)) * outline.lap_duration]);
+        showError("Note: Outline uses equal time spacing. Re-run fetch for precise times.");
+      }
       state.outline = outline;
       els.slider.max = state.sessionLength;
 
-      var redStart = null;
+      // Build SC periods
+      var activeSC = null;
       state.raceControl.forEach(m => {
-        if (m.flag === "RED") redStart = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
-        else if (redStart !== null && (m.flag === "GREEN" || m.message === "TRACK CLEAR")) {
-          var redEnd = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
-          els.sliderMarkers.innerHTML += `<div class="slider-marker" style="left:${(redStart / state.sessionLength) * 100}%; width:${((redEnd - redStart) / state.sessionLength) * 100}%"></div>`;
-          redStart = null;
+        var mt = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
+        if (m.category === "SafetyCar" || (m.message && m.message.includes("SAFETY CAR"))) {
+          var isVSC = m.message.includes("VIRTUAL");
+          if (!activeSC) {
+            activeSC = { type: isVSC ? "VSC" : "SC", start: mt, end: state.sessionLength };
+          } else if (activeSC.type === "VSC" && !isVSC) {
+            activeSC.type = "SC"; // Upgrade VSC to SC
+          }
         }
+        if (activeSC && (m.flag === "GREEN" || m.message === "TRACK CLEAR" || m.message.includes("ENDING"))) {
+          if (mt > activeSC.start) { activeSC.end = mt; state.scPeriods.push(activeSC); activeSC = null; }
+        }
+      });
+      if (activeSC) state.scPeriods.push(activeSC);
+
+      state.scPeriods.forEach(p => {
+        var cls = p.type === "SC" ? "sc" : "vsc";
+        var pct = (p.start / state.sessionLength) * 100, w = ((p.end - p.start) / state.sessionLength) * 100;
+        els.sliderMarkers.innerHTML += `<div class="slider-marker ${cls}" style="left:${pct}%; width:${w}%"></div>`;
       });
 
       driversRaw.forEach(d => {
@@ -596,7 +636,7 @@
   function toggleHighlight(dn) {
     state.highlightedDriver = (state.highlightedDriver === dn) ? null : dn;
     document.querySelectorAll(".driver-row").forEach(r => r.classList.toggle("highlighted", parseInt(r.getAttribute("data-dn"), 10) === state.highlightedDriver));
-    drawCars();
+    drawCars(); drawCircleOfDoom();
   }
 
   // Modal Logic
@@ -675,24 +715,41 @@
     else { lastTapTime = now; lastTapTarget = dn; }
   });
 
-  els.canvas.addEventListener("click", e => {
-    if (!state.transform || state.mapEmpty.style.display !== "none") return;
+  function handleCanvasClick(e, isCircle) {
+    if (!state.transform || els.mapEmpty.style.display !== "none") return;
     var rect = els.canvas.getBoundingClientRect(), tx = e.clientX - rect.left, ty = e.clientY - rect.top - 48;
     if (ty < 0) return;
-    var t = state.transform, hitDn = null;
-    for (var i = Object.keys(state.drivers).length - 1; i >= 0; i--) {
-      var dn = Object.keys(state.drivers)[i], loc = getCarLocation(state.drivers[dn].data, state.currentTime);
-      if (!loc) continue;
-      var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-      if (state.flipY) cy = t.cssH - cy;
-      if (Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2)) < 22) { hitDn = parseInt(dn, 10); break; }
+    
+    var hitDn = null;
+    if (isCircle) {
+      var cx = rect.width/2, cy = (rect.height-48)/2, r = Math.min(rect.width, rect.height-48)*0.35;
+      for (var dn in state.drivers) {
+        var pos = getTrackPosition(...getCarLocation(state.drivers[dn].data, state.currentTime));
+        if (pos.dist > PIT_THRESHOLD) continue;
+        var angle = (pos.t / state.outline.lap_duration) * Math.PI * 2 - (Math.PI/2);
+        var chipX = cx + Math.cos(angle) * (r + 20), chipY = cy + Math.sin(angle) * (r + 20);
+        if (Math.sqrt(Math.pow(tx - chipX, 2) + Math.pow(ty - chipY, 2)) < 30) { hitDn = parseInt(dn, 10); break; }
+      }
+    } else {
+      var t = state.transform;
+      for (var i = Object.keys(state.drivers).length - 1; i >= 0; i--) {
+        var dn = Object.keys(state.drivers)[i], loc = getCarLocation(state.drivers[dn].data, state.currentTime);
+        if (!loc) continue;
+        var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
+        if (state.flipY) cy = t.cssH - cy;
+        if (Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2)) < 22) { hitDn = parseInt(dn, 10); break; }
+      }
     }
+    
     if (hitDn) {
       var now = Date.now();
       if (now - lastTapTime < 300 && lastTapTarget === hitDn) { toggleHighlight(hitDn); lastTapTime = 0; }
       else { lastTapTime = now; lastTapTarget = hitDn; }
     }
-  });
+  }
+
+  els.canvas.addEventListener("click", e => handleCanvasClick(e, false));
+  els.circleCanvas.addEventListener("click", e => handleCanvasClick(e, true));
 
   function prepareBackground() {
     if (!state.outline) return;
@@ -717,14 +774,15 @@
       return [cx, cy];
     }
 
-    var isRed = getTrackFlagState(state.currentTime);
+    var trackStatus = getTrackStatus(state.currentTime);
+    var strokeColor = trackStatus === "Red" ? "#ff5c5c" : trackStatus === "SC" ? "var(--yellow)" : trackStatus === "VSC" ? "var(--amber)" : "#2a3454";
 
     baseCtx.beginPath();
     var p0 = toCanvas(pts[0][0], pts[0][1]); baseCtx.moveTo(p0[0], p0[1]);
     for (var j = 1; j < pts.length; j++) { var c = toCanvas(pts[j][0], pts[j][1]); baseCtx.lineTo(c[0], c[1]); }
     baseCtx.closePath();
     baseCtx.lineWidth = 4; baseCtx.lineJoin = "round";
-    baseCtx.strokeStyle = isRed ? "#ff5c5c" : "#2a3454";
+    baseCtx.strokeStyle = strokeColor;
     baseCtx.stroke();
 
     var p1 = toCanvas(pts[1][0], pts[1][1]);
@@ -771,6 +829,8 @@
     ctx.drawImage(baseCanvas, 0, 0);
     ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
     
+    var trackStatus = getTrackStatus(state.currentTime);
+    
     for (var dn in state.drivers) {
       var car = state.drivers[dn], loc = getCarLocation(car.data, state.currentTime);
       if (!loc) continue;
@@ -783,6 +843,29 @@
       ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI * 2); ctx.fillStyle = "#" + car.color; ctx.fill();
       ctx.fillStyle = getContrastColor(car.color); ctx.font = "bold 11px -apple-system, sans-serif";
       ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(dn, cx, cy);
+    }
+    
+    // Draw SC icon
+    if (trackStatus === "SC") {
+      var scPos = getSCPosition();
+      if (scPos) {
+        var scPts = state.outline.points;
+        for (var i = 0; i < scPts.length - 1; i++) {
+          if (scPts[i][2] <= scPos && scPts[i+1][2] >= scPos) {
+            var ratio = (scPos - scPts[i][2]) / (scPts[i+1][2] - scPts[i][2]);
+            var px = scPts[i][0] + (scPts[i+1][0] - scPts[i][0]) * ratio;
+            var py = scPts[i][1] + (scPts[i+1][1] - scPts[i][1]) * ratio;
+            var cx = (px - t.minX) * t.scale + t.offsetX, cy = (py - t.minY) * t.scale + t.offsetY;
+            if (state.flipY) cy = t.cssH - cy;
+            
+            ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+            ctx.fillStyle = "var(--yellow)"; ctx.fill();
+            ctx.fillStyle = "#000"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText("SC", cx, cy);
+            break;
+          }
+        }
+      }
     }
   }
 
@@ -807,6 +890,54 @@
     return [x, y];
   }
 
+  function getTrackPosition(x, y) {
+    if (!state.outline || !state.outline.points[0][2]) return { dist: 9999, t: 0 };
+    var pts = state.outline.points;
+    var minDist = Infinity, bestT = 0;
+    for (var i = 0; i < pts.length - 1; i++) {
+      var x1 = pts[i][0], y1 = pts[i][1], t1 = pts[i][2];
+      var x2 = pts[i+1][0], y2 = pts[i+1][1], t2 = pts[i+1][2];
+      
+      var dx = x2 - x1, dy = y2 - y1;
+      var lenSq = dx*dx + dy*dy;
+      if (lenSq === 0) continue;
+      
+      var u = ((x - x1) * dx + (y - y1) * dy) / lenSq;
+      u = Math.max(0, Math.min(1, u));
+      
+      var px = x1 + u * dx, py = y1 + u * dy;
+      var dist = Math.sqrt(Math.pow(x - px, 2) + Math.pow(y - py, 2));
+      
+      if (dist < minDist) {
+        minDist = dist;
+        bestT = t1 + u * (t2 - t1);
+      }
+    }
+    return { dist: minDist, t: bestT };
+  }
+
+  function getSCPosition() {
+    var currentT = state.currentTime;
+    var heads = [];
+    for (var dn in state.drivers) {
+      var loc = getCarLocation(state.drivers[dn].data, currentT);
+      if (!loc) continue;
+      var pos = getTrackPosition(loc[0], loc[1]);
+      if (pos.dist > PIT_THRESHOLD) continue;
+      
+      var laps = state.laps.filter(l => l.driver_number == dn && l._t_start !== null).sort((a,b) => a.lap_number - b.lap_number);
+      var lapCount = 0;
+      for (var i = laps.length - 1; i >= 0; i--) {
+        if (currentT >= laps[i]._t_start) { lapCount = laps[i].lap_number; break; }
+      }
+      heads.push({ dn, progress: lapCount * 1000 + pos.t });
+    }
+    if (heads.length === 0) return null;
+    heads.sort((a, b) => b.progress - a.progress);
+    var leaderT = getTrackPosition(...getCarLocation(state.drivers[heads[0].dn].data, currentT)).t;
+    return (leaderT + SC_GAP_SECONDS) % state.outline.lap_duration;
+  }
+
   function loop(timestamp) {
     if (!state.playing) return;
     if (!state.lastFrameTime) state.lastFrameTime = timestamp;
@@ -814,7 +945,7 @@
     if (state.currentTime >= state.sessionLength) { state.currentTime = state.sessionLength; pausePlayback(); }
     
     updateTimeDisplay();
-    var currentFlagState = getTrackFlagState(state.currentTime);
+    var currentFlagState = getTrackStatus(state.currentTime);
     if (state.lastFlagState !== currentFlagState) {
       state.lastFlagState = currentFlagState;
       prepareBackground();
@@ -836,7 +967,7 @@
   els.slider.addEventListener("input", () => {
     state.currentTime = parseFloat(els.slider.value);
     updateTimeDisplay();
-    var currentFlagState = getTrackFlagState(state.currentTime);
+    var currentFlagState = getTrackStatus(state.currentTime);
     if (state.lastFlagState !== currentFlagState) {
       state.lastFlagState = currentFlagState;
       prepareBackground();
@@ -850,6 +981,126 @@
   els.flipBtn.addEventListener("click", () => { state.flipY = !state.flipY; prepareBackground(); drawCars(); });
   window.addEventListener("resize", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); drawCircleOfDoom(); }, 100); });
   window.addEventListener("orientationchange", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); drawCircleOfDoom(); }, 100); });
+
+  // --- CIRCLE OF DOOM LOGIC ---
+  function drawCircleOfDoom() {
+    if (!state.drivers || Object.keys(state.drivers).length === 0) return;
+    var canvas = els.circleCanvas;
+    var ctx = canvas.getContext("2d");
+    var wrap = canvas.parentElement;
+    var dpr = window.devicePixelRatio || 1;
+    var w = wrap.clientWidth, h = wrap.clientHeight - 48;
+    if (w === 0 || h === 0) return;
+
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    canvas.style.width = w + "px"; canvas.style.height = h + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    var cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.35;
+    var status = getTrackStatus(state.currentTime);
+    
+    // Ring background
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.lineWidth = 12;
+    ctx.strokeStyle = status === "SC" ? "var(--yellow)" : status === "VSC" ? "var(--amber)" : "#2a3454";
+    ctx.stroke();
+
+    var refLap = state.outline;
+    if (refLap && refLap.duration_sector_1 && refLap.duration_sector_2) {
+      var s1Angle = (refLap.duration_sector_1 / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
+      var s2Angle = ((refLap.duration_sector_1 + refLap.duration_sector_2) / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
+      
+      [s1Angle, s2Angle].forEach(a => {
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a) * (r - 6), cy + Math.sin(a) * (r - 6));
+        ctx.lineTo(cx + Math.cos(a) * (r + 6), cy + Math.sin(a) * (r + 6));
+        ctx.lineWidth = 2; ctx.strokeStyle = "#888"; ctx.stroke();
+      });
+    }
+
+    var currentT = state.currentTime;
+    var driversData = [];
+    
+    for (var dn in state.drivers) {
+      var loc = getCarLocation(state.drivers[dn].data, currentT);
+      if (!loc) continue;
+      
+      var pos = getTrackPosition(loc[0], loc[1]);
+      if (pos.dist > PIT_THRESHOLD) {
+        driversData.push({ dn, inPit: true });
+      } else {
+        var angle = (pos.t / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
+        driversData.push({ dn, inPit: false, angle: angle });
+      }
+    }
+    
+    var chipData = [];
+    driversData.forEach(d => {
+      var car = state.drivers[d.dn];
+      var x, y;
+      
+      if (d.inPit) {
+        var pAngle = -Math.PI/2 + (Math.random() * 0.4 - 0.2);
+        x = cx + Math.cos(pAngle) * (r - 20);
+        y = cy + Math.sin(pAngle) * (r - 20);
+        ctx.fillStyle = "#" + car.color; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
+      } else {
+        x = cx + Math.cos(d.angle) * r;
+        y = cy + Math.sin(d.angle) * r;
+        ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = "#" + car.color; ctx.fill();
+        ctx.strokeStyle = (state.highlightedDriver === parseInt(d.dn)) ? "#fff" : "#0a0e1a";
+        ctx.lineWidth = (state.highlightedDriver === parseInt(d.dn)) ? 3 : 2;
+        ctx.stroke();
+        
+        var chipX = cx + Math.cos(d.angle) * (r + 20);
+        var chipY = cy + Math.sin(d.angle) * (r + 20);
+        chipData.push({ dn: d.dn, x: chipX, y: chipY, angle: d.angle });
+      }
+    });
+    
+    // Draw SC Chip if active
+    if (status === "SC") {
+      var scPos = getSCPosition();
+      if (scPos) {
+        var scAngle = (scPos / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
+        var scX = cx + Math.cos(scAngle) * (r + 20);
+        var scY = cy + Math.sin(scAngle) * (r + 20);
+        chipData.push({ dn: "SC", x: scX, y: scY, angle: scAngle, isSC: true });
+      }
+    }
+    
+    chipData.forEach(c => {
+      var car = c.isSC ? { color: "ffd23f", acronym: "SC" } : state.drivers[c.dn];
+      ctx.fillStyle = "rgba(12, 19, 34, 0.8)";
+      ctx.strokeStyle = "#" + car.color;
+      ctx.lineWidth = 1;
+      
+      var text = car.acronym;
+      ctx.font = "bold 10px sans-serif";
+      var textW = ctx.measureText(text).width;
+      
+      ctx.beginPath();
+      ctx.roundRect(c.x - textW/2 - 4, c.y - 8, textW + 8, 16, 4);
+      ctx.fill(); ctx.stroke();
+      
+      ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(text, c.x, c.y);
+    });
+
+    ctx.fillStyle = "#fff"; ctx.font = "bold 24px sans-serif"; ctx.textAlign = "center";
+    var lap = 1, total = 58;
+    state.laps.forEach(l => {
+      var lt = (new Date(l.date_start).getTime() - state.sessionStartMs)/1000;
+      if (currentT >= lt && l.lap_number > lap) lap = l.lap_number;
+    });
+    ctx.fillText(lap + "/" + (state.sessionResult.length > 0 ? state.sessionResult[0].number_of_laps : "58"), cx, cy - 10);
+    
+    ctx.fillStyle = status === "SC" ? "var(--yellow)" : status === "VSC" ? "var(--amber)" : "#4ade80"; 
+    ctx.font = "12px sans-serif";
+    ctx.fillText(status, cx, cy + 15);
+  }
 
   // --- ANALYSIS TAB LOGIC ---
   function initAnalysis() {
@@ -899,62 +1150,6 @@
     }
     html += `</tbody></table>`;
     document.getElementById("analysisResults").innerHTML = html;
-  }
-
-  // --- CIRCLE OF DOOM LOGIC ---
-  function drawCircleOfDoom() {
-    if (!state.drivers || Object.keys(state.drivers).length === 0) return;
-    var canvas = document.getElementById("circleCanvas");
-    if (!canvas) return;
-    var ctx = canvas.getContext("2d");
-    var wrap = canvas.parentElement;
-    var dpr = window.devicePixelRatio || 1;
-    var w = wrap.clientWidth, h = wrap.clientHeight;
-    if (w === 0 || h === 0) return;
-
-    canvas.width = w * dpr; canvas.height = h * dpr;
-    canvas.style.width = w + "px"; canvas.style.height = h + "px";
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    var cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.4;
-    
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.lineWidth = 12; ctx.strokeStyle = "#2a3454"; ctx.stroke();
-
-    var currentT = state.currentTime;
-    var driversData = [];
-    
-    for (var dn in state.drivers) {
-      var laps = state.laps.filter(l => l.driver_number == dn && l._t_start !== null).sort((a,b) => a.lap_number - b.lap_number);
-      var currLap = null;
-      for (var i = laps.length - 1; i >= 0; i--) {
-        if (currentT >= laps[i]._t_start) { currLap = laps[i]; break; }
-      }
-      if (!currLap) continue;
-      
-      var progress = (currentT - currLap._t_start) / (currLap.lap_duration || 90);
-      driversData.push({ dn, progress: Math.max(0, Math.min(1, progress)) });
-    }
-    
-    driversData.forEach(d => {
-      var angle = (d.progress * Math.PI * 2) - (Math.PI / 2);
-      var x = cx + Math.cos(angle) * r;
-      var y = cy + Math.sin(angle) * r;
-      
-      var car = state.drivers[d.dn];
-      ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2);
-      ctx.fillStyle = "#" + car.color; ctx.fill();
-      ctx.strokeStyle = "#0a0e1a"; ctx.lineWidth = 2; ctx.stroke();
-      
-      ctx.fillStyle = getContrastColor(car.color); ctx.font = "bold 9px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(d.dn, x, y);
-    });
-    
-    ctx.fillStyle = "#fff"; ctx.font = "bold 20px sans-serif"; ctx.textAlign = "center";
-    ctx.fillText("CIRCLE OF DOOM", cx, cy - 10);
-    ctx.fillStyle = "#707c98"; ctx.font = "11px sans-serif";
-    ctx.fillText("Time-based gaps", cx, cy + 15);
   }
 
 })();
