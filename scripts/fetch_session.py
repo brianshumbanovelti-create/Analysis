@@ -127,7 +127,7 @@ def main():
         except Exception:
             pass
         if year:
-            meeting_data, _ = api_get("/meetings", {"year": year})
+            meeting_data, _, _ = api_get("/meetings", {"year": year})
             meetings = [m for m in meeting_data if m.get("meeting_key") == meeting_key]
     meeting = meetings[0] if meetings else {}
 
