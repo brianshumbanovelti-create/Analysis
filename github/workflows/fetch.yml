@@ -1,0 +1,63 @@
+name: Fetch F1 Session Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      session_key:
+        description: 'OpenF1 session_key (e.g. 9161)'
+        required: true
+        type: string
+      force:
+        description: 'Force re-fetch (true/false)'
+        required: false
+        default: 'false'
+        type: string
+      max_drivers:
+        description: 'Limit drivers for testing (e.g. 2)'
+        required: false
+        type: string
+      max_minutes:
+        description: 'Limit minutes for testing (e.g. 5)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run fetch script
+        env:
+          SESSION_KEY: ${{ inputs.session_key }}
+          FORCE: ${{ inputs.force }}
+          MAX_DRIVERS: ${{ inputs.max_drivers }}
+          MAX_MINUTES: ${{ inputs.max_minutes }}
+        run: |
+          ARGS=""
+          if [ "$FORCE" = "true" ]; then ARGS="$ARGS --force"; fi
+          if [ -n "$MAX_DRIVERS" ]; then ARGS="$ARGS --max_drivers=$MAX_DRIVERS"; fi
+          if [ -n "$MAX_MINUTES" ]; then ARGS="$ARGS --max_minutes=$MAX_MINUTES"; fi
+          python scripts/fetch_session.py $SESSION_KEY $ARGS
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add session ${{ inputs.session_key }} data"
+            git push
+          fi
