@@ -67,8 +67,10 @@
   .slider-marker.start { background: rgba(255, 255, 255, 0.7); width: 2px; }
   
   #trackCanvas { position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; }
+  #trackImage { position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); object-fit: contain; display: none; pointer-events: none; opacity: 0.3; }
   #circleCanvas { display: none; position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; z-index: 2; }
   .map-ring-mode #trackCanvas { display: none !important; }
+  .map-ring-mode #trackImage { display: none !important; }
   .map-ring-mode #circleCanvas { display: block !important; }
   
   #mapEmpty { position: absolute; inset: 48px 0 0 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; text-align: center; padding: 20px; pointer-events: none; }
@@ -104,7 +106,10 @@
   .row-driver { display: flex; align-items: center; gap: 6px; }
   .row-circle { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
   .row-acronym { font-size: 13px; font-weight: 700; letter-spacing: 0.3px; }
-  .row-gap { font-size: 12px; font-weight: 500; color: var(--dim); text-align: right; }
+  .row-gap-wrap { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; }
+  .row-gap-top { font-size: 12px; font-weight: 600; color: var(--text); }
+  .row-gap-bot { font-size: 11px; font-weight: 500; color: var(--dim); }
+  
   .row-tyre { display: flex; align-items: center; justify-content: center; }
   .tyre-circle { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
   .row-laps { font-size: 12px; font-weight: 500; color: var(--dim); text-align: center; }
@@ -159,6 +164,15 @@
   .analysis-header { font-weight: 600; color: var(--muted); margin-bottom: 8px; }
   .analysis-delta { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); font-size: 9px; color: var(--green); font-weight: 600; white-space: nowrap; }
 
+  /* RC OVERLAY */
+  #rcOverlay { display: none; position: fixed; inset: 0; background: var(--bg0); z-index: 50; flex-direction: column; padding-top: env(safe-area-inset-top); }
+  #rcOverlay.open { display: flex; }
+  .rc-content { flex: 1; overflow-y: auto; padding: 16px; }
+  .rc-item { background: var(--bg1); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 8px; font-size: 13px; line-height: 1.4; }
+  .rc-item .rc-time { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .rc-item.penalty { border-left: 3px solid var(--err); }
+  .rc-item.flag { border-left: 3px solid var(--yellow); }
+  
   @keyframes fadeIn { from{opacity:0}to{opacity:1} }
   @keyframes slideUp { from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1} }
 </style>
@@ -185,9 +199,13 @@
         <div id="sliderMarkers"></div>
         <input type="range" id="slider" min="0" max="100" value="0" step="0.1" disabled>
       </div>
+      <button id="rcBtn" class="icon-btn" disabled>RC</button>
       <button id="flipBtn" class="icon-btn" disabled>🔃</button>
     </div>
     <div id="progressWrap"><div id="progressBar"></div></div>
+    
+    <img id="trackImage" src="" alt="Track Map">
+    
     <canvas id="trackCanvas"></canvas>
     <canvas id="circleCanvas"></canvas>
     <div id="mapEmpty">Select a session to draw the track</div>
@@ -232,6 +250,14 @@
   <div class="analysis-content" id="analysisResults"></div>
 </div>
 
+<div id="rcOverlay">
+  <div class="analysis-header-bar">
+    <span class="analysis-title">Race Control</span>
+    <button class="modal-close" onclick="closeRCOverlay()">✕</button>
+  </div>
+  <div class="rc-content" id="rcResults"></div>
+</div>
+
 <div class="modal-backdrop" id="driverModal" onclick="if(event.target===this) closeModal()">
   <div class="modal-box">
     <div class="modal-head">
@@ -257,15 +283,17 @@
     sessionSelect: document.getElementById("sessionSelect"), dataMeter: document.getElementById("dataMeter"),
     error: document.getElementById("error"), mapWrap: document.getElementById("mapWrap"),
     canvas: document.getElementById("trackCanvas"), circleCanvas: document.getElementById("circleCanvas"),
+    trackImage: document.getElementById("trackImage"),
     mapEmpty: document.getElementById("mapEmpty"), playBtn: document.getElementById("playBtn"),
     slider: document.getElementById("slider"), sliderMarkers: document.getElementById("sliderMarkers"),
-    flipBtn: document.getElementById("flipBtn"), timeDisplay: document.getElementById("timeDisplay"),
-    lapCounter: document.getElementById("lapCounter"), statusLabel: document.getElementById("statusLabel"),
-    durationTicker: document.getElementById("durationTicker"), progressWrap: document.getElementById("progressWrap"),
-    progressBar: document.getElementById("progressBar"), rankingsList: document.getElementById("rankingsList"),
-    rcPopup: document.getElementById("rcPopup"), driverModal: document.getElementById("driverModal"),
-    modalTitle: document.getElementById("modalTitle"), modalBody: document.getElementById("modalBody"),
-    analysisOverlay: document.getElementById("analysisOverlay")
+    flipBtn: document.getElementById("flipBtn"), rcBtn: document.getElementById("rcBtn"),
+    timeDisplay: document.getElementById("timeDisplay"), lapCounter: document.getElementById("lapCounter"), 
+    statusLabel: document.getElementById("statusLabel"), durationTicker: document.getElementById("durationTicker"), 
+    progressWrap: document.getElementById("progressWrap"), progressBar: document.getElementById("progressBar"), 
+    rankingsList: document.getElementById("rankingsList"), rcPopup: document.getElementById("rcPopup"), 
+    driverModal: document.getElementById("driverModal"), modalTitle: document.getElementById("modalTitle"), 
+    modalBody: document.getElementById("modalBody"), analysisOverlay: document.getElementById("analysisOverlay"),
+    rcOverlay: document.getElementById("rcOverlay")
   };
 
   var state = {
@@ -276,7 +304,8 @@
     highlightedDriver: null, bytesDownloaded: 0,
     q1Ended: false, q2Ended: false, q1Eliminated: [], q2Eliminated: [],
     activeRC: null, rcTimeout: null, lastFlagState: null,
-    currentModalDriver: null, currentModalTab: 'laps', raceStartT: null
+    currentModalDriver: null, currentModalTab: 'laps', raceStartT: null,
+    medianPitLoss: null, scPitLoss: null, vscPitLoss: null
   };
   
   var animationId = null;
@@ -311,6 +340,14 @@
     els.analysisOverlay.classList.remove("open");
   };
 
+  window.openRCOverlay = function() {
+    els.rcOverlay.classList.add("open");
+    renderRCOverlay();
+  };
+  window.closeRCOverlay = function() {
+    els.rcOverlay.classList.remove("open");
+  };
+
   function addBytes(len) { state.bytesDownloaded += len; updateMeter(); }
   function updateMeter() {
     els.dataMeter.textContent = state.bytesDownloaded < 1048576 
@@ -327,10 +364,10 @@
   
   function formatTime(sec) {
     if (sec === null || sec === undefined) return "";
-    var m = Math.floor(sec / 60), s = (sec % 60).toFixed(3);
+    var m = Math.floor(sec / 60), s = (sec % 60).toFixed(2);
     return m + ":" + (s < 10 ? "0" + s : s);
   }
-  function formatShortTime(sec) { return sec === null ? "" : sec.toFixed(3); }
+  function formatShortTime(sec) { return sec === null ? "" : sec.toFixed(2); }
 
   function updateTimeDisplay() {
     var now = new Date(state.sessionStartMs + state.currentTime * 1000);
@@ -343,7 +380,7 @@
     
     var maxLap = 0;
     state.laps.forEach(l => {
-      var lt = (new Date(l.date_start).getTime() - state.sessionStartMs)/1000;
+      var lt = l._t_start;
       if (state.currentTime >= lt && l.lap_number > maxLap) maxLap = l.lap_number;
     });
     if (maxLap > 0) {
@@ -412,10 +449,11 @@
     state.q1Ended = false; state.q2Ended = false; state.q1Eliminated = []; state.q2Eliminated = [];
     state.lastFlagState = null; state.raceStartT = null; closeModal();
     updateMeter();
-    els.playBtn.disabled = true; els.flipBtn.disabled = true; els.slider.disabled = true;
+    els.playBtn.disabled = true; els.flipBtn.disabled = true; els.slider.disabled = true; els.rcBtn.disabled = true;
     els.mapEmpty.style.display = "flex"; els.mapEmpty.textContent = "Loading data…";
     els.rankingsList.innerHTML = ""; els.progressWrap.classList.add("show"); els.progressBar.style.width = "0%";
     els.sliderMarkers.innerHTML = "";
+    els.trackImage.style.display = "none";
     
     Promise.all([
       fetchJSON(`data/${key}/meta.json`), fetchJSON(`data/${key}/outline.json`),
@@ -429,6 +467,12 @@
 
       var sName = (meta.session_name || "").toLowerCase();
       state.sessionType = (sName.includes("race") || sName.includes("sprint")) ? "race" : "qualifying";
+
+      var slug = (meta.meeting_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-");
+      var imgUrl = `tracks/${slug}.webp`;
+      var img = new Image();
+      img.onload = function() { els.trackImage.src = imgUrl; els.trackImage.style.display = "block"; };
+      img.src = imgUrl;
 
       state.sessionStartMs = new Date(meta.date_start).getTime();
       
@@ -449,14 +493,9 @@
 
       var maxDist = 0, bestAngle = 0;
       for (var i = 0; i < state.outline.points.length - 20; i += 10) {
-        var p1 = state.outline.points[i];
-        var p2 = state.outline.points[i + 20];
-        var dx = p2[0] - p1[0], dy = p2[1] - p1[1];
-        var dist = dx*dx + dy*dy;
-        if (dist > maxDist) {
-          maxDist = dist;
-          bestAngle = Math.atan2(dy, dx) * 180 / Math.PI;
-        }
+        var p1 = state.outline.points[i], p2 = state.outline.points[i + 20];
+        var dx = p2[0] - p1[0], dy = p2[1] - p1[1], dist = dx*dx + dy*dy;
+        if (dist > maxDist) { maxDist = dist; bestAngle = Math.atan2(dy, dx) * 180 / Math.PI; }
       }
       state.autoRotOffset = Math.round(bestAngle / 90) * 90;
 
@@ -465,18 +504,13 @@
       var activeSC = null;
       state.raceControl.forEach(m => {
         var mt = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
-        
         if (m.message && (m.message.includes("RACE START") || m.message.includes("LIGHTS OUT"))) {
           if (state.raceStartT === null) state.raceStartT = mt;
         }
-
         if (m.category === "SafetyCar" || (m.message && m.message.includes("SAFETY CAR"))) {
           var isVSC = m.message.includes("VIRTUAL");
-          if (!activeSC) {
-            activeSC = { type: isVSC ? "VSC" : "SC", start: mt, end: state.sessionLength };
-          } else if (activeSC.type === "VSC" && !isVSC) {
-            activeSC.type = "SC";
-          }
+          if (!activeSC) activeSC = { type: isVSC ? "VSC" : "SC", start: mt, end: state.sessionLength };
+          else if (activeSC.type === "VSC" && !isVSC) activeSC.type = "SC";
         }
         if (activeSC && (m.flag === "GREEN" || m.message === "TRACK CLEAR" || m.message.includes("ENDING"))) {
           if (mt > activeSC.start) { activeSC.end = mt; state.scPeriods.push(activeSC); activeSC = null; }
@@ -533,6 +567,51 @@
         }
       });
 
+      // Precalculate Pit Loss
+      var pitLosses = [], scPitLosses = [], vscPitLosses = [];
+      state.driverOrder.forEach(d => {
+        var dn = d.driver_number;
+        var dLaps = state.laps.filter(l => l.driver_number === dn && l._t_start !== null).sort((a,b) => a.lap_number - b.lap_number);
+        for (var i = 1; i < dLaps.length; i++) {
+          if (dLaps[i].is_pit_out_lap) {
+            var inLap = dLaps[i-1];
+            var outLap = dLaps[i];
+            if (!inLap.lap_duration || !outLap.lap_duration) continue;
+            
+            // Estimate baseline green lap
+            var greenLaps = dLaps.filter(l => !l.is_pit_out_lap && l.lap_duration).map(l => l.lap_duration).sort((a,b) => a-b);
+            if (greenLaps.length < 3) continue;
+            var medianGreen = greenLaps[Math.floor(greenLaps.length / 2)];
+            
+            var loss = (inLap.lap_duration + outLap.lap_duration) - (2 * medianGreen);
+            
+            // Check if it was under SC/VSC
+            var inLapT = inLap._t_start;
+            var isSC = false, isVSC = false;
+            state.scPeriods.forEach(p => {
+              if (inLapT >= p.start && inLapT <= p.end) {
+                if (p.type === "SC") isSC = true;
+                if (p.type === "VSC") isVSC = true;
+              }
+            });
+
+            if (isSC) scPitLosses.push(loss);
+            else if (isVSC) vscPitLosses.push(loss);
+            else pitLosses.push(loss);
+          }
+        }
+      });
+
+      function getMedian(arr) {
+        if (!arr.length) return null;
+        var s = [...arr].sort((a,b) => a-b);
+        return s[Math.floor(s.length / 2)];
+      }
+      
+      state.medianPitLoss = getMedian(pitLosses);
+      state.scPitLoss = getMedian(scPitLosses);
+      state.vscPitLoss = getMedian(vscPitLosses);
+
       var loaded = 0, total = state.driverOrder.length;
       function next() {
         if (loaded >= total) return finish();
@@ -543,7 +622,7 @@
       }
       function finish() {
         els.progressWrap.classList.remove("show"); els.mapEmpty.style.display = "none";
-        els.playBtn.disabled = false; els.flipBtn.disabled = false; els.slider.disabled = false;
+        els.playBtn.disabled = false; els.flipBtn.disabled = false; els.slider.disabled = false; els.rcBtn.disabled = false;
         state.currentTime = 0; updateTimeDisplay();
         renderRankings(); prepareBackground(); drawCars(); updateRankings();
       }
@@ -562,7 +641,10 @@
               <div class="row-circle" style="background:#${color}; color:${txt}">${dn}</div>
               <div class="row-acronym">${state.drivers[dn].acronym}</div>
             </div>
-            <div class="row-gap" id="gap-${dn}"></div>
+            <div class="row-gap-wrap">
+              <span class="row-gap-top" id="gap-top-${dn}"></span>
+              <span class="row-gap-bot" id="gap-bot-${dn}"></span>
+            </div>
             <div class="row-tyre"><div class="tyre-circle" id="tyre-${dn}" style="display:none"></div></div>
             <div class="row-laps" id="laps-${dn}"></div>
             <div class="row-best" id="best-${dn}"></div>
@@ -666,22 +748,31 @@
       
       setText("pos-" + dn, pos);
       
+      var gapTop = "", gapBot = "";
+      
       if (state.sessionType === "race") {
         if (pos === 1) {
-          setText("gap-" + dn, "");
+          gapTop = "LEADER";
         } else {
           var gapLaps = p1Progress - dd.progress;
-          if (gapLaps >= 1) {
-            setText("gap-" + dn, "+" + Math.floor(gapLaps) + " LAP");
-          } else {
-            var avgLapTime = (state.outline && state.outline.lap_duration) ? state.outline.lap_duration : 90;
-            setText("gap-" + dn, "+" + (gapLaps * avgLapTime).toFixed(3));
-          }
+          if (gapLaps >= 1) gapTop = "+" + Math.floor(gapLaps) + " LAP";
+          else gapTop = "+" + (gapLaps * (state.outline?.lap_duration || 90)).toFixed(2);
+          
+          var aheadProgress = finalOrder[i-1].progress;
+          var gapAhead = aheadProgress - dd.progress;
+          gapBot = "+" + (gapAhead * (state.outline?.lap_duration || 90)).toFixed(2);
         }
       } else {
-        setText("gap-" + dn, (pos === 1 || !dd.bestLap || !p1Best) ? "" : "+" + (dd.bestLap - p1Best).toFixed(3));
+        if (pos === 1 || !dd.bestLap || !p1Best) gapTop = "";
+        else gapTop = "+" + (dd.bestLap - p1Best).toFixed(2);
+        
+        if (pos > 1 && dd.bestLap && finalOrder[i-1].bestLap) {
+          gapBot = "+" + (dd.bestLap - finalOrder[i-1].bestLap).toFixed(2);
+        }
       }
       
+      setText("gap-top-" + dn, gapTop);
+      setText("gap-bot-" + dn, gapBot);
       setText("laps-" + dn, dd.completedLaps);
       setText("best-" + dn, dd.bestLap ? formatTime(dd.bestLap) : "");
       
@@ -797,9 +888,9 @@
       html += `<tr class="${isOff}">
         <td>${l.lap_number}</td>
         <td class="${tCls}">${l.lap_duration ? formatTime(l.lap_duration) : '-'}</td>
-        <td>${l.duration_sector_1 ? l.duration_sector_1.toFixed(3) : '-'}</td>
-        <td>${l.duration_sector_2 ? l.duration_sector_2.toFixed(3) : '-'}</td>
-        <td>${l.duration_sector_3 ? l.duration_sector_3.toFixed(3) : '-'}</td>
+        <td>${l.duration_sector_1 ? l.duration_sector_1.toFixed(2) : '-'}</td>
+        <td>${l.duration_sector_2 ? l.duration_sector_2.toFixed(2) : '-'}</td>
+        <td>${l.duration_sector_3 ? l.duration_sector_3.toFixed(2) : '-'}</td>
         <td>${stint ? `<span style="background:#${getTyreColor(stint.compound).replace('#','')}; color:#fff; padding:2px 6px; border-radius:10px; font-size:10px">${getTyreLetter(stint.compound)}</span>` : '-'}</td>
         <td>${note}</td>
       </tr>`;
@@ -1104,6 +1195,8 @@
     drawCars(); 
   });
   
+  els.rcBtn.addEventListener("click", window.openRCOverlay);
+  
   window.addEventListener("resize", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); drawCircleOfDoom(); }, 100); });
   window.addEventListener("orientationchange", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); drawCircleOfDoom(); }, 100); });
 
@@ -1154,7 +1247,7 @@
         driversData.push({ dn, inPit: true });
       } else {
         var angle = (pos.t / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
-        driversData.push({ dn, inPit: false, angle: angle });
+        driversData.push({ dn, inPit: false, angle: angle, t: pos.t });
       }
     }
     
@@ -1211,10 +1304,35 @@
       ctx.fillText(text, c.x, c.y);
     });
 
+    // PIT WINDOW
+    if (state.medianPitLoss && state.highlightedDriver) {
+      var selD = driversData.find(d => parseInt(d.dn, 10) === state.highlightedDriver);
+      if (selD && !selD.inPit) {
+        var selT = selD.t;
+        var selAngle = (selT / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
+        
+        var lossAngle = (state.medianPitLoss / refLap.lap_duration) * Math.PI * 2;
+        
+        // Behind
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, selAngle - lossAngle, selAngle);
+        ctx.strokeStyle = "rgba(197, 139, 255, 0.4)";
+        ctx.lineWidth = 16;
+        ctx.stroke();
+        
+        // Ahead
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, selAngle, selAngle + lossAngle);
+        ctx.strokeStyle = "rgba(197, 139, 255, 0.15)";
+        ctx.lineWidth = 16;
+        ctx.stroke();
+      }
+    }
+
     ctx.fillStyle = "#fff"; ctx.font = "bold 24px sans-serif"; ctx.textAlign = "center";
     var lap = 1, total = 58;
     state.laps.forEach(l => {
-      var lt = (new Date(l.date_start).getTime() - state.sessionStartMs)/1000;
+      var lt = l._t_start;
       if (currentT >= lt && l.lap_number > lap) lap = l.lap_number;
     });
     ctx.fillText(lap + "/" + (state.sessionResult.length > 0 ? state.sessionResult[0].number_of_laps : "58"), cx, cy - 10);
@@ -1270,8 +1388,8 @@
       var deltaHTML = "";
       if (l1 && l2) {
         var d = l1.lap_duration - l2.lap_duration;
-        if (d < 0) deltaHTML = `<span class="analysis-delta">${d.toFixed(3)}</span>`;
-        if (d > 0) t2 = `<span style="position:relative">${t2}<span class="analysis-delta" style="color:var(--err)">+${d.toFixed(3)}</span></span>`;
+        if (d < 0) deltaHTML = `<span class="analysis-delta">${d.toFixed(2)}</span>`;
+        if (d > 0) t2 = `<span style="position:relative">${t2}<span class="analysis-delta" style="color:var(--err)">+${d.toFixed(2)}</span></span>`;
       }
 
       function colorSectors(s1, s2) {
@@ -1286,9 +1404,9 @@
       var c13 = colorSectors(l1?.duration_sector_3, l2?.duration_sector_3);
 
       html += `<div class="analysis-row">
-        <div class="analysis-sector" style="color:${c13[0]}">${l1?.duration_sector_3 ? l1.duration_sector_3.toFixed(3) : '-'}</div>
-        <div class="analysis-sector" style="color:${c12[0]}">${l1?.duration_sector_2 ? l1.duration_sector_2.toFixed(3) : '-'}</div>
-        <div class="analysis-sector" style="color:${c11[0]}">${l1?.duration_sector_1 ? l1.duration_sector_1.toFixed(3) : '-'}</div>
+        <div class="analysis-sector" style="color:${c13[0]}">${l1?.duration_sector_3 ? l1.duration_sector_3.toFixed(2) : '-'}</div>
+        <div class="analysis-sector" style="color:${c12[0]}">${l1?.duration_sector_2 ? l1.duration_sector_2.toFixed(2) : '-'}</div>
+        <div class="analysis-sector" style="color:${c11[0]}">${l1?.duration_sector_1 ? l1.duration_sector_1.toFixed(2) : '-'}</div>
         
         <div class="analysis-time">${t1}</div>
         
@@ -1296,12 +1414,66 @@
         
         <div class="analysis-time">${t2}</div>
         
-        <div class="analysis-sector" style="color:${c11[1]}">${l2?.duration_sector_1 ? l2.duration_sector_1.toFixed(3) : '-'}</div>
-        <div class="analysis-sector" style="color:${c12[1]}">${l2?.duration_sector_2 ? l2.duration_sector_2.toFixed(3) : '-'}</div>
-        <div class="analysis-sector" style="color:${c13[1]}">${l2?.duration_sector_3 ? l2.duration_sector_3.toFixed(3) : '-'}</div>
+        <div class="analysis-sector" style="color:${c11[1]}">${l2?.duration_sector_1 ? l2.duration_sector_1.toFixed(2) : '-'}</div>
+        <div class="analysis-sector" style="color:${c12[1]}">${l2?.duration_sector_2 ? l2.duration_sector_2.toFixed(2) : '-'}</div>
+        <div class="analysis-sector" style="color:${c13[1]}">${l2?.duration_sector_3 ? l2.duration_sector_3.toFixed(2) : '-'}</div>
       </div>`;
     }
     document.getElementById("analysisResults").innerHTML = html;
+  }
+
+  function renderRCOverlay() {
+    var t = state.currentTime;
+    var pastRC = state.raceControl.filter(m => (new Date(m.date).getTime() - state.sessionStartMs)/1000 <= t);
+    
+    // Last 5 messages
+    var last5 = pastRC.slice(-5).reverse();
+    
+    // Penalties
+    var penalties = pastRC.filter(m => m.message && (m.message.includes("PENALTY") || m.message.includes("INVESTIGATION") || m.message.includes("NOTED"))).slice(-10).reverse();
+    
+    // Black flags (simplistic: count incidents for each driver)
+    var blackFlags = {};
+    pastRC.forEach(m => {
+      if (m.message && (m.message.includes("BLACK FLAG") || m.message.includes("DISQUALIFIED"))) {
+        if (m.driver_number) {
+          blackFlags[m.driver_number] = (blackFlags[m.driver_number] || 0) + 1;
+        }
+      }
+    });
+    
+    var html = `<div style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--text);">Last 5 Messages</div>`;
+    if (last5.length === 0) html += `<div style="color: var(--muted); font-size: 13px; margin-bottom: 16px;">No messages yet.</div>`;
+    else {
+      last5.forEach(m => {
+        var cls = "rc-item";
+        if (m.message.includes("PENALTY")) cls += " penalty";
+        else if (m.flag === "YELLOW" || m.flag === "RED" || m.flag === "SC") cls += " flag";
+        var time = new Date(m.date).toTimeString().slice(0, 8);
+        html += `<div class="${cls}"><div class="rc-time">${time}</div>${m.message}</div>`;
+      });
+    }
+
+    html += `<div style="font-size: 16px; font-weight: 700; margin: 24px 0 12px; color: var(--text);">Penalties & Investigations</div>`;
+    if (penalties.length === 0) html += `<div style="color: var(--muted); font-size: 13px; margin-bottom: 16px;">None.</div>`;
+    else {
+      penalties.forEach(m => {
+        var time = new Date(m.date).toTimeString().slice(0, 8);
+        html += `<div class="rc-item penalty"><div class="rc-time">${time}</div>${m.message}</div>`;
+      });
+    }
+    
+    var bfHtml = "";
+    for (var dn in blackFlags) {
+      var drv = state.drivers[dn];
+      if (drv) bfHtml += `<div style="font-size: 13px; margin-bottom: 4px;">${drv.acronym} (Car ${dn}): <span style="color:var(--err); font-weight:700;">${blackFlags[dn]} Black Flags</span></div>`;
+    }
+    if (bfHtml) {
+      html += `<div style="font-size: 16px; font-weight: 700; margin: 24px 0 12px; color: var(--text);">Black Flags</div>`;
+      html += `<div class="rc-item penalty">${bfHtml}</div>`;
+    }
+
+    document.getElementById("rcResults").innerHTML = html;
   }
 
 })();
