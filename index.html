@@ -67,10 +67,8 @@
   .slider-marker.start { background: rgba(255, 255, 255, 0.7); width: 2px; }
   
   #trackCanvas { position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; }
-  #trackImage { position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); object-fit: contain; display: none; pointer-events: none; opacity: 0.3; }
   #circleCanvas { display: none; position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; z-index: 2; }
   .map-ring-mode #trackCanvas { display: none !important; }
-  .map-ring-mode #trackImage { display: none !important; }
   .map-ring-mode #circleCanvas { display: block !important; }
   
   #mapEmpty { position: absolute; inset: 48px 0 0 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; text-align: center; padding: 20px; pointer-events: none; }
@@ -150,12 +148,12 @@
   .note.push { background: rgba(197,139,255,.16); color: var(--purple); }
   .note.run { background: rgba(124,183,255,.14); color: #7cb7ff; }
 
-  /* FULL PAGE ANALYSIS OVERLAY */
-  #analysisOverlay { display: none; position: fixed; inset: 0; background: var(--bg0); z-index: 50; flex-direction: column; padding-top: env(safe-area-inset-top); }
-  #analysisOverlay.open { display: flex; }
-  .analysis-header-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); }
-  .analysis-title { font-size: 16px; font-weight: 700; }
-  .analysis-content { flex: 1; overflow-y: auto; padding: 12px; }
+  /* FULL PAGE OVERLAYS */
+  #analysisOverlay, #rcOverlay { display: none; position: fixed; inset: 0; background: var(--bg0); z-index: 50; flex-direction: column; padding-top: env(safe-area-inset-top); }
+  #analysisOverlay.open, #rcOverlay.open { display: flex; }
+  .overlay-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+  .overlay-title { font-size: 16px; font-weight: 700; }
+  .overlay-content { flex: 1; overflow-y: auto; padding: 12px; }
   
   .analysis-row { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 11px; font-variant-numeric: tabular-nums; }
   .analysis-time { font-weight: 700; color: var(--text); text-align: center; width: 60px; position: relative; }
@@ -164,15 +162,23 @@
   .analysis-header { font-weight: 600; color: var(--muted); margin-bottom: 8px; }
   .analysis-delta { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); font-size: 9px; color: var(--green); font-weight: 600; white-space: nowrap; }
 
-  /* RC OVERLAY */
-  #rcOverlay { display: none; position: fixed; inset: 0; background: var(--bg0); z-index: 50; flex-direction: column; padding-top: env(safe-area-inset-top); }
-  #rcOverlay.open { display: flex; }
-  .rc-content { flex: 1; overflow-y: auto; padding: 16px; }
-  .rc-item { background: var(--bg1); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 8px; font-size: 13px; line-height: 1.4; }
-  .rc-item .rc-time { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-  .rc-item.penalty { border-left: 3px solid var(--err); }
-  .rc-item.flag { border-left: 3px solid var(--yellow); }
-  
+  /* NEW RC TEXT-ONLY DESIGN */
+  .rc-content { flex: 1; overflow-y: auto; padding: 20px; background: var(--bg0); color: var(--text); }
+  .rc-header { font-size: 20px; font-weight: 600; margin-bottom: 24px; }
+  .rc-section-title { font-size: 14px; font-weight: 600; color: var(--muted); margin-top: 28px; margin-bottom: 12px; }
+  .rc-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 8px 0; }
+  .rc-time { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .rc-text { font-size: 15px; line-height: 1.4; }
+
+  /* STINTS TAB */
+  .stint-bar-wrap { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 16px; gap: 2px; }
+  .stint-bar-seg { height: 100%; }
+  .stint-item { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .stint-item:last-child { border-bottom: none; }
+  .stint-title { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .stint-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--dim); margin-bottom: 4px; }
+  .stint-warning { color: var(--err); font-size: 12px; font-weight: 600; margin-top: 6px; }
+
   @keyframes fadeIn { from{opacity:0}to{opacity:1} }
   @keyframes slideUp { from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1} }
 </style>
@@ -203,8 +209,6 @@
       <button id="flipBtn" class="icon-btn" disabled>🔃</button>
     </div>
     <div id="progressWrap"><div id="progressBar"></div></div>
-    
-    <img id="trackImage" src="" alt="Track Map">
     
     <canvas id="trackCanvas"></canvas>
     <canvas id="circleCanvas"></canvas>
@@ -239,20 +243,20 @@
 </div>
 
 <div id="analysisOverlay">
-  <div class="analysis-header-bar">
-    <span class="analysis-title">Analysis</span>
+  <div class="overlay-header">
+    <span class="overlay-title">Analysis</span>
     <button class="modal-close" onclick="closeAnalysisOverlay()">✕</button>
   </div>
   <div style="display: flex; gap: 8px; padding: 12px 16px;">
     <select id="analysisDriver1" style="flex:1; padding: 8px; background: var(--bg2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-size: 13px;"></select>
     <select id="analysisDriver2" style="flex:1; padding: 8px; background: var(--bg2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-size: 13px;"></select>
   </div>
-  <div class="analysis-content" id="analysisResults"></div>
+  <div class="overlay-content" id="analysisResults"></div>
 </div>
 
 <div id="rcOverlay">
-  <div class="analysis-header-bar">
-    <span class="analysis-title">Race Control</span>
+  <div class="overlay-header">
+    <span class="overlay-title">Race Control</span>
     <button class="modal-close" onclick="closeRCOverlay()">✕</button>
   </div>
   <div class="rc-content" id="rcResults"></div>
@@ -283,7 +287,6 @@
     sessionSelect: document.getElementById("sessionSelect"), dataMeter: document.getElementById("dataMeter"),
     error: document.getElementById("error"), mapWrap: document.getElementById("mapWrap"),
     canvas: document.getElementById("trackCanvas"), circleCanvas: document.getElementById("circleCanvas"),
-    trackImage: document.getElementById("trackImage"),
     mapEmpty: document.getElementById("mapEmpty"), playBtn: document.getElementById("playBtn"),
     slider: document.getElementById("slider"), sliderMarkers: document.getElementById("sliderMarkers"),
     flipBtn: document.getElementById("flipBtn"), rcBtn: document.getElementById("rcBtn"),
@@ -297,7 +300,7 @@
   };
 
   var state = {
-    allSessions: [], currentSessionKey: null, sessionType: 'qualifying', outline: null, autoRotOffset: 0, manualRot: 0,
+    allSessions: [], currentSessionKey: null, sessionType: 'qualifying', outline: null, flipX: false,
     sessionLength: 0, sessionStartMs: 0, drivers: {}, driverOrder: [],
     laps: [], stints: {}, raceControl: [], sessionResult: [], scPeriods: [],
     currentTime: 0, playing: false, lastFrameTime: 0, transform: null,
@@ -445,7 +448,7 @@
   function selectSession(key) {
     state.currentSessionKey = key; state.outline = null; state.drivers = {};
     state.driverOrder = []; state.laps = []; state.stints = {}; state.raceControl = []; state.sessionResult = []; state.scPeriods = [];
-    state.highlightedDriver = null; state.bytesDownloaded = 0; state.autoRotOffset = 0; state.manualRot = 0;
+    state.highlightedDriver = null; state.bytesDownloaded = 0; state.flipX = false;
     state.q1Ended = false; state.q2Ended = false; state.q1Eliminated = []; state.q2Eliminated = [];
     state.lastFlagState = null; state.raceStartT = null; closeModal();
     updateMeter();
@@ -453,7 +456,6 @@
     els.mapEmpty.style.display = "flex"; els.mapEmpty.textContent = "Loading data…";
     els.rankingsList.innerHTML = ""; els.progressWrap.classList.add("show"); els.progressBar.style.width = "0%";
     els.sliderMarkers.innerHTML = "";
-    els.trackImage.style.display = "none";
     
     Promise.all([
       fetchJSON(`data/${key}/meta.json`), fetchJSON(`data/${key}/outline.json`),
@@ -467,12 +469,6 @@
 
       var sName = (meta.session_name || "").toLowerCase();
       state.sessionType = (sName.includes("race") || sName.includes("sprint")) ? "race" : "qualifying";
-
-      var slug = (meta.meeting_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-");
-      var imgUrl = `tracks/${slug}.webp`;
-      var img = new Image();
-      img.onload = function() { els.trackImage.src = imgUrl; els.trackImage.style.display = "block"; };
-      img.src = imgUrl;
 
       state.sessionStartMs = new Date(meta.date_start).getTime();
       
@@ -490,15 +486,6 @@
         showError("Note: Outline uses equal time spacing. Re-run fetch for precise times.");
       }
       state.outline = outline;
-
-      var maxDist = 0, bestAngle = 0;
-      for (var i = 0; i < state.outline.points.length - 20; i += 10) {
-        var p1 = state.outline.points[i], p2 = state.outline.points[i + 20];
-        var dx = p2[0] - p1[0], dy = p2[1] - p1[1], dist = dx*dx + dy*dy;
-        if (dist > maxDist) { maxDist = dist; bestAngle = Math.atan2(dy, dx) * 180 / Math.PI; }
-      }
-      state.autoRotOffset = Math.round(bestAngle / 90) * 90;
-
       els.slider.max = state.sessionLength;
 
       var activeSC = null;
@@ -578,14 +565,12 @@
             var outLap = dLaps[i];
             if (!inLap.lap_duration || !outLap.lap_duration) continue;
             
-            // Estimate baseline green lap
             var greenLaps = dLaps.filter(l => !l.is_pit_out_lap && l.lap_duration).map(l => l.lap_duration).sort((a,b) => a-b);
             if (greenLaps.length < 3) continue;
             var medianGreen = greenLaps[Math.floor(greenLaps.length / 2)];
             
             var loss = (inLap.lap_duration + outLap.lap_duration) - (2 * medianGreen);
             
-            // Check if it was under SC/VSC
             var inLapT = inLap._t_start;
             var isSC = false, isVSC = false;
             state.scPeriods.forEach(p => {
@@ -861,7 +846,50 @@
     var driverLaps = state.laps.filter(l => l.driver_number === dn && l.date_start !== null).sort((a,b) => a.lap_number - b.lap_number);
     
     if (state.currentModalTab === 'stints') {
-      els.modalBody.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted)">Stints view coming soon</div>`;
+      var html = `<div class="stint-bar-wrap">`;
+      var driverStints = state.stints[dn] || [];
+      var maxLap = Math.max(...driverLaps.map(l => l.lap_number), 1);
+      
+      driverStints.forEach(s => {
+        if (s.lap_start > maxLap) return;
+        var end = Math.min(s.lap_end || maxLap, maxLap);
+        var width = ((end - s.lap_start + 1) / maxLap) * 100;
+        var color = getTyreColor(s.compound);
+        html += `<div class="stint-bar-seg" style="width:${width}%; background:${color};" title="Lap ${s.lap_start}-${end}"></div>`;
+      });
+      html += `</div>`;
+
+      driverStints.forEach(s => {
+        if (s.lap_start > maxLap) return;
+        var end = Math.min(s.lap_end || maxLap, maxLap);
+        
+        var stintLaps = driverLaps.filter(l => l.lap_number >= s.lap_start && l.lap_number <= end && l.lap_duration);
+        if (stintLaps.length < 2) return;
+        
+        var avg = stintLaps.reduce((a,b) => a + b.lap_duration, 0) / stintLaps.length;
+        var cliffLap = null;
+        
+        for (var i = 2; i < stintLaps.length; i++) {
+          if (stintLaps[i].lap_duration > stintLaps[i-1].lap_duration + 1.5) {
+            cliffLap = stintLaps[i].lap_number;
+            break;
+          }
+        }
+
+        html += `<div class="stint-item">
+          <div class="stint-title">
+            <span style="color:${getTyreColor(s.compound)}">${s.compound}</span>
+            <span>Laps ${s.lap_start}–${end}</span>
+          </div>
+          <div class="stint-meta">
+            <span>Avg: ${formatTime(avg)}</span>
+            <span>Age: ${s.tyre_age_at_start || 0} laps</span>
+          </div>
+          ${cliffLap ? `<div class="stint-warning">⚠️ Performance drop detected on Lap ${cliffLap}</div>` : ''}
+        </div>`;
+      });
+      
+      els.modalBody.innerHTML = html;
       return;
     }
 
@@ -934,6 +962,7 @@
         var dn = Object.keys(state.drivers)[i], loc = getCarLocation(state.drivers[dn].data, state.currentTime);
         if (!loc) continue;
         var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
+        if (state.flipX) cx = t.cssW - cx;
         if (Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2)) < 22) { hitDn = parseInt(dn, 10); break; }
       }
     }
@@ -967,12 +996,7 @@
 
     function toCanvas(px, py) {
       var cx = (px - minX) * scale + offsetX, cy = (py - minY) * scale + offsetY;
-      
-      var rot = (state.autoRotOffset + state.manualRot) % 360;
-      if (rot === 90) { var tx = cx; cx = cssW - cy; cy = tx; }
-      else if (rot === 180 || rot === -180) { cx = cssW - cx; cy = cssH - cy; }
-      else if (rot === 270 || rot === -90) { var tx = cx; cx = cy; cy = cssH - tx; }
-      
+      if (state.flipX) cx = cssW - cx;
       return [cx, cy];
     }
 
@@ -1038,11 +1062,7 @@
       if (!loc) continue;
       
       var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-      
-      var rot = (state.autoRotOffset + state.manualRot) % 360;
-      if (rot === 90) { var tx = cx; cx = t.cssW - cy; cy = tx; }
-      else if (rot === 180 || rot === -180) { cx = t.cssW - cx; cy = t.cssH - cy; }
-      else if (rot === 270 || rot === -90) { var tx = cx; cx = cy; cy = t.cssH - tx; }
+      if (state.flipX) cx = t.cssW - cx;
 
       if (state.highlightedDriver === parseInt(dn, 10)) {
         ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2); ctx.fillStyle = "#" + car.color; ctx.globalAlpha = 0.3; ctx.fill(); ctx.globalAlpha = 1.0;
@@ -1062,11 +1082,7 @@
             var px = scPts[i][0] + (scPts[i+1][0] - scPts[i][0]) * ratio;
             var py = scPts[i][1] + (scPts[i+1][1] - scPts[i][1]) * ratio;
             var cx = (px - t.minX) * t.scale + t.offsetX, cy = (py - t.minY) * t.scale + t.offsetY;
-            
-            var rot = (state.autoRotOffset + state.manualRot) % 360;
-            if (rot === 90) { var tx = cx; cx = t.cssW - cy; cy = tx; }
-            else if (rot === 180 || rot === -180) { cx = t.cssW - cx; cy = t.cssH - cy; }
-            else if (rot === 270 || rot === -90) { var tx = cx; cx = cy; cy = t.cssH - tx; }
+            if (state.flipX) cx = t.cssW - cx;
             
             ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2);
             ctx.fillStyle = "var(--yellow)"; ctx.fill();
@@ -1190,7 +1206,7 @@
   els.slider.addEventListener("touchend", () => { if (wasPlaying) playPlayback(); });
   
   els.flipBtn.addEventListener("click", () => { 
-    state.manualRot = (state.manualRot + 90) % 360; 
+    state.flipX = !state.flipX; 
     prepareBackground(); 
     drawCars(); 
   });
@@ -1432,7 +1448,7 @@
     // Penalties
     var penalties = pastRC.filter(m => m.message && (m.message.includes("PENALTY") || m.message.includes("INVESTIGATION") || m.message.includes("NOTED"))).slice(-10).reverse();
     
-    // Black flags (simplistic: count incidents for each driver)
+    // Black flags
     var blackFlags = {};
     pastRC.forEach(m => {
       if (m.message && (m.message.includes("BLACK FLAG") || m.message.includes("DISQUALIFIED"))) {
@@ -1442,35 +1458,32 @@
       }
     });
     
-    var html = `<div style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--text);">Last 5 Messages</div>`;
-    if (last5.length === 0) html += `<div style="color: var(--muted); font-size: 13px; margin-bottom: 16px;">No messages yet.</div>`;
+    var html = `<div class="rc-section-title">Last 5 Messages</div>`;
+    if (last5.length === 0) html += `<div class="rc-text" style="color:var(--muted); margin-bottom:16px;">No messages yet.</div>`;
     else {
       last5.forEach(m => {
-        var cls = "rc-item";
-        if (m.message.includes("PENALTY")) cls += " penalty";
-        else if (m.flag === "YELLOW" || m.flag === "RED" || m.flag === "SC") cls += " flag";
         var time = new Date(m.date).toTimeString().slice(0, 8);
-        html += `<div class="${cls}"><div class="rc-time">${time}</div>${m.message}</div>`;
+        html += `<div class="rc-row"><span class="rc-time">${time}</span><span class="rc-text">${m.message}</span></div>`;
       });
     }
 
-    html += `<div style="font-size: 16px; font-weight: 700; margin: 24px 0 12px; color: var(--text);">Penalties & Investigations</div>`;
-    if (penalties.length === 0) html += `<div style="color: var(--muted); font-size: 13px; margin-bottom: 16px;">None.</div>`;
+    html += `<div class="rc-section-title">Penalties & Investigations</div>`;
+    if (penalties.length === 0) html += `<div class="rc-text" style="color:var(--muted); margin-bottom:16px;">None.</div>`;
     else {
       penalties.forEach(m => {
         var time = new Date(m.date).toTimeString().slice(0, 8);
-        html += `<div class="rc-item penalty"><div class="rc-time">${time}</div>${m.message}</div>`;
+        html += `<div class="rc-row"><span class="rc-time">${time}</span><span class="rc-text">${m.message}</span></div>`;
       });
     }
     
     var bfHtml = "";
     for (var dn in blackFlags) {
       var drv = state.drivers[dn];
-      if (drv) bfHtml += `<div style="font-size: 13px; margin-bottom: 4px;">${drv.acronym} (Car ${dn}): <span style="color:var(--err); font-weight:700;">${blackFlags[dn]} Black Flags</span></div>`;
+      if (drv) bfHtml += `<div style="font-size: 15px; margin-bottom: 8px;">${drv.acronym} (Car ${dn}): <span style="color:var(--err); font-weight:700;">${blackFlags[dn]} Black Flags</span></div>`;
     }
     if (bfHtml) {
-      html += `<div style="font-size: 16px; font-weight: 700; margin: 24px 0 12px; color: var(--text);">Black Flags</div>`;
-      html += `<div class="rc-item penalty">${bfHtml}</div>`;
+      html += `<div class="rc-section-title">Black Flags</div>`;
+      html += bfHtml;
     }
 
     document.getElementById("rcResults").innerHTML = html;
