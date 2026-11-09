@@ -38,19 +38,19 @@ def api_get(path, params=None):
             req = urllib.request.Request(url, headers={"User-Agent": "f1-replay/1.0"})
             with urllib.request.urlopen(req, timeout=30) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-                return data, True
+                return data, len(data) if isinstance(data, list) else 1, True
         except urllib.error.HTTPError as e:
-            if e.code == 404: return [], True
+            if e.code == 404: return [], 0, True
             if e.code in (429, 500, 502, 503, 504):
                 time.sleep(2 ** attempt)
                 continue
-            return [], False
+            return [], 0, False
         except Exception:
             time.sleep(2 ** attempt)
-    return [], False
+    return [], 0, False
 
 def fetch_all(endpoint, session_key):
-    data, success = api_get(f"/{endpoint}", {"session_key": session_key})
+    data, _, success = api_get(f"/{endpoint}", {"session_key": session_key})
     return data, success
 
 def downsample_location(samples, start_dt):
@@ -94,7 +94,7 @@ def main():
         try: year = datetime.fromisoformat(sess["date_start"].replace("Z","+00:00")).year
         except: pass
         if year:
-            meeting_data, _ = api_get("/meetings", {"year": year})
+            meeting_data, _, _ = api_get("/meetings", {"year": year})
             meetings = [m for m in meeting_data if m.get("meeting_key") == meeting_key]
     meeting = meetings[0] if meetings else {}
 
@@ -134,7 +134,7 @@ def main():
                 end_dt_outline = start_dt_outline + timedelta(seconds=dur + 1)
                 date_gt_o = start_dt_outline.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
                 date_lt_o = end_dt_outline.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
-                rows_o, success_o = api_get("/location", {"session_key": session_key, "driver_number": dn, "date>": date_gt_o, "date<": date_lt_o})
+                rows_o, _, success_o = api_get("/location", {"session_key": session_key, "driver_number": dn, "date>": date_gt_o, "date<": date_lt_o})
                 if success_o and rows_o:
                     points = []
                     for r in rows_o:
@@ -158,7 +158,7 @@ def main():
             nxt = min(cur + window, end_dt)
             date_gt = cur.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
             date_lt = nxt.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
-            rows, success = api_get("/location", {"session_key": session_key, "driver_number": dn, "date>": date_gt, "date<": date_lt})
+            rows, _, success = api_get("/location", {"session_key": session_key, "driver_number": dn, "date>": date_gt, "date<": date_lt})
             if success and rows: all_samples.extend(rows)
             cur = nxt
         if all_samples:
