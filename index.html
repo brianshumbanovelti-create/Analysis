@@ -269,7 +269,7 @@
   };
 
   var state = {
-    allSessions: [], currentSessionKey: null, outline: null, autoRotOffset: 0, manualRot: 0,
+    allSessions: [], currentSessionKey: null, sessionType: 'qualifying', outline: null, autoRotOffset: 0, manualRot: 0,
     sessionLength: 0, sessionStartMs: 0, drivers: {}, driverOrder: [],
     laps: [], stints: {}, raceControl: [], sessionResult: [], scPeriods: [],
     currentTime: 0, playing: false, lastFrameTime: 0, transform: null,
@@ -427,6 +427,9 @@
       state.laps = results[3]; var stintsRaw = results[4];
       state.raceControl = results[5]; state.sessionResult = results[6];
 
+      var sName = (meta.session_name || "").toLowerCase();
+      state.sessionType = (sName.includes("race") || sName.includes("sprint")) ? "race" : "qualifying";
+
       state.sessionStartMs = new Date(meta.date_start).getTime();
       
       if (state.raceControl.length > 0) {
@@ -444,7 +447,6 @@
       }
       state.outline = outline;
 
-      // Auto-Orientation: Find the longest straight to align it horizontally
       var maxDist = 0, bestAngle = 0;
       for (var i = 0; i < state.outline.points.length - 20; i += 10) {
         var p1 = state.outline.points[i];
@@ -456,7 +458,6 @@
           bestAngle = Math.atan2(dy, dx) * 180 / Math.PI;
         }
       }
-      // Round to nearest 90 degree to keep track looking upright
       state.autoRotOffset = Math.round(bestAngle / 90) * 90;
 
       els.slider.max = state.sessionLength;
@@ -619,26 +620,40 @@
 
       var completedLaps = laps.filter(l => t >= l._t_end).length;
       var isStationary = (maxLapCompleted - completedLaps) >= 2;
+      
+      var progress = completedLaps;
+      if (curr && curr._t_start && curr.lap_duration) {
+        progress += Math.min(1, Math.max(0, (t - curr._t_start) / curr.lap_duration));
+      }
 
-      driversData.push({ dn, bestLap, completedLaps, curr, prev, stint, isStationary });
+      driversData.push({ dn, bestLap, completedLaps, curr, prev, stint, isStationary, progress });
     }
 
-    driversData.sort((a, b) => {
-      if (a.bestLap === null && b.bestLap === null) return a.dn - b.dn;
-      if (a.bestLap === null) return 1;
-      if (b.bestLap === null) return -1;
-      return a.bestLap - b.bestLap;
-    });
+    if (state.sessionType === "race") {
+      driversData.sort((a, b) => b.progress - a.progress);
+    } else {
+      driversData.sort((a, b) => {
+        if (a.bestLap === null && b.bestLap === null) return a.dn - b.dn;
+        if (a.bestLap === null) return 1;
+        if (b.bestLap === null) return -1;
+        return a.bestLap - b.bestLap;
+      });
+    }
 
     var finalOrder = [];
-    var eliminated = new Set();
-    if (state.q1Ended) state.q1Eliminated.forEach(dn => eliminated.add(dn));
-    if (state.q2Ended) state.q2Eliminated.forEach(dn => eliminated.add(dn));
-    
-    driversData.forEach(d => { if (!eliminated.has(d.dn)) finalOrder.push(d); });
-    finalOrder = finalOrder.concat(driversData.filter(d => eliminated.has(d.dn)));
+    if (state.sessionType === "qualifying") {
+      var eliminated = new Set();
+      if (state.q1Ended) state.q1Eliminated.forEach(dn => eliminated.add(dn));
+      if (state.q2Ended) state.q2Eliminated.forEach(dn => eliminated.add(dn));
+      
+      driversData.forEach(d => { if (!eliminated.has(d.dn)) finalOrder.push(d); });
+      finalOrder = finalOrder.concat(driversData.filter(d => eliminated.has(d.dn)));
+    } else {
+      finalOrder = driversData;
+    }
 
     var p1Best = finalOrder.length > 0 ? finalOrder[0].bestLap : null;
+    var p1Progress = finalOrder.length > 0 ? finalOrder[0].progress : 0;
     var domOrder = [];
 
     for (var i = 0; i < finalOrder.length; i++) {
@@ -650,7 +665,23 @@
       domOrder.push(rowEl);
       
       setText("pos-" + dn, pos);
-      setText("gap-" + dn, (pos === 1 || !dd.bestLap || !p1Best) ? "" : "+" + (dd.bestLap - p1Best).toFixed(3));
+      
+      if (state.sessionType === "race") {
+        if (pos === 1) {
+          setText("gap-" + dn, "");
+        } else {
+          var gapLaps = p1Progress - dd.progress;
+          if (gapLaps >= 1) {
+            setText("gap-" + dn, "+" + Math.floor(gapLaps) + " LAP");
+          } else {
+            var avgLapTime = (state.outline && state.outline.lap_duration) ? state.outline.lap_duration : 90;
+            setText("gap-" + dn, "+" + (gapLaps * avgLapTime).toFixed(3));
+          }
+        }
+      } else {
+        setText("gap-" + dn, (pos === 1 || !dd.bestLap || !p1Best) ? "" : "+" + (dd.bestLap - p1Best).toFixed(3));
+      }
+      
       setText("laps-" + dn, dd.completedLaps);
       setText("best-" + dn, dd.bestLap ? formatTime(dd.bestLap) : "");
       
@@ -812,7 +843,6 @@
         var dn = Object.keys(state.drivers)[i], loc = getCarLocation(state.drivers[dn].data, state.currentTime);
         if (!loc) continue;
         var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-        // We use the simple rotation mapping here for hit-testing. For exact hit-testing, we'd run toCanvas.
         if (Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2)) < 22) { hitDn = parseInt(dn, 10); break; }
       }
     }
