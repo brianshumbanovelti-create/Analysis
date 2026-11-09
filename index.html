@@ -64,6 +64,7 @@
   .slider-marker.red { background: rgba(255, 92, 92, 0.4); }
   .slider-marker.sc { background: rgba(255, 210, 63, 0.5); }
   .slider-marker.vsc { background: rgba(255, 179, 71, 0.5); }
+  .slider-marker.start { background: rgba(255, 255, 255, 0.7); width: 2px; }
   
   #trackCanvas { position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; }
   #circleCanvas { display: none; position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; z-index: 2; }
@@ -117,6 +118,13 @@
   .sector-time.c-yellow { color: var(--yellow); }
   .sector-time.c-green { color: var(--green); }
   .sector-time.c-purple { color: var(--purple); }
+
+  /* ANALYSIS LIST */
+  .analysis-row { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 4px; border-bottom: 1px solid var(--line); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .analysis-time { font-weight: 700; color: var(--text); text-align: center; width: 60px; }
+  .analysis-sector { width: 45px; text-align: center; }
+  .analysis-divider { width: 2px; background: var(--line); height: 14px; margin: 0 4px; }
+  .analysis-header { font-weight: 600; color: var(--muted); margin-bottom: 8px; }
 
   /* MODAL */
   .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(3,6,14,.62); z-index: 100; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
@@ -233,6 +241,7 @@
 
   var SC_GAP_SECONDS = 1.5;
   var PIT_THRESHOLD = 120; 
+  var ROTATIONS = [0, 90, 180, 270];
 
   var els = {
     sessionSelect: document.getElementById("sessionSelect"), dataMeter: document.getElementById("dataMeter"),
@@ -249,14 +258,14 @@
   };
 
   var state = {
-    allSessions: [], currentSessionKey: null, outline: null, flipY: true,
+    allSessions: [], currentSessionKey: null, outline: null, rotationIndex: 0,
     sessionLength: 0, sessionStartMs: 0, drivers: {}, driverOrder: [],
     laps: [], stints: {}, raceControl: [], sessionResult: [], scPeriods: [],
     currentTime: 0, playing: false, lastFrameTime: 0, transform: null,
     highlightedDriver: null, bytesDownloaded: 0,
     q1Ended: false, q2Ended: false, q1Eliminated: [], q2Eliminated: [],
     activeRC: null, rcTimeout: null, lastFlagState: null,
-    currentModalDriver: null, currentModalTab: 'laps'
+    currentModalDriver: null, currentModalTab: 'laps', raceStartT: null
   };
   
   var animationId = null;
@@ -371,9 +380,9 @@
   function selectSession(key) {
     state.currentSessionKey = key; state.outline = null; state.drivers = {};
     state.driverOrder = []; state.laps = []; state.stints = {}; state.raceControl = []; state.sessionResult = []; state.scPeriods = [];
-    state.highlightedDriver = null; state.bytesDownloaded = 0;
+    state.highlightedDriver = null; state.bytesDownloaded = 0; state.rotationIndex = 0;
     state.q1Ended = false; state.q2Ended = false; state.q1Eliminated = []; state.q2Eliminated = [];
-    state.lastFlagState = null; closeModal();
+    state.lastFlagState = null; state.raceStartT = null; closeModal();
     updateMeter();
     els.playBtn.disabled = true; els.flipBtn.disabled = true; els.slider.disabled = true;
     els.mapEmpty.style.display = "flex"; els.mapEmpty.textContent = "Loading data…";
@@ -411,6 +420,12 @@
       var activeSC = null;
       state.raceControl.forEach(m => {
         var mt = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
+        
+        // Detect Race Start / Lights Out
+        if (m.message && (m.message.includes("RACE START") || m.message.includes("LIGHTS OUT"))) {
+          if (state.raceStartT === null) state.raceStartT = mt;
+        }
+
         if (m.category === "SafetyCar" || (m.message && m.message.includes("SAFETY CAR"))) {
           var isVSC = m.message.includes("VIRTUAL");
           if (!activeSC) {
@@ -430,6 +445,11 @@
         var pct = (p.start / state.sessionLength) * 100, w = ((p.end - p.start) / state.sessionLength) * 100;
         els.sliderMarkers.innerHTML += `<div class="slider-marker ${cls}" style="left:${pct}%; width:${w}%"></div>`;
       });
+
+      if (state.raceStartT !== null) {
+        var pct = (state.raceStartT / state.sessionLength) * 100;
+        els.sliderMarkers.innerHTML += `<div class="slider-marker start" style="left:${pct}%"></div>`;
+      }
 
       driversRaw.forEach(d => {
         state.drivers[d.driver_number] = { acronym: d.name_acronym || String(d.driver_number), color: d.team_colour || "ffffff", data: [] };
@@ -749,7 +769,7 @@
         var dn = Object.keys(state.drivers)[i], loc = getCarLocation(state.drivers[dn].data, state.currentTime);
         if (!loc) continue;
         var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-        if (state.flipY) cy = t.cssH - cy;
+        if (state.rotationIndex % 2 !== 0) cy = t.cssH - cy; // Simple rotation flip for visual
         if (Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2)) < 22) { hitDn = parseInt(dn, 10); break; }
       }
     }
@@ -783,7 +803,12 @@
 
     function toCanvas(px, py) {
       var cx = (px - minX) * scale + offsetX, cy = (py - minY) * scale + offsetY;
-      if (state.flipY) cy = cssH - cy;
+      
+      var rot = state.rotationIndex;
+      if (rot === 1) { var tx = cx; cx = cssW - cy; cy = tx; }
+      else if (rot === 2) { cx = cssW - cx; cy = cssH - cy; }
+      else if (rot === 3) { var tx = cx; cx = cy; cy = cssH - tx; }
+      
       return [cx, cy];
     }
 
@@ -847,8 +872,12 @@
     for (var dn in state.drivers) {
       var car = state.drivers[dn], loc = getCarLocation(car.data, state.currentTime);
       if (!loc) continue;
+      
       var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-      if (state.flipY) cy = t.cssH - cy;
+      var rot = state.rotationIndex;
+      if (rot === 1) { var tx = cx; cx = t.cssW - cy; cy = tx; }
+      else if (rot === 2) { cx = t.cssW - cx; cy = t.cssH - cy; }
+      else if (rot === 3) { var tx = cx; cx = cy; cy = t.cssH - tx; }
 
       if (state.highlightedDriver === parseInt(dn, 10)) {
         ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2); ctx.fillStyle = "#" + car.color; ctx.globalAlpha = 0.3; ctx.fill(); ctx.globalAlpha = 1.0;
@@ -868,7 +897,11 @@
             var px = scPts[i][0] + (scPts[i+1][0] - scPts[i][0]) * ratio;
             var py = scPts[i][1] + (scPts[i+1][1] - scPts[i][1]) * ratio;
             var cx = (px - t.minX) * t.scale + t.offsetX, cy = (py - t.minY) * t.scale + t.offsetY;
-            if (state.flipY) cy = t.cssH - cy;
+            
+            var rot = state.rotationIndex;
+            if (rot === 1) { var tx = cx; cx = t.cssW - cy; cy = tx; }
+            else if (rot === 2) { cx = t.cssW - cx; cy = t.cssH - cy; }
+            else if (rot === 3) { var tx = cx; cx = cy; cy = t.cssH - tx; }
             
             ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2);
             ctx.fillStyle = "var(--yellow)"; ctx.fill();
@@ -991,7 +1024,12 @@
   els.slider.addEventListener("touchstart", () => { wasPlaying = state.playing; pausePlayback(); });
   els.slider.addEventListener("touchend", () => { if (wasPlaying) playPlayback(); });
   
-  els.flipBtn.addEventListener("click", () => { state.flipY = !state.flipY; prepareBackground(); drawCars(); });
+  els.flipBtn.addEventListener("click", () => { 
+    state.rotationIndex = (state.rotationIndex + 1) % 4; 
+    prepareBackground(); 
+    drawCars(); 
+  });
+  
   window.addEventListener("resize", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); drawCircleOfDoom(); }, 100); });
   window.addEventListener("orientationchange", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); drawCircleOfDoom(); }, 100); });
 
@@ -1139,9 +1177,12 @@
     var laps1 = state.laps.filter(l => l.driver_number === dn1 && l.lap_duration && l._t_end <= currentT).sort((a,b) => a.lap_number - b.lap_number);
     var laps2 = state.laps.filter(l => l.driver_number === dn2 && l.lap_duration && l._t_end <= currentT).sort((a,b) => a.lap_number - b.lap_number);
     
-    var html = `<table class="lap-table"><thead><tr><th>Lap</th><th>${state.drivers[dn1].acronym}</th><th>${state.drivers[dn2].acronym}</th><th>Delta</th></tr></thead><tbody>`;
-    
     var maxLap = Math.max(laps1.length > 0 ? laps1[laps1.length-1].lap_number : 0, laps2.length > 0 ? laps2[laps2.length-1].lap_number : 0);
+    var html = `<div class="analysis-header" style="display:flex; justify-content:space-between; padding: 0 4px; font-size:11px;">
+      <span>${state.drivers[dn1].acronym}</span>
+      <span>Lap</span>
+      <span>${state.drivers[dn2].acronym}</span>
+    </div>`;
 
     for (var i = 1; i <= maxLap; i++) {
       var l1 = laps1.find(l => l.lap_number === i);
@@ -1151,54 +1192,34 @@
 
       var t1 = l1 ? formatTime(l1.lap_duration) : "-";
       var t2 = l2 ? formatTime(l2.lap_duration) : "-";
-      var delta = "-";
-      var deltaCls = "";
       
-      if (l1 && l2) {
-        var d = l1.lap_duration - l2.lap_duration;
-        delta = (d > 0 ? "+" : "") + d.toFixed(3);
-        deltaCls = d > 0 ? "style='color:var(--err)'" : (d < 0 ? "style='color:var(--green)'" : "");
-      }
-      
-      var s1_1 = l1 && l1.duration_sector_1 ? l1.duration_sector_1 : null;
-      var s1_2 = l2 && l2.duration_sector_1 ? l2.duration_sector_1 : null;
-      var s1_html = `<span>${s1_1 ? s1_1.toFixed(3) : '-'}</span>`;
-      if (s1_1 && s1_2) {
-        var d1 = s1_1 - s1_2;
-        var c1 = d1 < 0 ? 'var(--green)' : d1 > 0 ? 'var(--err)' : '#fff';
-        s1_html = `<span style="color:${c1}">${s1_1.toFixed(3)}</span> / <span style="color:${c1}">${s1_2.toFixed(3)}</span>`;
+      function colorSectors(s1, s2) {
+        if (!s1 || !s2) return ['#fff', '#fff'];
+        if (s1 < s2) return ['var(--green)', 'var(--err)'];
+        if (s2 < s1) return ['var(--err)', 'var(--green)'];
+        return ['#fff', '#fff'];
       }
 
-      var s2_1 = l1 && l1.duration_sector_2 ? l1.duration_sector_2 : null;
-      var s2_2 = l2 && l2.duration_sector_2 ? l2.duration_sector_2 : null;
-      var s2_html = `<span>${s2_1 ? s2_1.toFixed(3) : '-'}</span>`;
-      if (s2_1 && s2_2) {
-        var d2 = s2_1 - s2_2;
-        var c2 = d2 < 0 ? 'var(--green)' : d2 > 0 ? 'var(--err)' : '#fff';
-        s2_html = `<span style="color:${c2}">${s2_1.toFixed(3)}</span> / <span style="color:${c2}">${s2_2.toFixed(3)}</span>`;
-      }
+      var c11 = colorSectors(l1?.duration_sector_1, l2?.duration_sector_1);
+      var c12 = colorSectors(l1?.duration_sector_2, l2?.duration_sector_2);
+      var c13 = colorSectors(l1?.duration_sector_3, l2?.duration_sector_3);
 
-      var s3_1 = l1 && l1.duration_sector_3 ? l1.duration_sector_3 : null;
-      var s3_2 = l2 && l2.duration_sector_3 ? l2.duration_sector_3 : null;
-      var s3_html = `<span>${s3_1 ? s3_1.toFixed(3) : '-'}</span>`;
-      if (s3_1 && s3_2) {
-        var d3 = s3_1 - s3_2;
-        var c3 = d3 < 0 ? 'var(--green)' : d3 > 0 ? 'var(--err)' : '#fff';
-        s3_html = `<span style="color:${c3}">${s3_1.toFixed(3)}</span> / <span style="color:${c3}">${s3_2.toFixed(3)}</span>`;
-      }
-
-      html += `<tr>
-        <td>${i}</td>
-        <td>${t1}</td>
-        <td>${t2}</td>
-        <td ${deltaCls}>${delta}</td>
-      </tr>
-      <tr>
-        <td></td>
-        <td colspan="3" style="font-size:11px; padding-top:0;">S1: ${s1_html} | S2: ${s2_html} | S3: ${s3_html}</td>
-      </tr>`;
+      html += `<div class="analysis-row">
+        <div class="analysis-sector" style="color:${c13[0]}">${l1?.duration_sector_3 ? l1.duration_sector_3.toFixed(3) : '-'}</div>
+        <div class="analysis-sector" style="color:${c12[0]}">${l1?.duration_sector_2 ? l1.duration_sector_2.toFixed(3) : '-'}</div>
+        <div class="analysis-sector" style="color:${c11[0]}">${l1?.duration_sector_1 ? l1.duration_sector_1.toFixed(3) : '-'}</div>
+        
+        <div class="analysis-time">${t1}</div>
+        
+        <div class="analysis-divider"></div>
+        
+        <div class="analysis-time">${t2}</div>
+        
+        <div class="analysis-sector" style="color:${c11[1]}">${l2?.duration_sector_1 ? l2.duration_sector_1.toFixed(3) : '-'}</div>
+        <div class="analysis-sector" style="color:${c12[1]}">${l2?.duration_sector_2 ? l2.duration_sector_2.toFixed(3) : '-'}</div>
+        <div class="analysis-sector" style="color:${c13[1]}">${l2?.duration_sector_3 ? l2.duration_sector_3.toFixed(3) : '-'}</div>
+      </div>`;
     }
-    html += `</tbody></table>`;
     document.getElementById("analysisResults").innerHTML = html;
   }
 
