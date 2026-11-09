@@ -119,13 +119,6 @@
   .sector-time.c-green { color: var(--green); }
   .sector-time.c-purple { color: var(--purple); }
 
-  /* ANALYSIS LIST */
-  .analysis-row { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 4px; border-bottom: 1px solid var(--line); font-size: 11px; font-variant-numeric: tabular-nums; }
-  .analysis-time { font-weight: 700; color: var(--text); text-align: center; width: 60px; }
-  .analysis-sector { width: 45px; text-align: center; }
-  .analysis-divider { width: 2px; background: var(--line); height: 14px; margin: 0 4px; }
-  .analysis-header { font-weight: 600; color: var(--muted); margin-bottom: 8px; }
-
   /* MODAL */
   .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(3,6,14,.62); z-index: 100; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
   .modal-backdrop.open { display: flex; align-items: flex-end; justify-content: center; animation: fadeIn .2s; }
@@ -151,6 +144,20 @@
   .note.pit { background: rgba(255,107,122,.16); color: var(--err); }
   .note.push { background: rgba(197,139,255,.16); color: var(--purple); }
   .note.run { background: rgba(124,183,255,.14); color: #7cb7ff; }
+
+  /* FULL PAGE ANALYSIS OVERLAY */
+  #analysisOverlay { display: none; position: fixed; inset: 0; background: var(--bg0); z-index: 50; flex-direction: column; padding-top: env(safe-area-inset-top); }
+  #analysisOverlay.open { display: flex; }
+  .analysis-header-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+  .analysis-title { font-size: 16px; font-weight: 700; }
+  .analysis-content { flex: 1; overflow-y: auto; padding: 12px; }
+  
+  .analysis-row { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .analysis-time { font-weight: 700; color: var(--text); text-align: center; width: 60px; position: relative; }
+  .analysis-sector { width: 45px; text-align: center; }
+  .analysis-divider { width: 2px; background: var(--line); height: 14px; margin: 0 4px; }
+  .analysis-header { font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+  .analysis-delta { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); font-size: 9px; color: var(--green); font-weight: 600; white-space: nowrap; }
 
   @keyframes fadeIn { from{opacity:0}to{opacity:1} }
   @keyframes slideUp { from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1} }
@@ -197,7 +204,7 @@
 <div id="tabContainer">
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('timing')">Timing</button>
-    <button class="tab-btn" onclick="switchTab('analysis')">Analysis</button>
+    <button class="tab-btn" onclick="openAnalysisOverlay()">Analysis</button>
     <button class="tab-btn" onclick="switchTab('ontrack')">On Track</button>
   </div>
   
@@ -208,17 +215,21 @@
     <div id="rankingsList"></div>
   </div>
   
-  <div class="panel" id="panel-analysis">
-    <div style="display: flex; gap: 8px; margin-bottom: 12px; padding: 0 4px;">
-      <select id="analysisDriver1" style="flex:1; padding: 8px; background: var(--bg2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-size: 13px;"></select>
-      <select id="analysisDriver2" style="flex:1; padding: 8px; background: var(--bg2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-size: 13px;"></select>
-    </div>
-    <div id="analysisResults"></div>
-  </div>
-  
   <div class="panel" id="panel-ontrack">
     <div style="text-align:center; padding: 20px; color: var(--muted);">Tapping a chip selects the driver. SC position approx.</div>
   </div>
+</div>
+
+<div id="analysisOverlay">
+  <div class="analysis-header-bar">
+    <span class="analysis-title">Analysis</span>
+    <button class="modal-close" onclick="closeAnalysisOverlay()">✕</button>
+  </div>
+  <div style="display: flex; gap: 8px; padding: 12px 16px;">
+    <select id="analysisDriver1" style="flex:1; padding: 8px; background: var(--bg2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-size: 13px;"></select>
+    <select id="analysisDriver2" style="flex:1; padding: 8px; background: var(--bg2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-size: 13px;"></select>
+  </div>
+  <div class="analysis-content" id="analysisResults"></div>
 </div>
 
 <div class="modal-backdrop" id="driverModal" onclick="if(event.target===this) closeModal()">
@@ -241,7 +252,6 @@
 
   var SC_GAP_SECONDS = 1.5;
   var PIT_THRESHOLD = 120; 
-  var ROTATIONS = [0, 90, 180, 270];
 
   var els = {
     sessionSelect: document.getElementById("sessionSelect"), dataMeter: document.getElementById("dataMeter"),
@@ -254,11 +264,12 @@
     durationTicker: document.getElementById("durationTicker"), progressWrap: document.getElementById("progressWrap"),
     progressBar: document.getElementById("progressBar"), rankingsList: document.getElementById("rankingsList"),
     rcPopup: document.getElementById("rcPopup"), driverModal: document.getElementById("driverModal"),
-    modalTitle: document.getElementById("modalTitle"), modalBody: document.getElementById("modalBody")
+    modalTitle: document.getElementById("modalTitle"), modalBody: document.getElementById("modalBody"),
+    analysisOverlay: document.getElementById("analysisOverlay")
   };
 
   var state = {
-    allSessions: [], currentSessionKey: null, outline: null, rotationIndex: 0,
+    allSessions: [], currentSessionKey: null, outline: null, autoRotOffset: 0, manualRot: 0,
     sessionLength: 0, sessionStartMs: 0, drivers: {}, driverOrder: [],
     laps: [], stints: {}, raceControl: [], sessionResult: [], scPeriods: [],
     currentTime: 0, playing: false, lastFrameTime: 0, transform: null,
@@ -278,9 +289,26 @@
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     var wrap = document.getElementById('mapWrap');
-    if(tab === 'timing') { document.querySelector('.tab-btn:nth-child(1)').classList.add('active'); document.getElementById('panel-timing').classList.add('active'); wrap.classList.remove('map-ring-mode'); }
-    if(tab === 'analysis') { document.querySelector('.tab-btn:nth-child(2)').classList.add('active'); document.getElementById('panel-analysis').classList.add('active'); wrap.classList.remove('map-ring-mode'); initAnalysis(); }
-    if(tab === 'ontrack') { document.querySelector('.tab-btn:nth-child(3)').classList.add('active'); document.getElementById('panel-ontrack').classList.add('active'); wrap.classList.add('map-ring-mode'); drawCircleOfDoom(); }
+    
+    if(tab === 'timing') { 
+      document.querySelectorAll('.tab-btn')[0].classList.add('active'); 
+      document.getElementById('panel-timing').classList.add('active'); 
+      wrap.classList.remove('map-ring-mode'); 
+    }
+    if(tab === 'ontrack') { 
+      document.querySelectorAll('.tab-btn')[2].classList.add('active'); 
+      document.getElementById('panel-ontrack').classList.add('active'); 
+      wrap.classList.add('map-ring-mode'); 
+      drawCircleOfDoom(); 
+    }
+  };
+
+  window.openAnalysisOverlay = function() {
+    els.analysisOverlay.classList.add("open");
+    initAnalysis();
+  };
+  window.closeAnalysisOverlay = function() {
+    els.analysisOverlay.classList.remove("open");
   };
 
   function addBytes(len) { state.bytesDownloaded += len; updateMeter(); }
@@ -380,7 +408,7 @@
   function selectSession(key) {
     state.currentSessionKey = key; state.outline = null; state.drivers = {};
     state.driverOrder = []; state.laps = []; state.stints = {}; state.raceControl = []; state.sessionResult = []; state.scPeriods = [];
-    state.highlightedDriver = null; state.bytesDownloaded = 0; state.rotationIndex = 0;
+    state.highlightedDriver = null; state.bytesDownloaded = 0; state.autoRotOffset = 0; state.manualRot = 0;
     state.q1Ended = false; state.q2Ended = false; state.q1Eliminated = []; state.q2Eliminated = [];
     state.lastFlagState = null; state.raceStartT = null; closeModal();
     updateMeter();
@@ -415,13 +443,28 @@
         showError("Note: Outline uses equal time spacing. Re-run fetch for precise times.");
       }
       state.outline = outline;
+
+      // Auto-Orientation: Find the longest straight to align it horizontally
+      var maxDist = 0, bestAngle = 0;
+      for (var i = 0; i < state.outline.points.length - 20; i += 10) {
+        var p1 = state.outline.points[i];
+        var p2 = state.outline.points[i + 20];
+        var dx = p2[0] - p1[0], dy = p2[1] - p1[1];
+        var dist = dx*dx + dy*dy;
+        if (dist > maxDist) {
+          maxDist = dist;
+          bestAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+        }
+      }
+      // Round to nearest 90 degree to keep track looking upright
+      state.autoRotOffset = Math.round(bestAngle / 90) * 90;
+
       els.slider.max = state.sessionLength;
 
       var activeSC = null;
       state.raceControl.forEach(m => {
         var mt = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
         
-        // Detect Race Start / Lights Out
         if (m.message && (m.message.includes("RACE START") || m.message.includes("LIGHTS OUT"))) {
           if (state.raceStartT === null) state.raceStartT = mt;
         }
@@ -769,7 +812,7 @@
         var dn = Object.keys(state.drivers)[i], loc = getCarLocation(state.drivers[dn].data, state.currentTime);
         if (!loc) continue;
         var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-        if (state.rotationIndex % 2 !== 0) cy = t.cssH - cy; // Simple rotation flip for visual
+        // We use the simple rotation mapping here for hit-testing. For exact hit-testing, we'd run toCanvas.
         if (Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2)) < 22) { hitDn = parseInt(dn, 10); break; }
       }
     }
@@ -804,10 +847,10 @@
     function toCanvas(px, py) {
       var cx = (px - minX) * scale + offsetX, cy = (py - minY) * scale + offsetY;
       
-      var rot = state.rotationIndex;
-      if (rot === 1) { var tx = cx; cx = cssW - cy; cy = tx; }
-      else if (rot === 2) { cx = cssW - cx; cy = cssH - cy; }
-      else if (rot === 3) { var tx = cx; cx = cy; cy = cssH - tx; }
+      var rot = (state.autoRotOffset + state.manualRot) % 360;
+      if (rot === 90) { var tx = cx; cx = cssW - cy; cy = tx; }
+      else if (rot === 180 || rot === -180) { cx = cssW - cx; cy = cssH - cy; }
+      else if (rot === 270 || rot === -90) { var tx = cx; cx = cy; cy = cssH - tx; }
       
       return [cx, cy];
     }
@@ -874,10 +917,11 @@
       if (!loc) continue;
       
       var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-      var rot = state.rotationIndex;
-      if (rot === 1) { var tx = cx; cx = t.cssW - cy; cy = tx; }
-      else if (rot === 2) { cx = t.cssW - cx; cy = t.cssH - cy; }
-      else if (rot === 3) { var tx = cx; cx = cy; cy = t.cssH - tx; }
+      
+      var rot = (state.autoRotOffset + state.manualRot) % 360;
+      if (rot === 90) { var tx = cx; cx = t.cssW - cy; cy = tx; }
+      else if (rot === 180 || rot === -180) { cx = t.cssW - cx; cy = t.cssH - cy; }
+      else if (rot === 270 || rot === -90) { var tx = cx; cx = cy; cy = t.cssH - tx; }
 
       if (state.highlightedDriver === parseInt(dn, 10)) {
         ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2); ctx.fillStyle = "#" + car.color; ctx.globalAlpha = 0.3; ctx.fill(); ctx.globalAlpha = 1.0;
@@ -898,10 +942,10 @@
             var py = scPts[i][1] + (scPts[i+1][1] - scPts[i][1]) * ratio;
             var cx = (px - t.minX) * t.scale + t.offsetX, cy = (py - t.minY) * t.scale + t.offsetY;
             
-            var rot = state.rotationIndex;
-            if (rot === 1) { var tx = cx; cx = t.cssW - cy; cy = tx; }
-            else if (rot === 2) { cx = t.cssW - cx; cy = t.cssH - cy; }
-            else if (rot === 3) { var tx = cx; cx = cy; cy = t.cssH - tx; }
+            var rot = (state.autoRotOffset + state.manualRot) % 360;
+            if (rot === 90) { var tx = cx; cx = t.cssW - cy; cy = tx; }
+            else if (rot === 180 || rot === -180) { cx = t.cssW - cx; cy = t.cssH - cy; }
+            else if (rot === 270 || rot === -90) { var tx = cx; cx = cy; cy = t.cssH - tx; }
             
             ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2);
             ctx.fillStyle = "var(--yellow)"; ctx.fill();
@@ -997,7 +1041,7 @@
     }
     drawCars(); updateRankings();
     
-    if (document.getElementById('panel-analysis').classList.contains('active')) renderAnalysis();
+    if (document.getElementById('analysisOverlay').classList.contains('open')) renderAnalysis();
     if (document.getElementById('panel-ontrack').classList.contains('active')) drawCircleOfDoom();
     
     if (state.playing) animationId = requestAnimationFrame(loop);
@@ -1018,14 +1062,14 @@
     }
     drawCars(); updateRankings();
     
-    if (document.getElementById('panel-analysis').classList.contains('active')) renderAnalysis();
+    if (document.getElementById('analysisOverlay').classList.contains('open')) renderAnalysis();
     if (document.getElementById('panel-ontrack').classList.contains('active')) drawCircleOfDoom();
   });
   els.slider.addEventListener("touchstart", () => { wasPlaying = state.playing; pausePlayback(); });
   els.slider.addEventListener("touchend", () => { if (wasPlaying) playPlayback(); });
   
   els.flipBtn.addEventListener("click", () => { 
-    state.rotationIndex = (state.rotationIndex + 1) % 4; 
+    state.manualRot = (state.manualRot + 90) % 360; 
     prepareBackground(); 
     drawCars(); 
   });
@@ -1193,6 +1237,13 @@
       var t1 = l1 ? formatTime(l1.lap_duration) : "-";
       var t2 = l2 ? formatTime(l2.lap_duration) : "-";
       
+      var deltaHTML = "";
+      if (l1 && l2) {
+        var d = l1.lap_duration - l2.lap_duration;
+        if (d < 0) deltaHTML = `<span class="analysis-delta">${d.toFixed(3)}</span>`;
+        if (d > 0) t2 = `<span style="position:relative">${t2}<span class="analysis-delta" style="color:var(--err)">+${d.toFixed(3)}</span></span>`;
+      }
+
       function colorSectors(s1, s2) {
         if (!s1 || !s2) return ['#fff', '#fff'];
         if (s1 < s2) return ['var(--green)', 'var(--err)'];
