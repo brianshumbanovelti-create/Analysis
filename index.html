@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#080d19">
-<title>F1 ↪️</title>
+<title>F1 Replay</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -32,18 +32,30 @@
     display: flex; flex-direction: column; justify-content: space-between;
   }
   .header-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-  .title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
-  .title i { font-style: normal; color: var(--muted); font-weight: 500; }
-  .download-meter { font-size: 11px; font-weight: 500; color: var(--dim); background: var(--bg2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; }
   
-  .selector-row { display: flex; flex: 1; justify-content: flex-end; }
+  .compact-control {
+    height: 32px; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--bg2); color: var(--text);
+    padding: 0 12px; cursor: pointer;
+  }
+  .compact-control:active { background: var(--bg3); }
+  
+  .selector-row { flex: 1; display: flex; justify-content: flex-start; }
   .selector-row select {
     width: 100%; max-width: 220px; appearance: none; -webkit-appearance: none;
     background: var(--bg2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a6b0c7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;
     color: var(--text); border: 1px solid var(--line); border-radius: 8px;
-    padding: 6px 24px 6px 10px; font-size: 11px; font-weight: 500;
+    padding: 0 24px 0 10px; height: 32px; font-size: 11px; font-weight: 600;
   }
   .selector-row select:disabled { opacity: 0.5; }
+  
+  .download-meter { 
+    font-size: 11px; font-weight: 600; color: var(--dim); 
+    background: var(--bg2); border: 1px solid var(--line); 
+    border-radius: 8px; padding: 0 12px; height: 32px; 
+    display: flex; align-items: center; justify-content: center;
+  }
   
   #error { position: fixed; top: calc(var(--header-height) + 8px); left: 12px; right: 12px; z-index: 30; display: none; background: rgba(255,92,92,0.95); color: #fff; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
   #error.show { display: block; }
@@ -52,7 +64,21 @@
   #mapContainer { position: fixed; top: var(--header-height); left: 0; right: 0; height: var(--map-height); z-index: 10; padding: 0 var(--map-margin); background: var(--bg0); }
   #mapWrap { position: relative; width: 100%; height: 100%; background: var(--bg1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
   
-  #mapControls { position: absolute; top: 0; left: 0; right: 0; height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: rgba(12, 19, 34, 0.85); border-bottom: 1px solid var(--line); z-index: 5; }
+  .map-float-btn {
+    position: absolute; top: 10px; z-index: 15;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(12, 19, 34, 0.6); backdrop-filter: blur(4px);
+    border: 1px solid var(--line); color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer;
+    transition: opacity 0.5s ease;
+  }
+  .map-float-btn:active { background: rgba(12, 19, 34, 0.9); }
+  .map-float-btn.left { left: 10px; }
+  .map-float-btn.right { right: 10px; }
+  .map-float-btn.hidden { opacity: 0; pointer-events: none; }
+  
+  #mapControls { position: absolute; top: 0; left: 0; right: 0; height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 50px; background: rgba(12, 19, 34, 0.85); border-bottom: 1px solid var(--line); z-index: 5; }
   .icon-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--bg3); border: none; color: var(--text); font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
   .icon-btn:active { background: rgba(255,255,255,0.2); }
   .icon-btn:disabled { opacity: 0.4; }
@@ -187,10 +213,10 @@
 
 <div id="header">
   <div class="header-top">
-    <span class="title">F1<i> ↪️</i></span>
     <div class="selector-row">
       <select id="sessionSelect" disabled><option>Loading…</option></select>
     </div>
+    <button id="rcBtn" class="compact-control" style="width: auto;" disabled>RC</button>
     <span class="download-meter" id="dataMeter">0 KB</span>
   </div>
 </div>
@@ -199,14 +225,15 @@
 
 <div id="mapContainer">
   <div id="mapWrap">
+    <button id="flipBtn" class="map-float-btn left" disabled>⭕</button>
+    <button id="rotateBtn" class="map-float-btn right" disabled>⭕</button>
+    
     <div id="mapControls">
       <button id="playBtn" class="icon-btn" disabled>▶</button>
       <div id="sliderWrap">
         <div id="sliderMarkers"></div>
         <input type="range" id="slider" min="0" max="100" value="0" step="0.1" disabled>
       </div>
-      <button id="rcBtn" class="icon-btn" disabled>RC</button>
-      <button id="flipBtn" class="icon-btn" disabled>🔃</button>
     </div>
     <div id="progressWrap"><div id="progressBar"></div></div>
     
@@ -289,7 +316,8 @@
     canvas: document.getElementById("trackCanvas"), circleCanvas: document.getElementById("circleCanvas"),
     mapEmpty: document.getElementById("mapEmpty"), playBtn: document.getElementById("playBtn"),
     slider: document.getElementById("slider"), sliderMarkers: document.getElementById("sliderMarkers"),
-    flipBtn: document.getElementById("flipBtn"), rcBtn: document.getElementById("rcBtn"),
+    flipBtn: document.getElementById("flipBtn"), rotateBtn: document.getElementById("rotateBtn"), 
+    rcBtn: document.getElementById("rcBtn"),
     timeDisplay: document.getElementById("timeDisplay"), lapCounter: document.getElementById("lapCounter"), 
     statusLabel: document.getElementById("statusLabel"), durationTicker: document.getElementById("durationTicker"), 
     progressWrap: document.getElementById("progressWrap"), progressBar: document.getElementById("progressBar"), 
@@ -300,7 +328,8 @@
   };
 
   var state = {
-    allSessions: [], currentSessionKey: null, sessionType: 'qualifying', outline: null, flipX: false,
+    allSessions: [], currentSessionKey: null, sessionType: 'qualifying', outline: null, 
+    flipX: false, rotation: 0,
     sessionLength: 0, sessionStartMs: 0, drivers: {}, driverOrder: [],
     laps: [], stints: {}, raceControl: [], sessionResult: [], scPeriods: [],
     currentTime: 0, playing: false, lastFrameTime: 0, transform: null,
@@ -308,7 +337,8 @@
     q1Ended: false, q2Ended: false, q1Eliminated: [], q2Eliminated: [],
     activeRC: null, rcTimeout: null, lastFlagState: null,
     currentModalDriver: null, currentModalTab: 'laps', raceStartT: null,
-    medianPitLoss: null, scPitLoss: null, vscPitLoss: null
+    medianPitLoss: null, scPitLoss: null, vscPitLoss: null,
+    playStartTime: 0
   };
   
   var animationId = null;
@@ -335,21 +365,10 @@
     }
   };
 
-  window.openAnalysisOverlay = function() {
-    els.analysisOverlay.classList.add("open");
-    initAnalysis();
-  };
-  window.closeAnalysisOverlay = function() {
-    els.analysisOverlay.classList.remove("open");
-  };
-
-  window.openRCOverlay = function() {
-    els.rcOverlay.classList.add("open");
-    renderRCOverlay();
-  };
-  window.closeRCOverlay = function() {
-    els.rcOverlay.classList.remove("open");
-  };
+  window.openAnalysisOverlay = function() { els.analysisOverlay.classList.add("open"); initAnalysis(); };
+  window.closeAnalysisOverlay = function() { els.analysisOverlay.classList.remove("open"); };
+  window.openRCOverlay = function() { els.rcOverlay.classList.add("open"); renderRCOverlay(); };
+  window.closeRCOverlay = function() { els.rcOverlay.classList.remove("open"); };
 
   function addBytes(len) { state.bytesDownloaded += len; updateMeter(); }
   function updateMeter() {
@@ -448,11 +467,11 @@
   function selectSession(key) {
     state.currentSessionKey = key; state.outline = null; state.drivers = {};
     state.driverOrder = []; state.laps = []; state.stints = {}; state.raceControl = []; state.sessionResult = []; state.scPeriods = [];
-    state.highlightedDriver = null; state.bytesDownloaded = 0; state.flipX = false;
+    state.highlightedDriver = null; state.bytesDownloaded = 0; state.flipX = false; state.rotation = 0;
     state.q1Ended = false; state.q2Ended = false; state.q1Eliminated = []; state.q2Eliminated = [];
     state.lastFlagState = null; state.raceStartT = null; closeModal();
     updateMeter();
-    els.playBtn.disabled = true; els.flipBtn.disabled = true; els.slider.disabled = true; els.rcBtn.disabled = true;
+    els.playBtn.disabled = true; els.flipBtn.disabled = true; els.rotateBtn.disabled = true; els.slider.disabled = true; els.rcBtn.disabled = true;
     els.mapEmpty.style.display = "flex"; els.mapEmpty.textContent = "Loading data…";
     els.rankingsList.innerHTML = ""; els.progressWrap.classList.add("show"); els.progressBar.style.width = "0%";
     els.sliderMarkers.innerHTML = "";
@@ -554,21 +573,17 @@
         }
       });
 
-      // Precalculate Pit Loss
       var pitLosses = [], scPitLosses = [], vscPitLosses = [];
       state.driverOrder.forEach(d => {
         var dn = d.driver_number;
         var dLaps = state.laps.filter(l => l.driver_number === dn && l._t_start !== null).sort((a,b) => a.lap_number - b.lap_number);
         for (var i = 1; i < dLaps.length; i++) {
           if (dLaps[i].is_pit_out_lap) {
-            var inLap = dLaps[i-1];
-            var outLap = dLaps[i];
+            var inLap = dLaps[i-1], outLap = dLaps[i];
             if (!inLap.lap_duration || !outLap.lap_duration) continue;
-            
             var greenLaps = dLaps.filter(l => !l.is_pit_out_lap && l.lap_duration).map(l => l.lap_duration).sort((a,b) => a-b);
             if (greenLaps.length < 3) continue;
             var medianGreen = greenLaps[Math.floor(greenLaps.length / 2)];
-            
             var loss = (inLap.lap_duration + outLap.lap_duration) - (2 * medianGreen);
             
             var inLapT = inLap._t_start;
@@ -579,7 +594,6 @@
                 if (p.type === "VSC") isVSC = true;
               }
             });
-
             if (isSC) scPitLosses.push(loss);
             else if (isVSC) vscPitLosses.push(loss);
             else pitLosses.push(loss);
@@ -592,7 +606,6 @@
         var s = [...arr].sort((a,b) => a-b);
         return s[Math.floor(s.length / 2)];
       }
-      
       state.medianPitLoss = getMedian(pitLosses);
       state.scPitLoss = getMedian(scPitLosses);
       state.vscPitLoss = getMedian(vscPitLosses);
@@ -607,7 +620,7 @@
       }
       function finish() {
         els.progressWrap.classList.remove("show"); els.mapEmpty.style.display = "none";
-        els.playBtn.disabled = false; els.flipBtn.disabled = false; els.slider.disabled = false; els.rcBtn.disabled = false;
+        els.playBtn.disabled = false; els.flipBtn.disabled = false; els.rotateBtn.disabled = false; els.slider.disabled = false; els.rcBtn.disabled = false;
         state.currentTime = 0; updateTimeDisplay();
         renderRankings(); prepareBackground(); drawCars(); updateRankings();
       }
@@ -843,12 +856,17 @@
   function renderModalBody() {
     var dn = state.currentModalDriver;
     if (!dn) return;
-    var driverLaps = state.laps.filter(l => l.driver_number === dn && l.date_start !== null).sort((a,b) => a.lap_number - b.lap_number);
+    
+    // CRITICAL FIX: Only get laps that have finished by the current replay time
+    var currentT = state.currentTime;
+    var driverLaps = state.laps.filter(l => l.driver_number === dn && l.date_start !== null && l._t_end <= currentT).sort((a,b) => a.lap_number - b.lap_number);
     
     if (state.currentModalTab === 'stints') {
       var html = `<div class="stint-bar-wrap">`;
       var driverStints = state.stints[dn] || [];
-      var maxLap = Math.max(...driverLaps.map(l => l.lap_number), 1);
+      var maxLap = 0;
+      driverLaps.forEach(l => { if (l.lap_number > maxLap) maxLap = l.lap_number; });
+      if (maxLap === 0) maxLap = 1;
       
       driverStints.forEach(s => {
         if (s.lap_start > maxLap) return;
@@ -962,7 +980,6 @@
         var dn = Object.keys(state.drivers)[i], loc = getCarLocation(state.drivers[dn].data, state.currentTime);
         if (!loc) continue;
         var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-        if (state.flipX) cx = t.cssW - cx;
         if (Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2)) < 22) { hitDn = parseInt(dn, 10); break; }
       }
     }
@@ -996,7 +1013,14 @@
 
     function toCanvas(px, py) {
       var cx = (px - minX) * scale + offsetX, cy = (py - minY) * scale + offsetY;
+      
+      var rot = state.rotation;
+      if (rot === 90) { var tx = cx; cx = cssW - cy; cy = tx; }
+      else if (rot === 180) { cx = cssW - cx; cy = cssH - cy; }
+      else if (rot === 270) { var tx = cx; cx = cy; cy = cssH - tx; }
+      
       if (state.flipX) cx = cssW - cx;
+      
       return [cx, cy];
     }
 
@@ -1062,6 +1086,12 @@
       if (!loc) continue;
       
       var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
+      
+      var rot = state.rotation;
+      if (rot === 90) { var tx = cx; cx = t.cssW - cy; cy = tx; }
+      else if (rot === 180) { cx = t.cssW - cx; cy = t.cssH - cy; }
+      else if (rot === 270) { var tx = cx; cx = cy; cy = t.cssH - tx; }
+      
       if (state.flipX) cx = t.cssW - cx;
 
       if (state.highlightedDriver === parseInt(dn, 10)) {
@@ -1180,12 +1210,34 @@
     
     if (document.getElementById('analysisOverlay').classList.contains('open')) renderAnalysis();
     if (document.getElementById('panel-ontrack').classList.contains('active')) drawCircleOfDoom();
+    if (els.driverModal.classList.contains('open')) renderModalBody();
+    
+    // Auto-hide floating buttons after 60 seconds of playback
+    if (state.currentTime - state.playStartTime > 60) {
+      els.flipBtn.classList.add("hidden");
+      els.rotateBtn.classList.add("hidden");
+    }
     
     if (state.playing) animationId = requestAnimationFrame(loop);
   }
   
-  function playPlayback() { if (state.playing) return; if (state.currentTime >= state.sessionLength) state.currentTime = 0; state.playing = true; state.lastFrameTime = 0; els.playBtn.textContent = "⏸"; animationId = requestAnimationFrame(loop); }
-  function pausePlayback() { state.playing = false; els.playBtn.textContent = "▶"; if (animationId) cancelAnimationFrame(animationId); }
+  function playPlayback() { 
+    if (state.playing) return; 
+    if (state.currentTime >= state.sessionLength) state.currentTime = 0; 
+    state.playing = true; 
+    state.lastFrameTime = 0; 
+    state.playStartTime = state.currentTime;
+    els.playBtn.textContent = "⏸"; 
+    animationId = requestAnimationFrame(loop); 
+  }
+  
+  function pausePlayback() { 
+    state.playing = false; 
+    els.playBtn.textContent = "▶"; 
+    if (animationId) cancelAnimationFrame(animationId); 
+    els.flipBtn.classList.remove("hidden");
+    els.rotateBtn.classList.remove("hidden");
+  }
   
   els.playBtn.addEventListener("click", () => { if (state.playing) pausePlayback(); else playPlayback(); });
   var wasPlaying = false;
@@ -1201,12 +1253,22 @@
     
     if (document.getElementById('analysisOverlay').classList.contains('open')) renderAnalysis();
     if (document.getElementById('panel-ontrack').classList.contains('active')) drawCircleOfDoom();
+    if (els.driverModal.classList.contains('open')) renderModalBody();
+    
+    els.flipBtn.classList.remove("hidden");
+    els.rotateBtn.classList.remove("hidden");
   });
   els.slider.addEventListener("touchstart", () => { wasPlaying = state.playing; pausePlayback(); });
   els.slider.addEventListener("touchend", () => { if (wasPlaying) playPlayback(); });
   
   els.flipBtn.addEventListener("click", () => { 
     state.flipX = !state.flipX; 
+    prepareBackground(); 
+    drawCars(); 
+  });
+  
+  els.rotateBtn.addEventListener("click", () => { 
+    state.rotation = (state.rotation + 90) % 360; 
     prepareBackground(); 
     drawCars(); 
   });
@@ -1442,13 +1504,9 @@
     var t = state.currentTime;
     var pastRC = state.raceControl.filter(m => (new Date(m.date).getTime() - state.sessionStartMs)/1000 <= t);
     
-    // Last 5 messages
     var last5 = pastRC.slice(-5).reverse();
-    
-    // Penalties
     var penalties = pastRC.filter(m => m.message && (m.message.includes("PENALTY") || m.message.includes("INVESTIGATION") || m.message.includes("NOTED"))).slice(-10).reverse();
     
-    // Black flags
     var blackFlags = {};
     pastRC.forEach(m => {
       if (m.message && (m.message.includes("BLACK FLAG") || m.message.includes("DISQUALIFIED"))) {
