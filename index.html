@@ -5,10 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#080d19">
 <title>F1 Replay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="tracks.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg0: #070b16; --bg1: #0c1322; --bg2: rgba(255, 255, 255, .055);
+    --bg0: #000000; --bg1: #0c1322; --bg2: rgba(255, 255, 255, .055);
     --bg3: rgba(255, 255, 255, .09); --line: rgba(255, 255, 255, .09);
     --text: #eef1f8; --dim: #a6b0c7; --muted: #707c98;
     --accent: #ff5c7a; --err: #ff5c5c;
@@ -18,7 +22,7 @@
   
   html, body {
     height: 100%; background: var(--bg0); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Noto Sans Mono', monospace;
     font-size: 15px; -webkit-font-smoothing: antialiased;
     overflow: hidden; overscroll-behavior-y: none;
   }
@@ -46,7 +50,7 @@
     width: 100%; max-width: 220px; appearance: none; -webkit-appearance: none;
     background: var(--bg2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a6b0c7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;
     color: var(--text); border: 1px solid var(--line); border-radius: 8px;
-    padding: 0 24px 0 10px; height: 32px; font-size: 11px; font-weight: 600;
+    padding: 0 24px 0 10px; height: 32px; font-size: 11px; font-weight: 600; font-family: inherit;
   }
   .selector-row select:disabled { opacity: 0.5; }
   
@@ -110,7 +114,7 @@
   #tabContainer { position: absolute; top: calc(var(--header-height) + var(--map-height) + 8px); bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; z-index: 5; }
   
   .tab-bar { display: flex; gap: 4px; padding: 0 var(--map-margin) 8px; }
-  .tab-btn { flex: 1; padding: 8px 0; font-size: 12px; font-weight: 600; color: var(--dim); background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+  .tab-btn { flex: 1; padding: 8px 0; font-size: 12px; font-weight: 600; color: var(--dim); background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-family: inherit; }
   .tab-btn.active { background: var(--bg3); color: var(--text); border-color: rgba(255,255,255,0.2); }
   
   .panel { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 var(--map-margin) calc(20px + env(safe-area-inset-bottom)); display: none; }
@@ -157,9 +161,9 @@
   .modal-title { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
   .modal-close { background: rgba(255,255,255,.08); border: none; color: var(--dim); width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; }
   .modal-tabs { display: flex; gap: 2px; margin: 2px 16px 8px; padding: 3px; background: rgba(255,255,255,.06); border-radius: 999px; }
-  .modal-tab { flex: 1; font-size: 13px; font-weight: 600; padding: 8px 10px; border: none; background: none; color: var(--dim); cursor: pointer; border-radius: 999px; transition: all .2s; }
+  .modal-tab { flex: 1; font-size: 13px; font-weight: 600; padding: 8px 10px; border: none; background: none; color: var(--dim); cursor: pointer; border-radius: 999px; transition: all .2s; font-family: inherit; }
   .modal-tab.active { background: rgba(255,255,255,.16); color: #fff; }
-  .modal-body { padding: 4px 16px 24px; overflow-y: auto; min-height: 0; }
+  .modal-body { padding: 4px 16px 24px; overflow-y: auto; min-height: 0; background: transparent; color: var(--text); }
   
   .lap-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .lap-table th { color: var(--muted); font-size: 11px; font-weight: 500; padding: 4px 5px 8px; text-align: left; }
@@ -174,36 +178,77 @@
   .note.push { background: rgba(197,139,255,.16); color: var(--purple); }
   .note.run { background: rgba(124,183,255,.14); color: #7cb7ff; }
 
-  /* FULL PAGE OVERLAYS */
-  #analysisOverlay, #rcOverlay { display: none; position: fixed; inset: 0; background: var(--bg0); z-index: 50; flex-direction: column; padding-top: env(safe-area-inset-top); }
-  #analysisOverlay.open, #rcOverlay.open { display: flex; }
-  .overlay-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); }
-  .overlay-title { font-size: 16px; font-weight: 700; }
-  .overlay-content { flex: 1; overflow-y: auto; padding: 12px; }
-  
-  .analysis-row { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 11px; font-variant-numeric: tabular-nums; }
-  .analysis-time { font-weight: 700; color: var(--text); text-align: center; width: 60px; position: relative; }
-  .analysis-sector { width: 45px; text-align: center; }
-  .analysis-divider { width: 2px; background: var(--line); height: 14px; margin: 0 4px; }
-  .analysis-header { font-weight: 600; color: var(--muted); margin-bottom: 8px; }
-  .analysis-delta { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); font-size: 9px; color: var(--green); font-weight: 600; white-space: nowrap; }
-
-  /* NEW RC TEXT-ONLY DESIGN */
-  .rc-content { flex: 1; overflow-y: auto; padding: 20px; background: var(--bg0); color: var(--text); }
-  .rc-header { font-size: 20px; font-weight: 600; margin-bottom: 24px; }
-  .rc-section-title { font-size: 14px; font-weight: 600; color: var(--muted); margin-top: 28px; margin-bottom: 12px; }
-  .rc-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 8px 0; }
-  .rc-time { font-size: 13px; color: var(--muted); white-space: nowrap; }
-  .rc-text { font-size: 15px; line-height: 1.4; }
-
-  /* STINTS TAB */
-  .stint-bar-wrap { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 16px; gap: 2px; }
+  /* STINTS TAB (Fixed) */
+  .stint-bar-wrap { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 16px; gap: 2px; }
   .stint-bar-seg { height: 100%; }
-  .stint-item { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .stint-item { padding: 12px 0; border-bottom: 1px solid var(--line); color: var(--text); }
   .stint-item:last-child { border-bottom: none; }
-  .stint-title { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .stint-title { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
   .stint-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--dim); margin-bottom: 4px; }
-  .stint-warning { color: var(--err); font-size: 12px; font-weight: 600; margin-top: 6px; }
+  .stint-warning { color: #ff8fa3; font-size: 12px; font-weight: 500; margin-top: 6px; }
+
+  /* FULL PAGE OVERLAYS (Analysis, RC, Track Gaps) */
+  #analysisOverlay, #rcOverlay, #trackGapsOverlay { display: none; position: fixed; inset: 0; background: #000; z-index: 50; flex-direction: column; padding-top: env(safe-area-inset-top); }
+  #analysisOverlay.open, #rcOverlay.open, #trackGapsOverlay.open { display: flex; }
+  .overlay-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; }
+  .overlay-title { font-size: 20px; font-weight: 600; color: #fff; }
+  .overlay-close { background: transparent; border: 1px solid #555; color: #fff; border-radius: 999px; padding: 6px 16px; font-size: 14px; cursor: pointer; font-family: inherit; }
+  .overlay-close:active { background: #222; }
+  
+  /* ANALYSIS REDESIGN */
+  .analysis-selector-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 16px 20px; }
+  .analysis-selector { flex: 1; display: flex; align-items: center; background: transparent; border: 1px solid #fff; border-radius: 999px; padding: 10px 16px; cursor: pointer; gap: 10px; color: #fff; font-size: 15px; font-weight: 600; font-family: inherit; appearance: none; -webkit-appearance: none; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23fff' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 16px center; }
+  .analysis-selector option { background: #000; color: #fff; }
+  .selector-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .vs-text { font-size: 12px; color: #888; font-weight: 600; }
+  
+  .analysis-summary { padding: 0 16px 24px; font-size: 14px; line-height: 1.5; color: #ccc; }
+  .analysis-list { flex: 1; overflow-y: auto; padding: 0 16px 40px; }
+  
+  .analysis-header-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 10px; font-size: 12px; color: #888; }
+  
+  .analysis-row { display: flex; flex-direction: column; padding: 16px 0; border-bottom: 1px solid #222; }
+  .analysis-top-line { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px; }
+  .analysis-time-wrap { display: flex; flex-direction: column; width: 33%; }
+  .analysis-time-wrap.right { align-items: flex-end; }
+  .analysis-time { font-size: 20px; font-weight: 700; color: #444; }
+  .analysis-time.fastest { color: #fff; }
+  .analysis-lap-num { font-size: 12px; color: #666; margin-bottom: 2px; }
+  
+  .analysis-center-bar { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 0 10px; }
+  .analysis-delta { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .analysis-track { width: 100%; height: 6px; background: #333; position: relative; border-radius: 3px; display: flex; justify-content: center; }
+  .analysis-tick { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: #fff; z-index: 2; }
+  
+  .analysis-sector-row { display: flex; justify-content: center; gap: 4px; margin-top: 4px; }
+  .analysis-sector-block { width: 33%; display: flex; gap: 2px; }
+  .analysis-sector-block.left { justify-content: flex-end; }
+  .analysis-sector-block.right { justify-content: flex-start; }
+  .sector-bar { height: 4px; border-radius: 2px; flex: 1; max-width: 20px; }
+  
+  .analysis-detail-row { display: flex; justify-content: space-between; padding: 8px 16px; font-size: 14px; border-bottom: 1px solid #222; }
+  .analysis-detail-row span:first-child { color: #666; width: 40px; }
+  .analysis-detail-row span:nth-child(2) { width: 30%; }
+  .analysis-detail-row span:last-child { width: 30%; text-align: right; }
+
+  /* RC OVERLAY (Text Only) */
+  .rc-content { flex: 1; overflow-y: auto; padding: 20px; }
+  .rc-section-title { font-size: 14px; font-weight: 600; color: #888; margin-top: 28px; margin-bottom: 12px; }
+  .rc-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 8px 0; }
+  .rc-time { font-size: 13px; color: #666; white-space: nowrap; }
+  .rc-text { font-size: 15px; line-height: 1.4; color: #eee; }
+
+  /* TRACK GAPS OVERLAY */
+  .tg-content { flex: 1; display: flex; flex-direction: column; padding: 0 16px 20px; }
+  .tg-selector { width: 100%; display: flex; align-items: center; background: transparent; border: 1px solid #fff; border-radius: 999px; padding: 12px 16px; cursor: pointer; gap: 10px; color: #fff; font-size: 16px; font-weight: 600; margin-bottom: 20px; font-family: inherit; appearance: none; -webkit-appearance: none; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23fff' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 16px center; }
+  .tg-selector option { background: #000; }
+  .tg-toggles { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .tg-toggle-label { font-size: 13px; color: #888; margin-right: 4px; }
+  .tg-toggle { background: transparent; border: 1px solid #fff; color: #fff; border-radius: 999px; padding: 8px 20px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+  .tg-toggle.active { background: #fff; color: #000; }
+  .tg-canvas-wrap { flex: 1; position: relative; min-height: 0; }
+  #trackGapsCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .tg-summary { font-size: 14px; line-height: 1.5; color: #ccc; margin-top: 20px; }
 
   @keyframes fadeIn { from{opacity:0}to{opacity:1} }
   @keyframes slideUp { from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1} }
@@ -254,7 +299,7 @@
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('timing')">Timing</button>
     <button class="tab-btn" onclick="openAnalysisOverlay()">Analysis</button>
-    <button class="tab-btn" onclick="switchTab('ontrack')">On Track</button>
+    <button class="tab-btn" onclick="openTrackGapsOverlay()">Track Gaps</button>
   </div>
   
   <div class="panel active" id="panel-timing">
@@ -263,32 +308,54 @@
     </div>
     <div id="rankingsList"></div>
   </div>
-  
-  <div class="panel" id="panel-ontrack">
-    <div style="text-align:center; padding: 20px; color: var(--muted);">Tapping a chip selects the driver. SC position approx.</div>
-  </div>
 </div>
 
+<!-- ANALYSIS OVERLAY -->
 <div id="analysisOverlay">
   <div class="overlay-header">
     <span class="overlay-title">Analysis</span>
-    <button class="modal-close" onclick="closeAnalysisOverlay()">✕</button>
+    <button class="overlay-close" onclick="closeAnalysisOverlay()">✕</button>
   </div>
-  <div style="display: flex; gap: 8px; padding: 12px 16px;">
-    <select id="analysisDriver1" style="flex:1; padding: 8px; background: var(--bg2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-size: 13px;"></select>
-    <select id="analysisDriver2" style="flex:1; padding: 8px; background: var(--bg2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-size: 13px;"></select>
+  <div class="analysis-selector-wrap">
+    <select id="analysisDriver1" class="analysis-selector"></select>
+    <span class="vs-text">VS</span>
+    <select id="analysisDriver2" class="analysis-selector"></select>
   </div>
-  <div class="overlay-content" id="analysisResults"></div>
+  <div class="analysis-summary" id="analysisSummary"></div>
+  <div class="analysis-list" id="analysisResults"></div>
 </div>
 
+<!-- TRACK GAPS OVERLAY -->
+<div id="trackGapsOverlay">
+  <div class="overlay-header">
+    <span class="overlay-title">Track gaps</span>
+    <button class="overlay-close" onclick="closeTrackGapsOverlay()">✕</button>
+  </div>
+  <div class="tg-content">
+    <select id="tgDriverSelect" class="tg-selector"></select>
+    <div class="tg-toggles">
+      <span class="tg-toggle-label">Pit under</span>
+      <button class="tg-toggle active" onclick="setTGCondition('green')" id="tgBtnGreen">Green</button>
+      <button class="tg-toggle" onclick="setTGCondition('vsc')" id="tgBtnVsc">VSC</button>
+      <button class="tg-toggle" onclick="setTGCondition('sc')" id="tgBtnSc">SC</button>
+    </div>
+    <div class="tg-canvas-wrap">
+      <canvas id="trackGapsCanvas"></canvas>
+    </div>
+    <div class="tg-summary" id="tgSummary"></div>
+  </div>
+</div>
+
+<!-- RC OVERLAY -->
 <div id="rcOverlay">
   <div class="overlay-header">
     <span class="overlay-title">Race Control</span>
-    <button class="modal-close" onclick="closeRCOverlay()">✕</button>
+    <button class="overlay-close" onclick="closeRCOverlay()">✕</button>
   </div>
   <div class="rc-content" id="rcResults"></div>
 </div>
 
+<!-- DRIVER MODAL -->
 <div class="modal-backdrop" id="driverModal" onclick="if(event.target===this) closeModal()">
   <div class="modal-box">
     <div class="modal-head">
@@ -324,7 +391,8 @@
     rankingsList: document.getElementById("rankingsList"), rcPopup: document.getElementById("rcPopup"), 
     driverModal: document.getElementById("driverModal"), modalTitle: document.getElementById("modalTitle"), 
     modalBody: document.getElementById("modalBody"), analysisOverlay: document.getElementById("analysisOverlay"),
-    rcOverlay: document.getElementById("rcOverlay")
+    rcOverlay: document.getElementById("rcOverlay"), trackGapsOverlay: document.getElementById("trackGapsOverlay"),
+    trackGapsCanvas: document.getElementById("trackGapsCanvas")
   };
 
   var state = {
@@ -337,8 +405,8 @@
     q1Ended: false, q2Ended: false, q1Eliminated: [], q2Eliminated: [],
     activeRC: null, rcTimeout: null, lastFlagState: null,
     currentModalDriver: null, currentModalTab: 'laps', raceStartT: null,
-    medianPitLoss: null, scPitLoss: null, vscPitLoss: null,
-    playStartTime: 0
+    medianPitLoss: 0, scPitLoss: 0, vscPitLoss: 0, pitLoss: 0,
+    tgCondition: 'green'
   };
   
   var animationId = null;
@@ -357,18 +425,25 @@
       document.getElementById('panel-timing').classList.add('active'); 
       wrap.classList.remove('map-ring-mode'); 
     }
-    if(tab === 'ontrack') { 
-      document.querySelectorAll('.tab-btn')[2].classList.add('active'); 
-      document.getElementById('panel-ontrack').classList.add('active'); 
-      wrap.classList.add('map-ring-mode'); 
-      drawCircleOfDoom(); 
-    }
   };
 
   window.openAnalysisOverlay = function() { els.analysisOverlay.classList.add("open"); initAnalysis(); };
   window.closeAnalysisOverlay = function() { els.analysisOverlay.classList.remove("open"); };
   window.openRCOverlay = function() { els.rcOverlay.classList.add("open"); renderRCOverlay(); };
   window.closeRCOverlay = function() { els.rcOverlay.classList.remove("open"); };
+  
+  window.openTrackGapsOverlay = function() { 
+    els.trackGapsOverlay.classList.add("open"); 
+    initTrackGaps(); 
+  };
+  window.closeTrackGapsOverlay = function() { els.trackGapsOverlay.classList.remove("open"); };
+  window.setTGCondition = function(cond) {
+    state.tgCondition = cond;
+    document.getElementById("tgBtnGreen").classList.toggle("active", cond === 'green');
+    document.getElementById("tgBtnVsc").classList.toggle("active", cond === 'vsc');
+    document.getElementById("tgBtnSc").classList.toggle("active", cond === 'sc');
+    renderTrackGaps();
+  };
 
   function addBytes(len) { state.bytesDownloaded += len; updateMeter(); }
   function updateMeter() {
@@ -425,16 +500,24 @@
     return (((r * 299) + (g * 587) + (b * 114)) / 1000 >= 128) ? '#000000' : '#ffffff';
   }
   function getTyreColor(c) {
-    if (!c) return "#555"; c = c.toUpperCase();
-    if (c.includes("SOFT")) return "#ff3b4e"; if (c.includes("MED")) return "#ffd23f";
-    if (c.includes("HARD")) return "#f1f3f8"; if (c.includes("INTER")) return "#3ddc84";
-    if (c.includes("WET")) return "#4aa3ff"; return "#555";
+    if (!c) return "#555"; 
+    var u = String(c).toUpperCase();
+    if (u === "S" || u === "SOFT") return "#ff3b4e";
+    if (u === "M" || u === "MEDIUM" || u === "MED") return "#ffd23f";
+    if (u === "H" || u === "HARD") return "#f1f3f8";
+    if (u === "I" || u === "INTERMEDIATE" || u === "INTER") return "#3ddc84";
+    if (u === "W" || u === "WET") return "#4aa3ff";
+    return "#555";
   }
   function getTyreLetter(c) {
-    if (!c) return "?"; c = c.toUpperCase();
-    if (c.includes("SOFT")) return "S"; if (c.includes("MED")) return "M";
-    if (c.includes("HARD")) return "H"; if (c.includes("INTER")) return "I";
-    if (c.includes("WET")) return "W"; return c[0];
+    if (!c) return "?"; 
+    var u = String(c).toUpperCase();
+    if (u === "S" || u === "SOFT") return "S";
+    if (u === "M" || u === "MEDIUM" || u === "MED") return "M";
+    if (u === "H" || u === "HARD") return "H";
+    if (u === "I" || u === "INTERMEDIATE" || u === "INTER") return "I";
+    if (u === "W" || u === "WET") return "W";
+    return c[0];
   }
 
   fetchJSON("data/sessions.json").then(sessions => {
@@ -539,7 +622,14 @@
         state.drivers[d.driver_number] = { acronym: d.name_acronym || String(d.driver_number), color: d.team_colour || "ffffff", data: [] };
         state.driverOrder.push(d);
       });
-      stintsRaw.forEach(s => { if (!state.stints[s.driver_number]) state.stints[s.driver_number] = []; state.stints[s.driver_number].push(s); });
+      
+      stintsRaw.forEach(s => { 
+        if (!state.stints[s.driver_number]) state.stints[s.driver_number] = []; 
+        state.stints[s.driver_number].push(s); 
+      });
+      Object.keys(state.stints).forEach(dn => {
+        state.stints[dn].sort((a, b) => a.lap_start - b.lap_start);
+      });
 
       state.sessionResult.forEach(r => {
         if (!r.duration || !Array.isArray(r.duration)) return;
@@ -602,13 +692,13 @@
       });
 
       function getMedian(arr) {
-        if (!arr.length) return null;
+        if (!arr.length) return 0;
         var s = [...arr].sort((a,b) => a-b);
         return s[Math.floor(s.length / 2)];
       }
-      state.medianPitLoss = getMedian(pitLosses);
-      state.scPitLoss = getMedian(scPitLosses);
-      state.vscPitLoss = getMedian(vscPitLosses);
+      state.medianPitLoss = getMedian(pitLosses) || 22.0; 
+      state.scPitLoss = getMedian(scPitLosses) || 12.0;
+      state.vscPitLoss = getMedian(vscPitLosses) || 15.0;
 
       var loaded = 0, total = state.driverOrder.length;
       function next() {
@@ -696,7 +786,15 @@
       for (var j = laps.length - 1; j >= 0; j--) { if (t >= laps[j]._t_start) { curr = laps[j]; if (j>0) prev = laps[j-1]; break; } }
       
       var stint = null;
-      if (curr) { var st = state.stints[dn] || []; for (var k = st.length - 1; k >= 0; k--) { if (curr.lap_number >= st[k].lap_start) { stint = st[k]; break; } } }
+      if (curr) { 
+        var st = state.stints[dn] || []; 
+        for (var k = 0; k < st.length; k++) { 
+          if (curr.lap_number >= st[k].lap_start && curr.lap_number <= (st[k].lap_end || 999)) { 
+            stint = st[k]; 
+            break; 
+          } 
+        } 
+      }
 
       var completedLaps = laps.filter(l => t >= l._t_end).length;
       var isStationary = (maxLapCompleted - completedLaps) >= 2;
@@ -831,7 +929,7 @@
   function toggleHighlight(dn) {
     state.highlightedDriver = (state.highlightedDriver === dn) ? null : dn;
     document.querySelectorAll(".driver-row").forEach(r => r.classList.toggle("highlighted", parseInt(r.getAttribute("data-dn"), 10) === state.highlightedDriver));
-    drawCars(); drawCircleOfDoom();
+    drawCars(); 
   }
 
   window.closeModal = function() {
@@ -857,7 +955,6 @@
     var dn = state.currentModalDriver;
     if (!dn) return;
     
-    // CRITICAL FIX: Only get laps that have finished by the current replay time
     var currentT = state.currentTime;
     var driverLaps = state.laps.filter(l => l.driver_number === dn && l.date_start !== null && l._t_end <= currentT).sort((a,b) => a.lap_number - b.lap_number);
     
@@ -888,6 +985,7 @@
         var cliffLap = null;
         
         for (var i = 2; i < stintLaps.length; i++) {
+          if (stintLaps[i].is_pit_out_lap) continue; 
           if (stintLaps[i].lap_duration > stintLaps[i-1].lap_duration + 1.5) {
             cliffLap = stintLaps[i].lap_number;
             break;
@@ -957,31 +1055,18 @@
     else { lastTapTime = now; lastTapTarget = dn; }
   });
 
-  function handleCanvasClick(e, isCircle) {
+  function handleCanvasClick(e) {
     if (!state.transform || els.mapEmpty.style.display !== "none") return;
     var rect = els.canvas.getBoundingClientRect(), tx = e.clientX - rect.left, ty = e.clientY - rect.top - 48;
     if (ty < 0) return;
     
     var hitDn = null;
-    if (isCircle) {
-      var cx = rect.width/2, cy = (rect.height-48)/2, r = Math.min(rect.width, rect.height-48)*0.35;
-      for (var dn in state.drivers) {
-        var loc = getCarLocation(state.drivers[dn].data, state.currentTime);
-        if (!loc) continue;
-        var pos = getTrackPosition(loc[0], loc[1]);
-        if (pos.dist > PIT_THRESHOLD) continue;
-        var angle = (pos.t / state.outline.lap_duration) * Math.PI * 2 - (Math.PI/2);
-        var chipX = cx + Math.cos(angle) * (r + 20), chipY = cy + Math.sin(angle) * (r + 20);
-        if (Math.sqrt(Math.pow(tx - chipX, 2) + Math.pow(ty - chipY, 2)) < 30) { hitDn = parseInt(dn, 10); break; }
-      }
-    } else {
-      var t = state.transform;
-      for (var i = Object.keys(state.drivers).length - 1; i >= 0; i--) {
-        var dn = Object.keys(state.drivers)[i], loc = getCarLocation(state.drivers[dn].data, state.currentTime);
-        if (!loc) continue;
-        var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-        if (Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2)) < 22) { hitDn = parseInt(dn, 10); break; }
-      }
+    var t = state.transform;
+    for (var i = Object.keys(state.drivers).length - 1; i >= 0; i--) {
+      var dn = Object.keys(state.drivers)[i], loc = getCarLocation(state.drivers[dn].data, state.currentTime);
+      if (!loc) continue;
+      var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
+      if (Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2)) < 22) { hitDn = parseInt(dn, 10); break; }
     }
     
     if (hitDn) {
@@ -991,8 +1076,7 @@
     }
   }
 
-  els.canvas.addEventListener("click", e => handleCanvasClick(e, false));
-  els.circleCanvas.addEventListener("click", e => handleCanvasClick(e, true));
+  els.canvas.addEventListener("click", handleCanvasClick);
 
   function prepareBackground() {
     if (!state.outline) return;
@@ -1013,14 +1097,6 @@
 
     function toCanvas(px, py) {
       var cx = (px - minX) * scale + offsetX, cy = (py - minY) * scale + offsetY;
-      
-      var rot = state.rotation;
-      if (rot === 90) { var tx = cx; cx = cssW - cy; cy = tx; }
-      else if (rot === 180) { cx = cssW - cx; cy = cssH - cy; }
-      else if (rot === 270) { var tx = cx; cx = cy; cy = cssH - tx; }
-      
-      if (state.flipX) cx = cssW - cx;
-      
       return [cx, cy];
     }
 
@@ -1086,42 +1162,13 @@
       if (!loc) continue;
       
       var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-      
-      var rot = state.rotation;
-      if (rot === 90) { var tx = cx; cx = t.cssW - cy; cy = tx; }
-      else if (rot === 180) { cx = t.cssW - cx; cy = t.cssH - cy; }
-      else if (rot === 270) { var tx = cx; cx = cy; cy = t.cssH - tx; }
-      
-      if (state.flipX) cx = t.cssW - cx;
 
       if (state.highlightedDriver === parseInt(dn, 10)) {
         ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2); ctx.fillStyle = "#" + car.color; ctx.globalAlpha = 0.3; ctx.fill(); ctx.globalAlpha = 1.0;
       }
       ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI * 2); ctx.fillStyle = "#" + car.color; ctx.fill();
-      ctx.fillStyle = getContrastColor(car.color); ctx.font = "bold 11px -apple-system, sans-serif";
+      ctx.fillStyle = getContrastColor(car.color); ctx.font = "bold 11px 'Noto Sans Mono', monospace";
       ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(dn, cx, cy);
-    }
-    
-    if (trackStatus === "SC") {
-      var scPos = getSCPosition();
-      if (scPos) {
-        var scPts = state.outline.points;
-        for (var i = 0; i < scPts.length - 1; i++) {
-          if (scPts[i][2] <= scPos && scPts[i+1][2] >= scPos) {
-            var ratio = (scPos - scPts[i][2]) / (scPts[i+1][2] - scPts[i][2]);
-            var px = scPts[i][0] + (scPts[i+1][0] - scPts[i][0]) * ratio;
-            var py = scPts[i][1] + (scPts[i+1][1] - scPts[i][1]) * ratio;
-            var cx = (px - t.minX) * t.scale + t.offsetX, cy = (py - t.minY) * t.scale + t.offsetY;
-            if (state.flipX) cx = t.cssW - cx;
-            
-            ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2);
-            ctx.fillStyle = "var(--yellow)"; ctx.fill();
-            ctx.fillStyle = "#000"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-            ctx.fillText("SC", cx, cy);
-            break;
-          }
-        }
-      }
     }
   }
 
@@ -1172,28 +1219,6 @@
     return { dist: minDist, t: bestT };
   }
 
-  function getSCPosition() {
-    var currentT = state.currentTime;
-    var heads = [];
-    for (var dn in state.drivers) {
-      var loc = getCarLocation(state.drivers[dn].data, currentT);
-      if (!loc) continue;
-      var pos = getTrackPosition(loc[0], loc[1]);
-      if (pos.dist > PIT_THRESHOLD) continue;
-      
-      var laps = state.laps.filter(l => l.driver_number == dn && l._t_start !== null).sort((a,b) => a.lap_number - b.lap_number);
-      var lapCount = 0;
-      for (var i = laps.length - 1; i >= 0; i--) {
-        if (currentT >= laps[i]._t_start) { lapCount = laps[i].lap_number; break; }
-      }
-      heads.push({ dn, progress: lapCount * 1000 + pos.t });
-    }
-    if (heads.length === 0) return null;
-    heads.sort((a, b) => b.progress - a.progress);
-    var leaderT = getTrackPosition(...getCarLocation(state.drivers[heads[0].dn].data, currentT)).t;
-    return (leaderT + SC_GAP_SECONDS) % state.outline.lap_duration;
-  }
-
   function loop(timestamp) {
     if (!state.playing) return;
     if (!state.lastFrameTime) state.lastFrameTime = timestamp;
@@ -1208,15 +1233,7 @@
     }
     drawCars(); updateRankings();
     
-    if (document.getElementById('analysisOverlay').classList.contains('open')) renderAnalysis();
-    if (document.getElementById('panel-ontrack').classList.contains('active')) drawCircleOfDoom();
     if (els.driverModal.classList.contains('open')) renderModalBody();
-    
-    // Auto-hide floating buttons after 60 seconds of playback
-    if (state.currentTime - state.playStartTime > 60) {
-      els.flipBtn.classList.add("hidden");
-      els.rotateBtn.classList.add("hidden");
-    }
     
     if (state.playing) animationId = requestAnimationFrame(loop);
   }
@@ -1226,7 +1243,6 @@
     if (state.currentTime >= state.sessionLength) state.currentTime = 0; 
     state.playing = true; 
     state.lastFrameTime = 0; 
-    state.playStartTime = state.currentTime;
     els.playBtn.textContent = "⏸"; 
     animationId = requestAnimationFrame(loop); 
   }
@@ -1235,8 +1251,6 @@
     state.playing = false; 
     els.playBtn.textContent = "▶"; 
     if (animationId) cancelAnimationFrame(animationId); 
-    els.flipBtn.classList.remove("hidden");
-    els.rotateBtn.classList.remove("hidden");
   }
   
   els.playBtn.addEventListener("click", () => { if (state.playing) pausePlayback(); else playPlayback(); });
@@ -1250,13 +1264,7 @@
       prepareBackground();
     }
     drawCars(); updateRankings();
-    
-    if (document.getElementById('analysisOverlay').classList.contains('open')) renderAnalysis();
-    if (document.getElementById('panel-ontrack').classList.contains('active')) drawCircleOfDoom();
     if (els.driverModal.classList.contains('open')) renderModalBody();
-    
-    els.flipBtn.classList.remove("hidden");
-    els.rotateBtn.classList.remove("hidden");
   });
   els.slider.addEventListener("touchstart", () => { wasPlaying = state.playing; pausePlayback(); });
   els.slider.addEventListener("touchend", () => { if (wasPlaying) playPlayback(); });
@@ -1275,155 +1283,14 @@
   
   els.rcBtn.addEventListener("click", window.openRCOverlay);
   
-  window.addEventListener("resize", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); drawCircleOfDoom(); }, 100); });
-  window.addEventListener("orientationchange", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); drawCircleOfDoom(); }, 100); });
+  window.addEventListener("resize", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); renderTrackGaps(); }, 100); });
+  window.addEventListener("orientationchange", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); renderTrackGaps(); }, 100); });
 
-  function drawCircleOfDoom() {
-    if (!state.drivers || Object.keys(state.drivers).length === 0) return;
-    var canvas = els.circleCanvas;
-    var ctx = canvas.getContext("2d");
-    var wrap = canvas.parentElement;
-    var dpr = window.devicePixelRatio || 1;
-    var w = wrap.clientWidth, h = wrap.clientHeight - 48;
-    if (w === 0 || h === 0) return;
-
-    canvas.width = w * dpr; canvas.height = h * dpr;
-    canvas.style.width = w + "px"; canvas.style.height = h + "px";
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    var cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.35;
-    var status = getTrackStatus(state.currentTime);
-    
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.lineWidth = 12;
-    ctx.strokeStyle = status === "SC" ? "var(--yellow)" : status === "VSC" ? "var(--amber)" : "#2a3454";
-    ctx.stroke();
-
-    var refLap = state.outline;
-    if (refLap && refLap.duration_sector_1 && refLap.duration_sector_2) {
-      var s1Angle = (refLap.duration_sector_1 / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
-      var s2Angle = ((refLap.duration_sector_1 + refLap.duration_sector_2) / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
-      
-      [s1Angle, s2Angle].forEach(a => {
-        ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(a) * (r - 6), cy + Math.sin(a) * (r - 6));
-        ctx.lineTo(cx + Math.cos(a) * (r + 6), cy + Math.sin(a) * (r + 6));
-        ctx.lineWidth = 2; ctx.strokeStyle = "#888"; ctx.stroke();
-      });
-    }
-
-    var currentT = state.currentTime;
-    var driversData = [];
-    
-    for (var dn in state.drivers) {
-      var loc = getCarLocation(state.drivers[dn].data, currentT);
-      if (!loc) continue;
-      
-      var pos = getTrackPosition(loc[0], loc[1]);
-      if (pos.dist > PIT_THRESHOLD) {
-        driversData.push({ dn, inPit: true });
-      } else {
-        var angle = (pos.t / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
-        driversData.push({ dn, inPit: false, angle: angle, t: pos.t });
-      }
-    }
-    
-    var chipData = [];
-    driversData.forEach(d => {
-      var car = state.drivers[d.dn];
-      var x, y;
-      
-      if (d.inPit) {
-        var pAngle = -Math.PI/2 + (Math.random() * 0.4 - 0.2);
-        x = cx + Math.cos(pAngle) * (r - 20);
-        y = cy + Math.sin(pAngle) * (r - 20);
-        ctx.fillStyle = "#" + car.color; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
-      } else {
-        x = cx + Math.cos(d.angle) * r;
-        y = cy + Math.sin(d.angle) * r;
-        ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = "#" + car.color; ctx.fill();
-        ctx.strokeStyle = (state.highlightedDriver === parseInt(d.dn)) ? "#fff" : "#0a0e1a";
-        ctx.lineWidth = (state.highlightedDriver === parseInt(d.dn)) ? 3 : 2;
-        ctx.stroke();
-        
-        var chipX = cx + Math.cos(d.angle) * (r + 20);
-        var chipY = cy + Math.sin(d.angle) * (r + 20);
-        chipData.push({ dn: d.dn, x: chipX, y: chipY, angle: d.angle });
-      }
-    });
-    
-    if (status === "SC") {
-      var scPos = getSCPosition();
-      if (scPos) {
-        var scAngle = (scPos / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
-        var scX = cx + Math.cos(scAngle) * (r + 20);
-        var scY = cy + Math.sin(scAngle) * (r + 20);
-        chipData.push({ dn: "SC", x: scX, y: scY, angle: scAngle, isSC: true });
-      }
-    }
-    
-    chipData.forEach(c => {
-      var car = c.isSC ? { color: "ffd23f", acronym: "SC" } : state.drivers[c.dn];
-      ctx.fillStyle = "rgba(12, 19, 34, 0.8)";
-      ctx.strokeStyle = "#" + car.color;
-      ctx.lineWidth = 1;
-      
-      var text = car.acronym;
-      ctx.font = "bold 10px sans-serif";
-      var textW = ctx.measureText(text).width;
-      
-      ctx.beginPath();
-      ctx.roundRect(c.x - textW/2 - 4, c.y - 8, textW + 8, 16, 4);
-      ctx.fill(); ctx.stroke();
-      
-      ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(text, c.x, c.y);
-    });
-
-    // PIT WINDOW
-    if (state.medianPitLoss && state.highlightedDriver) {
-      var selD = driversData.find(d => parseInt(d.dn, 10) === state.highlightedDriver);
-      if (selD && !selD.inPit) {
-        var selT = selD.t;
-        var selAngle = (selT / refLap.lap_duration) * Math.PI * 2 - (Math.PI/2);
-        
-        var lossAngle = (state.medianPitLoss / refLap.lap_duration) * Math.PI * 2;
-        
-        // Behind
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, selAngle - lossAngle, selAngle);
-        ctx.strokeStyle = "rgba(197, 139, 255, 0.4)";
-        ctx.lineWidth = 16;
-        ctx.stroke();
-        
-        // Ahead
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, selAngle, selAngle + lossAngle);
-        ctx.strokeStyle = "rgba(197, 139, 255, 0.15)";
-        ctx.lineWidth = 16;
-        ctx.stroke();
-      }
-    }
-
-    ctx.fillStyle = "#fff"; ctx.font = "bold 24px sans-serif"; ctx.textAlign = "center";
-    var lap = 1, total = 58;
-    state.laps.forEach(l => {
-      var lt = l._t_start;
-      if (currentT >= lt && l.lap_number > lap) lap = l.lap_number;
-    });
-    ctx.fillText(lap + "/" + (state.sessionResult.length > 0 ? state.sessionResult[0].number_of_laps : "58"), cx, cy - 10);
-    
-    ctx.fillStyle = status === "SC" ? "var(--yellow)" : status === "VSC" ? "var(--amber)" : "#4ade80"; 
-    ctx.font = "12px sans-serif";
-    ctx.fillText(status, cx, cy + 15);
-  }
-
+  // --- ANALYSIS TAB LOGIC ---
   function initAnalysis() {
     var d1 = document.getElementById("analysisDriver1");
     var d2 = document.getElementById("analysisDriver2");
-    if (!d1 || !d2 || d1.options.length > 0) return; 
+    if (!d1 || !d2) return; 
 
     var opts = state.driverOrder.map(d => `<option value="${d.driver_number}">${state.drivers[d.driver_number].acronym}</option>`).join("");
     d1.innerHTML = opts;
@@ -1439,7 +1306,7 @@
     var dn1 = parseInt(document.getElementById("analysisDriver1").value);
     var dn2 = parseInt(document.getElementById("analysisDriver2").value);
     if (!dn1 || !dn2 || dn1 === dn2) {
-      document.getElementById("analysisResults").innerHTML = `<div style="text-align:center; padding:20px; color:var(--muted)">Select two different drivers.</div>`;
+      document.getElementById("analysisResults").innerHTML = `<div style="text-align:center; padding:20px; color:#888">Select two different drivers.</div>`;
       return;
     }
 
@@ -1448,11 +1315,13 @@
     var laps2 = state.laps.filter(l => l.driver_number === dn2 && l.lap_duration && l._t_end <= currentT).sort((a,b) => a.lap_number - b.lap_number);
     
     var maxLap = Math.max(laps1.length > 0 ? laps1[laps1.length-1].lap_number : 0, laps2.length > 0 ? laps2[laps2.length-1].lap_number : 0);
-    var html = `<div class="analysis-header" style="display:flex; justify-content:space-between; padding: 0 4px; font-size:11px;">
-      <span>${state.drivers[dn1].acronym}</span>
-      <span>Lap</span>
-      <span>${state.drivers[dn2].acronym}</span>
-    </div>`;
+    
+    var d1Color = "#" + state.drivers[dn1].color;
+    var d2Color = "#" + state.drivers[dn2].color;
+    
+    document.getElementById("analysisSummary").innerHTML = `${state.drivers[dn1].acronym} vs ${state.drivers[dn2].acronym}`;
+
+    var html = `<div class="analysis-header-row"><span>Lap</span><span>${state.drivers[dn1].acronym}</span><span>Gap</span><span>${state.drivers[dn2].acronym}</span></div>`;
 
     for (var i = 1; i <= maxLap; i++) {
       var l1 = laps1.find(l => l.lap_number === i);
@@ -1460,46 +1329,224 @@
       
       if (!l1 && !l2) continue;
 
-      var t1 = l1 ? formatTime(l1.lap_duration) : "-";
-      var t2 = l2 ? formatTime(l2.lap_duration) : "-";
+      var t1Str = l1 ? formatTime(l1.lap_duration) : "-";
+      var t2Str = l2 ? formatTime(l2.lap_duration) : "-";
+      var t1Cls = l1 && l2 && l1.lap_duration <= l2.lap_duration ? "fastest" : "";
+      var t2Cls = l2 && l1 && l2.lap_duration < l1.lap_duration ? "fastest" : "";
+
+      var deltaStr = "";
+      var deltaColor = "#fff";
+      var d1Width = 0, d2Width = 0;
+      var s1w = 0, s2w = 0, s3w = 0;
       
-      var deltaHTML = "";
       if (l1 && l2) {
         var d = l1.lap_duration - l2.lap_duration;
-        if (d < 0) deltaHTML = `<span class="analysis-delta">${d.toFixed(2)}</span>`;
-        if (d > 0) t2 = `<span style="position:relative">${t2}<span class="analysis-delta" style="color:var(--err)">+${d.toFixed(2)}</span></span>`;
-      }
+        deltaStr = Math.abs(d).toFixed(2);
+        deltaColor = d < 0 ? d1Color : d2Color;
+        var maxD = 2.0;
+        var pct = Math.min(1, Math.abs(d) / maxD) * 50;
+        if (d < 0) d1Width = pct; else d2Width = pct;
 
-      function colorSectors(s1, s2) {
-        if (!s1 || !s2) return ['#fff', '#fff'];
-        if (s1 < s2) return ['var(--green)', 'var(--err)'];
-        if (s2 < s1) return ['var(--err)', 'var(--green)'];
-        return ['#fff', '#fff'];
+        function sectorW(s1, s2) { if (!s1 || !s2) return 0; return Math.min(1, Math.abs(s1-s2)/0.5)*50; }
+        s1w = sectorW(l1.duration_sector_1, l2.duration_sector_1);
+        s2w = sectorW(l1.duration_sector_2, l2.duration_sector_2);
+        s3w = sectorW(l1.duration_sector_3, l2.duration_sector_3);
       }
-
-      var c11 = colorSectors(l1?.duration_sector_1, l2?.duration_sector_1);
-      var c12 = colorSectors(l1?.duration_sector_2, l2?.duration_sector_2);
-      var c13 = colorSectors(l1?.duration_sector_3, l2?.duration_sector_3);
 
       html += `<div class="analysis-row">
-        <div class="analysis-sector" style="color:${c13[0]}">${l1?.duration_sector_3 ? l1.duration_sector_3.toFixed(2) : '-'}</div>
-        <div class="analysis-sector" style="color:${c12[0]}">${l1?.duration_sector_2 ? l1.duration_sector_2.toFixed(2) : '-'}</div>
-        <div class="analysis-sector" style="color:${c11[0]}">${l1?.duration_sector_1 ? l1.duration_sector_1.toFixed(2) : '-'}</div>
-        
-        <div class="analysis-time">${t1}</div>
-        
-        <div class="analysis-divider"></div>
-        
-        <div class="analysis-time">${t2}</div>
-        
-        <div class="analysis-sector" style="color:${c11[1]}">${l2?.duration_sector_1 ? l2.duration_sector_1.toFixed(2) : '-'}</div>
-        <div class="analysis-sector" style="color:${c12[1]}">${l2?.duration_sector_2 ? l2.duration_sector_2.toFixed(2) : '-'}</div>
-        <div class="analysis-sector" style="color:${c13[1]}">${l2?.duration_sector_3 ? l2.duration_sector_3.toFixed(2) : '-'}</div>
+        <div class="analysis-top-line">
+          <div class="analysis-time-wrap left">
+            <span class="analysis-lap-num">${i}</span>
+            <span class="analysis-time ${t1Cls}">${t1Str}</span>
+          </div>
+          <div class="analysis-center-bar">
+            <div class="analysis-delta" style="color:${deltaColor}">${deltaStr}</div>
+            <div class="analysis-track">
+              <div class="analysis-tick"></div>
+              <div style="position:absolute; right:50%; height:100%; background:${d1Color}; width:${d1Width}%"></div>
+              <div style="position:absolute; left:50%; height:100%; background:${d2Color}; width:${d2Width}%"></div>
+            </div>
+          </div>
+          <div class="analysis-time-wrap right">
+            <span class="analysis-lap-num">&nbsp;</span>
+            <span class="analysis-time ${t2Cls}">${t2Str}</span>
+          </div>
+        </div>
+        <div class="analysis-sector-row">
+          <div class="analysis-sector-block left">
+            <div class="sector-bar" style="background:${l1?.duration_sector_3 < l2?.duration_sector_3 ? d1Color : '#333'}; margin-left:${l1?.duration_sector_3 < l2?.duration_sector_3 ? 0 : 100-s3w}%; width:${s3w}%"></div>
+            <div class="sector-bar" style="background:${l1?.duration_sector_2 < l2?.duration_sector_2 ? d1Color : '#333'}; margin-left:${l1?.duration_sector_2 < l2?.duration_sector_2 ? 0 : 100-s2w}%; width:${s2w}%"></div>
+            <div class="sector-bar" style="background:${l1?.duration_sector_1 < l2?.duration_sector_1 ? d1Color : '#333'}; margin-left:${l1?.duration_sector_1 < l2?.duration_sector_1 ? 0 : 100-s1w}%; width:${s1w}%"></div>
+          </div>
+          <div class="analysis-sector-block right">
+            <div class="sector-bar" style="background:${l2?.duration_sector_1 < l1?.duration_sector_1 ? d2Color : '#333'}; width:${s1w}%"></div>
+            <div class="sector-bar" style="background:${l2?.duration_sector_2 < l1?.duration_sector_2 ? d2Color : '#333'}; width:${s2w}%"></div>
+            <div class="sector-bar" style="background:${l2?.duration_sector_3 < l1?.duration_sector_3 ? d2Color : '#333'}; width:${s3w}%"></div>
+          </div>
+        </div>
       </div>`;
     }
+    
+    // Sector Breakdown for the latest completed lap
+    var latestL1 = laps1[laps1.length-1];
+    var latestL2 = laps2[laps2.length-1];
+    if (latestL1 && latestL2) {
+      function cS(s1, s2, c1, c2) { if(!s1||!s2) return ""; return s1<s2 ? "color:"+c1 : s2<s1 ? "color:"+c2 : ""; }
+      html += `<div class="analysis-detail-row"><span></span><span style="color:#888">${state.drivers[dn1].acronym}</span><span style="color:#888; text-align:right">${state.drivers[dn2].acronym}</span></div>`;
+      html += `<div class="analysis-detail-row"><span>S1</span><span style="${cS(latestL1.duration_sector_1, latestL2.duration_sector_1, d1Color, d2Color)}">${latestL1.duration_sector_1?.toFixed(2)}</span><span style="text-align:right; ${cS(latestL1.duration_sector_1, latestL2.duration_sector_1, d2Color, d1Color)}">${latestL2.duration_sector_1?.toFixed(2)}</span></div>`;
+      html += `<div class="analysis-detail-row"><span>S2</span><span style="${cS(latestL1.duration_sector_2, latestL2.duration_sector_2, d1Color, d2Color)}">${latestL1.duration_sector_2?.toFixed(2)}</span><span style="text-align:right; ${cS(latestL1.duration_sector_2, latestL2.duration_sector_2, d2Color, d1Color)}">${latestL2.duration_sector_2?.toFixed(2)}</span></div>`;
+      html += `<div class="analysis-detail-row"><span>S3</span><span style="${cS(latestL1.duration_sector_3, latestL2.duration_sector_3, d1Color, d2Color)}">${latestL1.duration_sector_3?.toFixed(2)}</span><span style="text-align:right; ${cS(latestL1.duration_sector_3, latestL2.duration_sector_3, d2Color, d1Color)}">${latestL2.duration_sector_3?.toFixed(2)}</span></div>`;
+    }
+
     document.getElementById("analysisResults").innerHTML = html;
   }
 
+  // --- TRACK GAPS (CIRCLE OF DOOM) REDESIGN ---
+  function initTrackGaps() {
+    var sel = document.getElementById("tgDriverSelect");
+    var opts = state.driverOrder.map(d => `<option value="${d.driver_number}">${state.drivers[d.driver_number].acronym}</option>`).join("");
+    sel.innerHTML = opts;
+    if (state.driverOrder.length > 0) sel.selectedIndex = 0;
+    sel.onchange = renderTrackGaps;
+    renderTrackGaps();
+  }
+
+  function renderTrackGaps() {
+    if (!document.getElementById("trackGapsOverlay").classList.contains("open")) return;
+    var dn = parseInt(document.getElementById("tgDriverSelect").value);
+    if (!dn) return;
+
+    var canvas = els.trackGapsCanvas;
+    var ctx = canvas.getContext("2d");
+    var wrap = canvas.parentElement;
+    var dpr = window.devicePixelRatio || 1;
+    var w = wrap.clientWidth, h = wrap.clientHeight;
+    if (w === 0 || h === 0) return;
+
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    canvas.style.width = w + "px"; canvas.style.height = h + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    var cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.4;
+    
+    // Determine Pit Loss based on condition
+    var pitLoss = state.medianPitLoss;
+    if (state.tgCondition === 'sc') pitLoss = state.scPitLoss;
+    if (state.tgCondition === 'vsc') pitLoss = state.vscPitLoss;
+
+    var status = getTrackStatus(state.currentTime);
+    
+    // Ring
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.lineWidth = 4; ctx.strokeStyle = "#333"; ctx.stroke();
+
+    // Ticks (10s, 20s, 30s, 40s)
+    var maxT = state.outline.lap_duration;
+    [10, 20, 30, 40].forEach(sec => {
+      if (sec > maxT) return;
+      var angle = (sec / maxT) * Math.PI * 2 - (Math.PI/2);
+      var x1 = cx + Math.cos(angle) * (r - 6), y1 = cy + Math.sin(angle) * (r - 6);
+      var x2 = cx + Math.cos(angle) * (r + 6), y2 = cy + Math.sin(angle) * (r + 6);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+      ctx.lineWidth = 2; ctx.strokeStyle = "#888"; ctx.stroke();
+      
+      ctx.fillStyle = "#888"; ctx.font = "12px 'Noto Sans Mono', monospace"; ctx.textAlign = "center";
+      var tx = cx + Math.cos(angle) * (r + 24), ty = cy + Math.sin(angle) * (r + 24);
+      ctx.fillText(sec + "s", tx, ty);
+    });
+
+    var driversData = [];
+    for (var d in state.drivers) {
+      var loc = getCarLocation(state.drivers[d].data, state.currentTime);
+      if (!loc) continue;
+      var pos = getTrackPosition(loc[0], loc[1]);
+      if (pos.dist > PIT_THRESHOLD) continue; // Ignore pit lane
+      driversData.push({ dn: parseInt(d), t: pos.t });
+    }
+
+    // Sort by track position
+    driversData.sort((a, b) => a.t - b.t);
+    var selIdx = driversData.findIndex(x => x.dn === dn);
+    if (selIdx === -1) return;
+    
+    var selData = driversData[selIdx];
+
+    // Draw Rejoin Marker
+    var rejoinT = selData.t + pitLoss;
+    if (rejoinT > maxT) rejoinT -= maxT;
+    var rejoinAngle = (rejoinT / maxT) * Math.PI * 2 - (Math.PI/2);
+    var rx = cx + Math.cos(rejoinAngle) * r, ry = cy + Math.sin(rejoinAngle) * r;
+    
+    ctx.beginPath(); ctx.arc(rx, ry, 8, 0, Math.PI * 2);
+    ctx.setLineDash([4, 4]); ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke(); ctx.setLineDash([]);
+    
+    ctx.fillStyle = "#fff"; ctx.textAlign = "left";
+    ctx.fillText("rejoin", rx + 12, ry + 4);
+
+    // Draw Cars & Chips
+    driversData.forEach(d => {
+      var car = state.drivers[d.dn];
+      var angle = (d.t / maxT) * Math.PI * 2 - (Math.PI/2);
+      var x = cx + Math.cos(angle) * r, y = cy + Math.sin(angle) * r;
+      
+      ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
+      ctx.fillStyle = "#" + car.color; ctx.fill();
+      
+      // Calculate gap to selected driver
+      var gapT = d.t - selData.t;
+      if (gapT > maxT/2) gapT -= maxT;
+      if (gapT < -maxT/2) gapT += maxT;
+      
+      var text = car.acronym + (d.dn === dn ? "" : " " + (gapT > 0 ? "+" : "") + gapT.toFixed(1));
+      ctx.font = "bold 12px 'Noto Sans Mono', monospace";
+      var tw = ctx.measureText(text).width;
+      
+      ctx.fillStyle = (d.dn === dn) ? "#fff" : "rgba(0,0,0,0.8)";
+      ctx.strokeStyle = (d.dn === dn) ? "#fff" : "#444";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(x - tw/2 - 6, y - 24, tw + 12, 18, 9);
+      ctx.fill(); ctx.stroke();
+      
+      ctx.fillStyle = (d.dn === dn) ? "#000" : "#fff";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(text, x, y - 15);
+    });
+
+    // Center Text
+    var leaderLaps = 1;
+    var lapCounts = {};
+    state.laps.forEach(l => {
+      var lt = l._t_start;
+      if (state.currentTime >= lt && l.lap_number > (lapCounts[l.driver_number]||0)) lapCounts[l.driver_number] = l.lap_number;
+    });
+    for (var d in lapCounts) if (lapCounts[d] > leaderLaps) leaderLaps = lapCounts[d];
+    
+    ctx.fillStyle = "#fff"; ctx.font = "bold 36px 'Noto Sans Mono', monospace"; ctx.textAlign = "center";
+    ctx.fillText(leaderLaps + "/" + (state.sessionResult.length > 0 ? state.sessionResult[0].number_of_laps : "58"), cx, cy - 10);
+    
+    ctx.fillStyle = "#888"; ctx.font = "16px 'Noto Sans Mono', monospace";
+    ctx.fillText(status, cx, cy + 20);
+
+    // Summary Text
+    var rejoinPos = 1;
+    driversData.forEach(d => {
+      if (d.dn !== dn && d.t > selData.t && d.t < rejoinT) rejoinPos++;
+    });
+    var carsPassing = [];
+    driversData.forEach(d => {
+      if (d.dn !== dn && d.t > selData.t && d.t < rejoinT) carsPassing.push(state.drivers[d.dn].acronym);
+    });
+    
+    var summary = state.drivers[dn].acronym + " is P" + (selIdx + 1) + ". Pit under " + state.tgCondition.toUpperCase() + ": rejoin P" + rejoinPos + ".<br>";
+    if (carsPassing.length > 0) summary += "Cars that would pass you: " + carsPassing.join(", ") + ".";
+    else summary += "You would rejoin in clear air.";
+    
+    document.getElementById("tgSummary").innerHTML = summary;
+  }
+
+  // --- RC OVERLAY LOGIC ---
   function renderRCOverlay() {
     var t = state.currentTime;
     var pastRC = state.raceControl.filter(m => (new Date(m.date).getTime() - state.sessionStartMs)/1000 <= t);
@@ -1517,7 +1564,7 @@
     });
     
     var html = `<div class="rc-section-title">Last 5 Messages</div>`;
-    if (last5.length === 0) html += `<div class="rc-text" style="color:var(--muted); margin-bottom:16px;">No messages yet.</div>`;
+    if (last5.length === 0) html += `<div class="rc-text" style="color:#666; margin-bottom:16px;">No messages yet.</div>`;
     else {
       last5.forEach(m => {
         var time = new Date(m.date).toTimeString().slice(0, 8);
@@ -1526,7 +1573,7 @@
     }
 
     html += `<div class="rc-section-title">Penalties & Investigations</div>`;
-    if (penalties.length === 0) html += `<div class="rc-text" style="color:var(--muted); margin-bottom:16px;">None.</div>`;
+    if (penalties.length === 0) html += `<div class="rc-text" style="color:#666; margin-bottom:16px;">None.</div>`;
     else {
       penalties.forEach(m => {
         var time = new Date(m.date).toTimeString().slice(0, 8);
@@ -1546,6 +1593,17 @@
 
     document.getElementById("rcResults").innerHTML = html;
   }
+
+  // Update the loop and slider to also update the Track Gaps overlay if open
+  var originalLoop = loop;
+  loop = function(ts) {
+    originalLoop(ts);
+    if (document.getElementById('trackGapsOverlay').classList.contains('open')) renderTrackGaps();
+  };
+
+  els.slider.addEventListener("input", () => {
+    if (document.getElementById('trackGapsOverlay').classList.contains('open')) renderTrackGaps();
+  });
 
 })();
 </script>
