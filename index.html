@@ -17,7 +17,7 @@
     --text: #eef1f8; --dim: #a6b0c7; --muted: #707c98;
     --accent: #ff5c7a; --err: #ff5c5c;
     --purple: #c58bff; --green: #4ade80; --yellow: #ffd23f; --amber: #ffb347;
-    --header-height: 60px; --map-height: 38vh; --map-margin: 12px;
+    --header-height: 60px; --map-height: 50vh; --map-margin: 12px;
   }
   
   html, body {
@@ -41,7 +41,7 @@
     height: 32px; display: flex; align-items: center; justify-content: center;
     font-size: 11px; font-weight: 600; border-radius: 8px;
     border: 1px solid var(--line); background: var(--bg2); color: var(--text);
-    padding: 0 12px; cursor: pointer;
+    padding: 0 12px; cursor: pointer; font-family: inherit;
   }
   .compact-control:active { background: var(--bg3); }
   
@@ -74,8 +74,7 @@
     background: rgba(12, 19, 34, 0.6); backdrop-filter: blur(4px);
     border: 1px solid var(--line); color: var(--text);
     display: flex; align-items: center; justify-content: center;
-    font-size: 16px; cursor: pointer;
-    transition: opacity 0.5s ease;
+    font-size: 16px; cursor: pointer; transition: opacity 0.5s ease; font-family: inherit;
   }
   .map-float-btn:active { background: rgba(12, 19, 34, 0.9); }
   .map-float-btn.left { left: 10px; }
@@ -97,39 +96,46 @@
   .slider-marker.start { background: rgba(255, 255, 255, 0.7); width: 2px; }
   
   #trackCanvas { position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; }
-  #circleCanvas { display: none; position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; z-index: 2; }
-  .map-ring-mode #trackCanvas { display: none !important; }
-  .map-ring-mode #circleCanvas { display: block !important; }
-  
   #mapEmpty { position: absolute; inset: 48px 0 0 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; text-align: center; padding: 20px; pointer-events: none; }
   
   .map-overlay-bl { position: absolute; bottom: 10px; left: 12px; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8); display: flex; gap: 10px; align-items: center; }
   .map-overlay-br { position: absolute; bottom: 10px; right: 12px; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
   .lap-counter { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
   
-  #rcPopup { position: absolute; top: 56px; left: 12px; right: 12px; background: #ffffff; color: #333333; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+  #rcPopup { position: absolute; top: 56px; left: 12px; right: 12px; background: #ffffff; color: #333333; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-family: inherit; }
   #rcPopup.show { opacity: 1; }
 
-  /* TABS & LIST */
-  #tabContainer { position: absolute; top: calc(var(--header-height) + var(--map-height) + 8px); bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; z-index: 5; }
-  
-  .tab-bar { display: flex; gap: 4px; padding: 0 var(--map-margin) 8px; }
-  .tab-btn { flex: 1; padding: 8px 0; font-size: 12px; font-weight: 600; color: var(--dim); background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-family: inherit; }
-  .tab-btn.active { background: var(--bg3); color: var(--text); border-color: rgba(255,255,255,0.2); }
-  
-  .panel { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 var(--map-margin) calc(20px + env(safe-area-inset-bottom)); display: none; }
-  .panel.active { display: block; }
+  /* MAIN BOTTOM BUTTONS */
+  #mainButtons {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 10px var(--map-margin) calc(20px + env(safe-area-inset-bottom));
+    display: flex; gap: 8px; background: var(--bg0); z-index: 5;
+  }
+  .main-btn {
+    flex: 1; padding: 16px 0; font-size: 14px; font-weight: 700;
+    color: var(--text); background: var(--bg2); border: 1px solid var(--line);
+    border-radius: 12px; cursor: pointer; font-family: inherit;
+  }
+  .main-btn:active { background: var(--bg3); }
 
-  /* TIMING LIST */
-  .list-header-row { display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 60px; gap: 4px; padding: 4px 12px 8px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; }
-  .list-header-row span:nth-child(3), .list-header-row span:nth-child(6) { text-align: right; }
-  .list-header-row span:nth-child(4), .list-header-row span:nth-child(5) { text-align: center; }
+  /* FULL PAGE OVERLAYS */
+  .overlay { display: none; position: fixed; inset: 0; background: #000; z-index: 50; flex-direction: column; padding-top: env(safe-area-inset-top); }
+  .overlay.open { display: flex; }
+  .overlay-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; }
+  .overlay-title { font-size: 20px; font-weight: 600; color: #fff; }
+  .overlay-close { background: transparent; border: 1px solid #555; color: #fff; border-radius: 999px; padding: 6px 16px; font-size: 14px; cursor: pointer; font-family: inherit; }
+  .overlay-close:active { background: #222; }
   
-  .driver-row { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 6px; user-select: none; touch-action: manipulation; transition: background 0.2s ease, opacity 0.2s ease; overflow: hidden; }
+  /* TIMING OVERLAY */
+  #timingOverlay .list-header-row { display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 70px; gap: 4px; padding: 4px 16px 8px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; }
+  #timingOverlay .list-header-row span:nth-child(3), #timingOverlay .list-header-row span:nth-child(6) { text-align: right; }
+  #timingOverlay .list-header-row span:nth-child(4), #timingOverlay .list-header-row span:nth-child(5) { text-align: center; }
+  
+  .driver-row { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; margin: 0 16px 8px; user-select: none; touch-action: manipulation; transition: background 0.2s ease, opacity 0.2s ease; overflow: hidden; }
   .driver-row.highlighted { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.3); }
   .driver-row.stationary { opacity: 0.4; }
   
-  .row-main { display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 60px; gap: 4px; padding: 10px 12px; align-items: center; }
+  .row-main { display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 70px; gap: 4px; padding: 10px 12px; align-items: center; }
   .row-pos { font-size: 13px; font-weight: 700; color: var(--dim); text-align: center; }
   .row-driver { display: flex; align-items: center; gap: 6px; }
   .row-circle { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
@@ -141,7 +147,9 @@
   .row-tyre { display: flex; align-items: center; justify-content: center; }
   .tyre-circle { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
   .row-laps { font-size: 12px; font-weight: 500; color: var(--dim); text-align: center; }
-  .row-best { font-size: 12px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .row-best-wrap { display: flex; flex-direction: column; align-items: flex-end; }
+  .row-best { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .row-last-lap { font-size: 10px; font-weight: 500; color: var(--muted); margin-top: 2px; }
   
   .row-sectors { display: grid; grid-template-columns: 40px 40px 40px 1fr; gap: 6px; padding: 0 12px 10px 44px; align-items: center; }
   .sector-time { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -159,7 +167,7 @@
   .modal-box::before { content: ""; display: block; width: 38px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.22); margin: 9px auto 0; }
   .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px 8px; }
   .modal-title { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-  .modal-close { background: rgba(255,255,255,.08); border: none; color: var(--dim); width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; }
+  .modal-close { background: rgba(255,255,255,.08); border: none; color: var(--dim); width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; font-family: inherit; }
   .modal-tabs { display: flex; gap: 2px; margin: 2px 16px 8px; padding: 3px; background: rgba(255,255,255,.06); border-radius: 999px; }
   .modal-tab { flex: 1; font-size: 13px; font-weight: 600; padding: 8px 10px; border: none; background: none; color: var(--dim); cursor: pointer; border-radius: 999px; transition: all .2s; font-family: inherit; }
   .modal-tab.active { background: rgba(255,255,255,.16); color: #fff; }
@@ -178,7 +186,7 @@
   .note.push { background: rgba(197,139,255,.16); color: var(--purple); }
   .note.run { background: rgba(124,183,255,.14); color: #7cb7ff; }
 
-  /* STINTS TAB (Fixed) */
+  /* STINTS TAB */
   .stint-bar-wrap { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 16px; gap: 2px; }
   .stint-bar-seg { height: 100%; }
   .stint-item { padding: 12px 0; border-bottom: 1px solid var(--line); color: var(--text); }
@@ -187,19 +195,10 @@
   .stint-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--dim); margin-bottom: 4px; }
   .stint-warning { color: #ff8fa3; font-size: 12px; font-weight: 500; margin-top: 6px; }
 
-  /* FULL PAGE OVERLAYS (Analysis, RC, Track Gaps) */
-  #analysisOverlay, #rcOverlay, #trackGapsOverlay { display: none; position: fixed; inset: 0; background: #000; z-index: 50; flex-direction: column; padding-top: env(safe-area-inset-top); }
-  #analysisOverlay.open, #rcOverlay.open, #trackGapsOverlay.open { display: flex; }
-  .overlay-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; }
-  .overlay-title { font-size: 20px; font-weight: 600; color: #fff; }
-  .overlay-close { background: transparent; border: 1px solid #555; color: #fff; border-radius: 999px; padding: 6px 16px; font-size: 14px; cursor: pointer; font-family: inherit; }
-  .overlay-close:active { background: #222; }
-  
-  /* ANALYSIS REDESIGN */
+  /* ANALYSIS OVERLAY */
   .analysis-selector-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 16px 20px; }
   .analysis-selector { flex: 1; display: flex; align-items: center; background: transparent; border: 1px solid #fff; border-radius: 999px; padding: 10px 16px; cursor: pointer; gap: 10px; color: #fff; font-size: 15px; font-weight: 600; font-family: inherit; appearance: none; -webkit-appearance: none; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23fff' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 16px center; }
   .analysis-selector option { background: #000; color: #fff; }
-  .selector-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
   .vs-text { font-size: 12px; color: #888; font-weight: 600; }
   
   .analysis-summary { padding: 0 16px 24px; font-size: 14px; line-height: 1.5; color: #ccc; }
@@ -207,7 +206,7 @@
   
   .analysis-header-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 10px; font-size: 12px; color: #888; }
   
-  .analysis-row { display: flex; flex-direction: column; padding: 16px 0; border-bottom: 1px solid #222; }
+  .analysis-row { display: flex; flex-direction: column; padding: 16px 0; border-bottom: 1px solid #222; cursor: pointer; }
   .analysis-top-line { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px; }
   .analysis-time-wrap { display: flex; flex-direction: column; width: 33%; }
   .analysis-time-wrap.right { align-items: flex-end; }
@@ -226,17 +225,11 @@
   .analysis-sector-block.right { justify-content: flex-start; }
   .sector-bar { height: 4px; border-radius: 2px; flex: 1; max-width: 20px; }
   
-  .analysis-detail-row { display: flex; justify-content: space-between; padding: 8px 16px; font-size: 14px; border-bottom: 1px solid #222; }
+  .analysis-detail-row { display: none; justify-content: space-between; padding: 8px 16px; font-size: 14px; border-bottom: 1px solid #222; background: #111; }
+  .analysis-detail-row.open { display: flex; }
   .analysis-detail-row span:first-child { color: #666; width: 40px; }
   .analysis-detail-row span:nth-child(2) { width: 30%; }
   .analysis-detail-row span:last-child { width: 30%; text-align: right; }
-
-  /* RC OVERLAY (Text Only) */
-  .rc-content { flex: 1; overflow-y: auto; padding: 20px; }
-  .rc-section-title { font-size: 14px; font-weight: 600; color: #888; margin-top: 28px; margin-bottom: 12px; }
-  .rc-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 8px 0; }
-  .rc-time { font-size: 13px; color: #666; white-space: nowrap; }
-  .rc-text { font-size: 15px; line-height: 1.4; color: #eee; }
 
   /* TRACK GAPS OVERLAY */
   .tg-content { flex: 1; display: flex; flex-direction: column; padding: 0 16px 20px; }
@@ -249,6 +242,13 @@
   .tg-canvas-wrap { flex: 1; position: relative; min-height: 0; }
   #trackGapsCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   .tg-summary { font-size: 14px; line-height: 1.5; color: #ccc; margin-top: 20px; }
+
+  /* RC OVERLAY */
+  .rc-content { flex: 1; overflow-y: auto; padding: 20px; }
+  .rc-section-title { font-size: 14px; font-weight: 600; color: #888; margin-top: 28px; margin-bottom: 12px; }
+  .rc-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 8px 0; }
+  .rc-time { font-size: 13px; color: #666; white-space: nowrap; }
+  .rc-text { font-size: 15px; line-height: 1.4; color: #eee; }
 
   @keyframes fadeIn { from{opacity:0}to{opacity:1} }
   @keyframes slideUp { from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1} }
@@ -283,7 +283,6 @@
     <div id="progressWrap"><div id="progressBar"></div></div>
     
     <canvas id="trackCanvas"></canvas>
-    <canvas id="circleCanvas"></canvas>
     <div id="mapEmpty">Select a session to draw the track</div>
     <div class="map-overlay-bl">
       <span id="timeDisplay">00:00</span>
@@ -295,23 +294,26 @@
   </div>
 </div>
 
-<div id="tabContainer">
-  <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('timing')">Timing</button>
-    <button class="tab-btn" onclick="openAnalysisOverlay()">Analysis</button>
-    <button class="tab-btn" onclick="openTrackGapsOverlay()">Track Gaps</button>
+<div id="mainButtons">
+  <button class="main-btn" onclick="openTimingOverlay()">Timing</button>
+  <button class="main-btn" onclick="openAnalysisOverlay()">Analysis</button>
+  <button class="main-btn" onclick="openTrackGapsOverlay()">Track Gaps</button>
+</div>
+
+<!-- TIMING OVERLAY -->
+<div id="timingOverlay" class="overlay">
+  <div class="overlay-header">
+    <span class="overlay-title">Timing</span>
+    <button class="overlay-close" onclick="closeTimingOverlay()">✕</button>
   </div>
-  
-  <div class="panel active" id="panel-timing">
-    <div class="list-header-row">
-      <span>Pos</span><span>Driver</span><span>Gap</span><span>Tyre</span><span>Laps</span><span>Best</span>
-    </div>
-    <div id="rankingsList"></div>
+  <div class="list-header-row">
+    <span>Pos</span><span>Driver</span><span>Gap</span><span>Tyre</span><span>Laps</span><span>Best</span>
   </div>
+  <div id="rankingsList" style="flex:1; overflow-y:auto; padding-bottom:20px;"></div>
 </div>
 
 <!-- ANALYSIS OVERLAY -->
-<div id="analysisOverlay">
+<div id="analysisOverlay" class="overlay">
   <div class="overlay-header">
     <span class="overlay-title">Analysis</span>
     <button class="overlay-close" onclick="closeAnalysisOverlay()">✕</button>
@@ -326,7 +328,7 @@
 </div>
 
 <!-- TRACK GAPS OVERLAY -->
-<div id="trackGapsOverlay">
+<div id="trackGapsOverlay" class="overlay">
   <div class="overlay-header">
     <span class="overlay-title">Track gaps</span>
     <button class="overlay-close" onclick="closeTrackGapsOverlay()">✕</button>
@@ -347,7 +349,7 @@
 </div>
 
 <!-- RC OVERLAY -->
-<div id="rcOverlay">
+<div id="rcOverlay" class="overlay">
   <div class="overlay-header">
     <span class="overlay-title">Race Control</span>
     <button class="overlay-close" onclick="closeRCOverlay()">✕</button>
@@ -380,7 +382,7 @@
   var els = {
     sessionSelect: document.getElementById("sessionSelect"), dataMeter: document.getElementById("dataMeter"),
     error: document.getElementById("error"), mapWrap: document.getElementById("mapWrap"),
-    canvas: document.getElementById("trackCanvas"), circleCanvas: document.getElementById("circleCanvas"),
+    canvas: document.getElementById("trackCanvas"), 
     mapEmpty: document.getElementById("mapEmpty"), playBtn: document.getElementById("playBtn"),
     slider: document.getElementById("slider"), sliderMarkers: document.getElementById("sliderMarkers"),
     flipBtn: document.getElementById("flipBtn"), rotateBtn: document.getElementById("rotateBtn"), 
@@ -390,7 +392,9 @@
     progressWrap: document.getElementById("progressWrap"), progressBar: document.getElementById("progressBar"), 
     rankingsList: document.getElementById("rankingsList"), rcPopup: document.getElementById("rcPopup"), 
     driverModal: document.getElementById("driverModal"), modalTitle: document.getElementById("modalTitle"), 
-    modalBody: document.getElementById("modalBody"), analysisOverlay: document.getElementById("analysisOverlay"),
+    modalBody: document.getElementById("modalBody"), 
+    timingOverlay: document.getElementById("timingOverlay"),
+    analysisOverlay: document.getElementById("analysisOverlay"),
     rcOverlay: document.getElementById("rcOverlay"), trackGapsOverlay: document.getElementById("trackGapsOverlay"),
     trackGapsCanvas: document.getElementById("trackGapsCanvas")
   };
@@ -406,7 +410,7 @@
     activeRC: null, rcTimeout: null, lastFlagState: null,
     currentModalDriver: null, currentModalTab: 'laps', raceStartT: null,
     medianPitLoss: 0, scPitLoss: 0, vscPitLoss: 0, pitLoss: 0,
-    tgCondition: 'green'
+    tgCondition: 'green', expandedAnalysisLap: null
   };
   
   var animationId = null;
@@ -415,18 +419,9 @@
   var resizeTimer = null;
   var lastTapTime = 0, lastTapTarget = null;
 
-  window.switchTab = function(tab) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    var wrap = document.getElementById('mapWrap');
-    
-    if(tab === 'timing') { 
-      document.querySelectorAll('.tab-btn')[0].classList.add('active'); 
-      document.getElementById('panel-timing').classList.add('active'); 
-      wrap.classList.remove('map-ring-mode'); 
-    }
-  };
-
+  window.openTimingOverlay = function() { els.timingOverlay.classList.add("open"); };
+  window.closeTimingOverlay = function() { els.timingOverlay.classList.remove("open"); };
+  
   window.openAnalysisOverlay = function() { els.analysisOverlay.classList.add("open"); initAnalysis(); };
   window.closeAnalysisOverlay = function() { els.analysisOverlay.classList.remove("open"); };
   window.openRCOverlay = function() { els.rcOverlay.classList.add("open"); renderRCOverlay(); };
@@ -582,6 +577,14 @@
         state.sessionLength = (new Date(meta.date_end).getTime() - state.sessionStartMs) / 1000;
       }
 
+      // Auto-Orientation Check
+      var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      outline.points.forEach(p => { 
+        if(p[0] < minX) minX = p[0]; if(p[0] > maxX) maxX = p[0];
+        if(p[1] < minY) minY = p[1]; if(p[1] > maxY) maxY = p[1];
+      });
+      if ((maxY - minY) > (maxX - minX)) state.rotation = 90;
+
       if (outline.points[0].length < 3) {
         var numPts = outline.points.length;
         outline.points = outline.points.map((p, i) => [p[0], p[1], (i / (numPts - 1)) * outline.lap_duration]);
@@ -735,7 +738,10 @@
             </div>
             <div class="row-tyre"><div class="tyre-circle" id="tyre-${dn}" style="display:none"></div></div>
             <div class="row-laps" id="laps-${dn}"></div>
-            <div class="row-best" id="best-${dn}"></div>
+            <div class="row-best-wrap">
+              <div class="row-best" id="best-${dn}"></div>
+              <div class="row-last-lap" id="lastlap-${dn}"></div>
+            </div>
           </div>
           <div class="row-sectors">
             <div class="sector-time" id="s1-${dn}"></div>
@@ -782,6 +788,14 @@
       laps.forEach(l => { if (t >= l._t_end && l.lap_duration && !l.is_pit_out_lap && l.lap_duration < bestLap) bestLap = l.lap_duration; });
       if (bestLap === Infinity) bestLap = null;
 
+      var lastLapVal = null;
+      for (var j = laps.length - 1; j >= 0; j--) {
+        if (t >= laps[j]._t_end && laps[j].lap_duration) {
+          lastLapVal = laps[j].lap_duration;
+          break;
+        }
+      }
+
       var curr = null, prev = null;
       for (var j = laps.length - 1; j >= 0; j--) { if (t >= laps[j]._t_start) { curr = laps[j]; if (j>0) prev = laps[j-1]; break; } }
       
@@ -804,7 +818,7 @@
         progress += Math.min(1, Math.max(0, (t - curr._t_start) / curr.lap_duration));
       }
 
-      driversData.push({ dn, bestLap, completedLaps, curr, prev, stint, isStationary, progress });
+      driversData.push({ dn, bestLap, lastLapVal, completedLaps, curr, prev, stint, isStationary, progress });
     }
 
     if (state.sessionType === "race") {
@@ -871,6 +885,7 @@
       setText("gap-bot-" + dn, gapBot);
       setText("laps-" + dn, dd.completedLaps);
       setText("best-" + dn, dd.bestLap ? formatTime(dd.bestLap) : "");
+      setText("lastlap-" + dn, dd.lastLapVal ? formatTime(dd.lastLapVal) : "");
       
       var tcEl = document.getElementById("tyre-" + dn);
       if (dd.stint) {
@@ -1066,6 +1081,13 @@
       var dn = Object.keys(state.drivers)[i], loc = getCarLocation(state.drivers[dn].data, state.currentTime);
       if (!loc) continue;
       var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
+      
+      var rot = state.rotation;
+      if (rot === 90) { var tmp = cx; cx = t.cssW - cy; cy = tmp; }
+      else if (rot === 180) { cx = t.cssW - cx; cy = t.cssH - cy; }
+      else if (rot === 270) { var tmp = cx; cx = cy; cy = t.cssH - tmp; }
+      if (state.flipX) cx = t.cssW - cx;
+      
       if (Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2)) < 22) { hitDn = parseInt(dn, 10); break; }
     }
     
@@ -1097,6 +1119,13 @@
 
     function toCanvas(px, py) {
       var cx = (px - minX) * scale + offsetX, cy = (py - minY) * scale + offsetY;
+      
+      var rot = state.rotation;
+      if (rot === 90) { var tmp = cx; cx = cssW - cy; cy = tmp; }
+      else if (rot === 180) { cx = cssW - cx; cy = cssH - cy; }
+      else if (rot === 270) { var tmp = cx; cx = cy; cy = cssH - tmp; }
+      if (state.flipX) cx = cssW - cx;
+      
       return [cx, cy];
     }
 
@@ -1155,13 +1184,17 @@
     ctx.drawImage(baseCanvas, 0, 0);
     ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
     
-    var trackStatus = getTrackStatus(state.currentTime);
-    
     for (var dn in state.drivers) {
       var car = state.drivers[dn], loc = getCarLocation(car.data, state.currentTime);
       if (!loc) continue;
       
       var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
+      
+      var rot = state.rotation;
+      if (rot === 90) { var tmp = cx; cx = t.cssW - cy; cy = tmp; }
+      else if (rot === 180) { cx = t.cssW - cx; cy = t.cssH - cy; }
+      else if (rot === 270) { var tmp = cx; cx = cy; cy = t.cssH - tmp; }
+      if (state.flipX) cx = t.cssW - cx;
 
       if (state.highlightedDriver === parseInt(dn, 10)) {
         ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2); ctx.fillStyle = "#" + car.color; ctx.globalAlpha = 0.3; ctx.fill(); ctx.globalAlpha = 1.0;
@@ -1299,8 +1332,15 @@
     
     d1.onchange = renderAnalysis;
     d2.onchange = renderAnalysis;
+    state.expandedAnalysisLap = null;
     renderAnalysis();
   }
+
+  window.toggleAnalysisLap = function(lapNum) {
+    if (state.expandedAnalysisLap === lapNum) state.expandedAnalysisLap = null;
+    else state.expandedAnalysisLap = lapNum;
+    renderAnalysis();
+  };
 
   function renderAnalysis() {
     var dn1 = parseInt(document.getElementById("analysisDriver1").value);
@@ -1353,7 +1393,7 @@
         s3w = sectorW(l1.duration_sector_3, l2.duration_sector_3);
       }
 
-      html += `<div class="analysis-row">
+      html += `<div class="analysis-row" onclick="toggleAnalysisLap(${i})">
         <div class="analysis-top-line">
           <div class="analysis-time-wrap left">
             <span class="analysis-lap-num">${i}</span>
@@ -1385,23 +1425,36 @@
           </div>
         </div>
       </div>`;
-    }
-    
-    // Sector Breakdown for the latest completed lap
-    var latestL1 = laps1[laps1.length-1];
-    var latestL2 = laps2[laps2.length-1];
-    if (latestL1 && latestL2) {
-      function cS(s1, s2, c1, c2) { if(!s1||!s2) return ""; return s1<s2 ? "color:"+c1 : s2<s1 ? "color:"+c2 : ""; }
-      html += `<div class="analysis-detail-row"><span></span><span style="color:#888">${state.drivers[dn1].acronym}</span><span style="color:#888; text-align:right">${state.drivers[dn2].acronym}</span></div>`;
-      html += `<div class="analysis-detail-row"><span>S1</span><span style="${cS(latestL1.duration_sector_1, latestL2.duration_sector_1, d1Color, d2Color)}">${latestL1.duration_sector_1?.toFixed(2)}</span><span style="text-align:right; ${cS(latestL1.duration_sector_1, latestL2.duration_sector_1, d2Color, d1Color)}">${latestL2.duration_sector_1?.toFixed(2)}</span></div>`;
-      html += `<div class="analysis-detail-row"><span>S2</span><span style="${cS(latestL1.duration_sector_2, latestL2.duration_sector_2, d1Color, d2Color)}">${latestL1.duration_sector_2?.toFixed(2)}</span><span style="text-align:right; ${cS(latestL1.duration_sector_2, latestL2.duration_sector_2, d2Color, d1Color)}">${latestL2.duration_sector_2?.toFixed(2)}</span></div>`;
-      html += `<div class="analysis-detail-row"><span>S3</span><span style="${cS(latestL1.duration_sector_3, latestL2.duration_sector_3, d1Color, d2Color)}">${latestL1.duration_sector_3?.toFixed(2)}</span><span style="text-align:right; ${cS(latestL1.duration_sector_3, latestL2.duration_sector_3, d2Color, d1Color)}">${latestL2.duration_sector_3?.toFixed(2)}</span></div>`;
+
+      if (l1 && l2) {
+        function cS(s1, s2, c1, c2) { if(!s1||!s2) return ""; return s1<s2 ? "color:"+c1 : s2<s1 ? "color:"+c2 : ""; }
+        html += `<div class="analysis-detail-row ${state.expandedAnalysisLap === i ? 'open' : ''}">
+          <span>Lap ${i}</span>
+          <span>${state.drivers[dn1].acronym} / ${state.drivers[dn2].acronym}</span>
+          <span></span>
+        </div>`;
+        html += `<div class="analysis-detail-row ${state.expandedAnalysisLap === i ? 'open' : ''}">
+          <span>S1</span>
+          <span style="${cS(l1.duration_sector_1, l2.duration_sector_1, d1Color, d2Color)}">${l1.duration_sector_1?.toFixed(2)}</span>
+          <span style="text-align:right; ${cS(l1.duration_sector_1, l2.duration_sector_1, d2Color, d1Color)}">${l2.duration_sector_1?.toFixed(2)}</span>
+        </div>`;
+        html += `<div class="analysis-detail-row ${state.expandedAnalysisLap === i ? 'open' : ''}">
+          <span>S2</span>
+          <span style="${cS(l1.duration_sector_2, l2.duration_sector_2, d1Color, d2Color)}">${l1.duration_sector_2?.toFixed(2)}</span>
+          <span style="text-align:right; ${cS(l1.duration_sector_2, l2.duration_sector_2, d2Color, d1Color)}">${l2.duration_sector_2?.toFixed(2)}</span>
+        </div>`;
+        html += `<div class="analysis-detail-row ${state.expandedAnalysisLap === i ? 'open' : ''}">
+          <span>S3</span>
+          <span style="${cS(l1.duration_sector_3, l2.duration_sector_3, d1Color, d2Color)}">${l1.duration_sector_3?.toFixed(2)}</span>
+          <span style="text-align:right; ${cS(l1.duration_sector_3, l2.duration_sector_3, d2Color, d1Color)}">${l2.duration_sector_3?.toFixed(2)}</span>
+        </div>`;
+      }
     }
 
     document.getElementById("analysisResults").innerHTML = html;
   }
 
-  // --- TRACK GAPS (CIRCLE OF DOOM) REDESIGN ---
+  // --- TRACK GAPS (CIRCLE OF DOOM) ---
   function initTrackGaps() {
     var sel = document.getElementById("tgDriverSelect");
     var opts = state.driverOrder.map(d => `<option value="${d.driver_number}">${state.drivers[d.driver_number].acronym}</option>`).join("");
@@ -1430,7 +1483,6 @@
 
     var cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.4;
     
-    // Determine Pit Loss based on condition
     var pitLoss = state.medianPitLoss;
     if (state.tgCondition === 'sc') pitLoss = state.scPitLoss;
     if (state.tgCondition === 'vsc') pitLoss = state.vscPitLoss;
@@ -1441,7 +1493,6 @@
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.lineWidth = 4; ctx.strokeStyle = "#333"; ctx.stroke();
 
-    // Ticks (10s, 20s, 30s, 40s)
     var maxT = state.outline.lap_duration;
     [10, 20, 30, 40].forEach(sec => {
       if (sec > maxT) return;
@@ -1461,18 +1512,17 @@
       var loc = getCarLocation(state.drivers[d].data, state.currentTime);
       if (!loc) continue;
       var pos = getTrackPosition(loc[0], loc[1]);
-      if (pos.dist > PIT_THRESHOLD) continue; // Ignore pit lane
+      if (pos.dist > PIT_THRESHOLD) continue; 
       driversData.push({ dn: parseInt(d), t: pos.t });
     }
 
-    // Sort by track position
     driversData.sort((a, b) => a.t - b.t);
     var selIdx = driversData.findIndex(x => x.dn === dn);
     if (selIdx === -1) return;
     
     var selData = driversData[selIdx];
 
-    // Draw Rejoin Marker
+    // Rejoin Marker
     var rejoinT = selData.t + pitLoss;
     if (rejoinT > maxT) rejoinT -= maxT;
     var rejoinAngle = (rejoinT / maxT) * Math.PI * 2 - (Math.PI/2);
@@ -1484,7 +1534,6 @@
     ctx.fillStyle = "#fff"; ctx.textAlign = "left";
     ctx.fillText("rejoin", rx + 12, ry + 4);
 
-    // Draw Cars & Chips
     driversData.forEach(d => {
       var car = state.drivers[d.dn];
       var angle = (d.t / maxT) * Math.PI * 2 - (Math.PI/2);
@@ -1493,7 +1542,6 @@
       ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
       ctx.fillStyle = "#" + car.color; ctx.fill();
       
-      // Calculate gap to selected driver
       var gapT = d.t - selData.t;
       if (gapT > maxT/2) gapT -= maxT;
       if (gapT < -maxT/2) gapT += maxT;
@@ -1514,7 +1562,6 @@
       ctx.fillText(text, x, y - 15);
     });
 
-    // Center Text
     var leaderLaps = 1;
     var lapCounts = {};
     state.laps.forEach(l => {
@@ -1529,14 +1576,14 @@
     ctx.fillStyle = "#888"; ctx.font = "16px 'Noto Sans Mono', monospace";
     ctx.fillText(status, cx, cy + 20);
 
-    // Summary Text
     var rejoinPos = 1;
-    driversData.forEach(d => {
-      if (d.dn !== dn && d.t > selData.t && d.t < rejoinT) rejoinPos++;
-    });
     var carsPassing = [];
-    driversData.forEach(d => {
-      if (d.dn !== dn && d.t > selData.t && d.t < rejoinT) carsPassing.push(state.drivers[d.dn].acronym);
+    
+    // Accurate Rejoin Pos Math
+    driversData.forEach((d, idx) => {
+      if (d.dn === dn) return;
+      if (idx > selIdx && d.t < rejoinT) { rejoinPos++; carsPassing.push(state.drivers[d.dn].acronym); }
+      if (idx < selIdx && d.t > rejoinT) { rejoinPos++; carsPassing.push(state.drivers[d.dn].acronym); }
     });
     
     var summary = state.drivers[dn].acronym + " is P" + (selIdx + 1) + ". Pit under " + state.tgCondition.toUpperCase() + ": rejoin P" + rejoinPos + ".<br>";
@@ -1594,7 +1641,6 @@
     document.getElementById("rcResults").innerHTML = html;
   }
 
-  // Update the loop and slider to also update the Track Gaps overlay if open
   var originalLoop = loop;
   loop = function(ts) {
     originalLoop(ts);
