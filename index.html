@@ -260,6 +260,19 @@
   .rc-time { font-size: 13px; color: #666; white-space: nowrap; }
   .rc-text { font-size: 15px; line-height: 1.4; color: #eee; }
 
+  /* MANUAL PIT LOSS INPUT */
+  #manualPitLossWrap {
+    position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+    background: rgba(12, 19, 34, 0.9); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 12px; display: flex; gap: 8px; align-items: center;
+    z-index: 10; font-size: 12px; color: var(--dim);
+  }
+  #manualPitLossWrap input {
+    background: var(--bg0); border: 1px solid var(--line); color: var(--text);
+    border-radius: 4px; padding: 4px 8px; width: 50px; font-family: inherit;
+    font-size: 14px; text-align: center;
+  }
+
   @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
   @keyframes fadeIn { from{opacity:0}to{opacity:1} }
   @keyframes slideUp { from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1} }
@@ -360,10 +373,17 @@
       <button class="tg-toggle" onclick="setTGCondition('vsc')" id="tgBtnVsc">VSC</button>
       <button class="tg-toggle" onclick="setTGCondition('sc')" id="tgBtnSc">SC</button>
     </div>
+    
+    <!-- MANUAL PIT LOSS INPUT -->
+    <div id="manualPitLossWrap">
+      <span>Est. Pit Loss:</span>
+      <input type="number" id="manualPitLoss" value="22.0" step="0.1">
+      <span>s</span>
+    </div>
+
     <div class="tg-canvas-wrap">
       <canvas id="trackGapsCanvas"></canvas>
     </div>
-    <!-- Summary removed as requested -->
   </div>
 </div>
 
@@ -416,7 +436,7 @@
     overlayRankingsList: document.getElementById("overlayRankingsList"),
     analysisOverlay: document.getElementById("analysisOverlay"),
     rcOverlay: document.getElementById("rcOverlay"), trackGapsOverlay: document.getElementById("trackGapsOverlay"),
-    trackGapsCanvas: document.getElementById("trackGapsCanvas")
+    trackGapsCanvas: document.getElementById("trackGapsCanvas"), manualPitLoss: document.getElementById("manualPitLoss")
   };
 
   var state = {
@@ -429,7 +449,6 @@
     q1Ended: false, q2Ended: false, q1Eliminated: [], q2Eliminated: [],
     activeRC: null, rcTimeout: null, lastFlagState: null,
     currentModalDriver: null, currentModalTab: 'laps', raceStartT: null,
-    medianPitLoss: 0, scPitLoss: 0, vscPitLoss: 0, pitLoss: 0,
     tgCondition: 'green', expandedAnalysisLap: null
   };
   
@@ -459,6 +478,8 @@
     document.getElementById("tgBtnSc").classList.toggle("active", cond === 'sc');
     renderTrackGaps();
   };
+
+  els.manualPitLoss.addEventListener("input", renderTrackGaps);
 
   function addBytes(len) { state.bytesDownloaded += len; updateMeter(); }
   function updateMeter() {
@@ -684,43 +705,6 @@
           if (l.duration_sector_3 < (drvBestS3[l.driver_number]||Infinity)) drvBestS3[l.driver_number] = l.duration_sector_3;
         }
       });
-
-      var pitLosses = [], scPitLosses = [], vscPitLosses = [];
-      state.driverOrder.forEach(d => {
-        var dn = d.driver_number;
-        var dLaps = state.laps.filter(l => l.driver_number === dn && l._t_start !== null).sort((a,b) => a.lap_number - b.lap_number);
-        for (var i = 1; i < dLaps.length; i++) {
-          if (dLaps[i].is_pit_out_lap) {
-            var inLap = dLaps[i-1], outLap = dLaps[i];
-            if (!inLap.lap_duration || !outLap.lap_duration) continue;
-            var greenLaps = dLaps.filter(l => !l.is_pit_out_lap && l.lap_duration).map(l => l.lap_duration).sort((a,b) => a-b);
-            if (greenLaps.length < 3) continue;
-            var medianGreen = greenLaps[Math.floor(greenLaps.length / 2)];
-            var loss = (inLap.lap_duration + outLap.lap_duration) - (2 * medianGreen);
-            
-            var inLapT = inLap._t_start;
-            var isSC = false, isVSC = false;
-            state.scPeriods.forEach(p => {
-              if (inLapT >= p.start && inLapT <= p.end) {
-                if (p.type === "SC") isSC = true;
-                if (p.type === "VSC") isVSC = true;
-              }
-            });
-            if (isSC) scPitLosses.push(loss);
-            else if (isVSC) vscPitLosses.push(loss);
-            else pitLosses.push(loss);
-          }
-        }
-      });
-
-      function getMedian(arr) {
-        if (!arr.length) return 0;
-        var s = [...arr].sort((a,b) => a-b);
-        return s[Math.floor(s.length / 2)];
-      }
-      state.medianPitLoss = getMedian(pitLosses) || 22.0; 
-      state.scPitLoss = getMedian(scPitLosses) || 12.0;
-      state.vscPitLoss = getMedian(vscPitLosses) || 15.0;
 
       var loaded = 0, total = state.driverOrder.length;
       function next() {
@@ -1231,7 +1215,6 @@
     ctx.drawImage(baseCanvas, 0, 0);
     ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
     
-    // Determine stationary drivers to hide from map
     var maxLap = 0;
     state.laps.forEach(l => { if (state.currentTime >= l._t_end && l.lap_number > maxLap) maxLap = l.lap_number; });
 
@@ -1245,7 +1228,6 @@
       var dLaps = state.laps.filter(l => l.driver_number == dn && l._t_start !== null);
       var completed = dLaps.filter(l => state.currentTime >= l._t_end).length;
       
-      // Hide cars that are stationary (retired/garage) and NOT in the pit lane
       if (!inPit && (maxLap - completed) >= 2) continue;
       
       var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
@@ -1545,9 +1527,11 @@
 
     var cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.4;
     
-    var pitLoss = state.medianPitLoss;
-    if (state.tgCondition === 'sc') pitLoss = state.scPitLoss;
-    if (state.tgCondition === 'vsc') pitLoss = state.vscPitLoss;
+    var basePitLoss = parseFloat(els.manualPitLoss.value) || 22.0;
+    var pitLoss = basePitLoss;
+    
+    if (state.tgCondition === 'sc') pitLoss = 12.0;
+    if (state.tgCondition === 'vsc') pitLoss = 15.0;
 
     var status = getTrackStatus(state.currentTime);
     
@@ -1637,8 +1621,6 @@
     
     ctx.fillStyle = "#888"; ctx.font = "16px 'Noto Sans Mono', monospace";
     ctx.fillText(status, cx, cy + 20);
-
-    // Text summary removed as requested
   }
 
   // --- RC OVERLAY LOGIC ---
