@@ -27,138 +27,128 @@
     overflow: hidden; overscroll-behavior-y: none;
   }
   
-  /* HEADER */
+  /* APP SHELL */
+  body { display: flex; justify-content: center; }
+  #app { position: relative; width: 100%; max-width: 480px; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background: var(--bg0); }
+  @media (min-width: 560px) { #app { border-left: 1px solid var(--line); border-right: 1px solid var(--line); } }
+  button { font-family: inherit; color: inherit; }
+  button:focus-visible, select:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+  /* TOP BAR */
   #header {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 20;
-    height: var(--header-height);
-    background: radial-gradient(60% 40% at 15% -5%, rgba(86,120,255,.22), transparent 70%), radial-gradient(50% 35% at 100% 8%, rgba(190,90,255,.14), transparent 70%), var(--bg0);
-    padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top));
-    display: flex; flex-direction: column; justify-content: space-between;
+    flex: none; position: relative; z-index: 3; display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px 10px; padding-top: calc(12px + env(safe-area-inset-top));
+    background: radial-gradient(60% 90% at 12% -20%, rgba(86,120,255,.24), transparent 70%), radial-gradient(50% 80% at 100% -10%, rgba(190,90,255,.15), transparent 70%), var(--bg0);
   }
-  .header-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-  
+  .session { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+  .session .names { min-width: 0; }
+  .session .s-title { display: block; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .session .s-sub { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; min-height: 14px; }
+  .session svg { flex: none; }
+  .session select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; font-family: inherit; cursor: pointer; }
   .compact-control {
-    height: 32px; display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 600; border-radius: 8px;
-    border: 1px solid var(--line); background: var(--bg2); color: var(--text);
-    padding: 0 12px; cursor: pointer; font-family: inherit;
+    height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg2);
+    font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 7px; cursor: pointer;
   }
+  .compact-control i { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
   .compact-control:active { background: var(--bg3); }
-  
-  .selector-row { flex: 1; display: flex; justify-content: flex-start; }
-  .selector-row select {
-    width: 100%; max-width: 220px; appearance: none; -webkit-appearance: none;
-    background: var(--bg2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a6b0c7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;
-    color: var(--text); border: 1px solid var(--line); border-radius: 8px;
-    padding: 0 24px 0 10px; height: 32px; font-size: 11px; font-weight: 600; font-family: inherit;
-  }
-  .selector-row select:disabled { opacity: 0.5; }
-  
-  .download-meter { 
-    font-size: 11px; font-weight: 600; color: var(--dim); 
-    background: var(--bg2); border: 1px solid var(--line); 
-    border-radius: 8px; padding: 0 12px; height: 32px; 
-    display: flex; align-items: center; justify-content: center;
-  }
-  
-  #error { position: fixed; top: calc(var(--header-height) + 8px); left: 12px; right: 12px; z-index: 30; display: none; background: rgba(255,92,92,0.95); color: #fff; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+  .compact-control:disabled { opacity: .5; }
+  .download-meter { font-size: 11px; color: var(--muted); min-width: 44px; text-align: right; }
+
+  #error { position: fixed; top: 64px; left: 12px; right: 12px; z-index: 60; display: none; background: rgba(255,92,92,0.95); color: #fff; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
   #error.show { display: block; }
-  
-  /* MAP */
-  #mapContainer { position: fixed; top: var(--header-height); left: 0; right: 0; height: var(--map-height); z-index: 10; padding: 0 var(--map-margin); background: var(--bg0); }
-  #mapWrap { position: relative; width: 100%; height: 100%; background: var(--bg1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-  
-  .map-float-btn {
-    position: absolute; top: 10px; z-index: 15;
-    width: 32px; height: 32px; border-radius: 50%;
-    background: rgba(12, 19, 34, 0.6); backdrop-filter: blur(4px);
-    border: 1px solid var(--line); color: var(--text);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px; cursor: pointer; transition: opacity 0.5s ease; font-family: inherit;
-  }
-  .map-float-btn:active { background: rgba(12, 19, 34, 0.9); }
-  .map-float-btn.left { left: 10px; }
-  .map-float-btn.right { right: 10px; }
-  .map-float-btn.hidden { opacity: 0; pointer-events: none; }
-  
-  #mapControls { position: absolute; top: 0; left: 0; right: 0; height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 50px; background: rgba(12, 19, 34, 0.85); border-bottom: 1px solid var(--line); z-index: 5; }
-  .icon-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--bg3); border: none; color: var(--text); font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-  .icon-btn:active { background: rgba(255,255,255,0.2); }
-  .icon-btn:disabled { opacity: 0.4; }
-  
-  #sliderWrap { flex: 1; position: relative; display: flex; align-items: center; height: 32px; }
-  #slider { width: 100%; min-height: 32px; accent-color: var(--text); position: relative; z-index: 2; background: transparent; }
-  #sliderMarkers { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; pointer-events: none; overflow: hidden; border-radius: 4px; }
-  .slider-marker { position: absolute; top: 0; bottom: 0; width: 4px; }
-  .slider-marker.red { background: rgba(255, 92, 92, 0.4); }
-  .slider-marker.sc { background: rgba(255, 210, 63, 0.5); }
-  .slider-marker.vsc { background: rgba(255, 179, 71, 0.5); }
-  .slider-marker.start { background: rgba(255, 255, 255, 0.7); width: 2px; }
-  
-  #trackCanvas { position: absolute; top: 48px; left: 0; width: 100%; height: calc(100% - 48px); touch-action: manipulation; }
-  #mapEmpty { position: absolute; inset: 48px 0 0 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; text-align: center; padding: 20px; pointer-events: none; }
-  
-  .map-overlay-bl { position: absolute; bottom: 10px; left: 12px; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8); display: flex; gap: 10px; align-items: center; }
-  .map-overlay-tr { position: absolute; top: 56px; right: 10px; display: none; text-align: right; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; line-height: 1.5; color: var(--dim); z-index: 5; pointer-events: none; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
-  .map-overlay-br { position: absolute; bottom: 10px; right: 12px; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
-  .lap-counter { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
-  
-  #rcPopup { position: absolute; top: 56px; left: 12px; right: 12px; background: #ffffff; color: #333333; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-family: inherit; }
+
+  /* MAP STAGE: edge to edge, no card */
+  #mapContainer { flex: none; position: relative; height: clamp(380px, 50dvh, 460px); }
+  #mapWrap { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(75% 65% at 50% 38%, var(--bg1) 0%, #04070d 70%, var(--bg0) 100%); }
+  #trackCanvas { position: absolute; left: 0; top: 36px; width: 100%; height: calc(100% - 144px); touch-action: manipulation; }
+  #mapEmpty { position: absolute; left: 0; right: 0; top: 36px; bottom: 108px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; text-align: center; padding: 20px; pointer-events: none; }
+  #progressWrap { position: absolute; top: 0; left: 0; right: 0; height: 3px; display: none; z-index: 8; }
+  #progressWrap.show { display: block; }
+  #progressBar { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+
+  .lapbox { position: absolute; top: 12px; left: 16px; z-index: 6; }
+  .lap-row { display: flex; align-items: center; gap: 10px; min-height: 32px; }
+  .lap-counter { font-variant-numeric: tabular-nums; }
+  .lap-counter .lapno { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  .lap-counter .laptot { font-size: 14px; color: var(--muted); font-weight: 500; }
+  .round { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg2); display: grid; place-items: center; cursor: pointer; backdrop-filter: blur(6px); }
+  .round:active { background: var(--bg3); }
+  .round:disabled { opacity: .4; }
+  #statusLabel { margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 11px; font-weight: 600; background: rgba(255,255,255,.07); }
+  #statusLabel:empty { display: none; }
+  #statusLabel::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .map-overlay-tr { position: absolute; top: 12px; right: 16px; display: none; text-align: right; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; line-height: 1.55; color: var(--muted); z-index: 5; pointer-events: none; }
+
+  #rcPopup { position: absolute; top: 8px; left: 12px; right: 12px; background: #ffffff; color: #333333; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
   #rcPopup.show { opacity: 1; }
 
-  /* MAIN BUTTONS */
-  #mainButtons {
-    position: fixed; 
-    top: calc(var(--header-height) + var(--map-height) + 8px); 
-    left: 0; right: 0;
-    padding: 0 var(--map-margin);
-    display: flex; gap: 8px; background: var(--bg0); z-index: 15;
-  }
-  .main-btn {
-    flex: 1; padding: 12px 0; font-size: 13px; font-weight: 700;
-    color: var(--text); background: var(--bg2); border: 1px solid var(--line);
-    border-radius: 8px; cursor: pointer; font-family: inherit;
-  }
-  .main-btn:active { background: var(--bg3); }
+  /* RACE TIMELINE */
+  .tl { position: absolute; left: 0; right: 0; bottom: 26px; display: flex; align-items: center; gap: 12px; padding: 0 16px; z-index: 6; }
+  .play { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--text); color: #000; display: grid; place-items: center; font-size: 15px; cursor: pointer; padding: 0; }
+  .play:disabled { opacity: .4; }
+  .tl-main { flex: 1; min-width: 0; }
+  .lapticks { position: relative; height: 14px; font-size: 10px; color: var(--muted); }
+  .lapticks span { position: absolute; transform: translateX(-50%); }
+  #sliderWrap { position: relative; height: 28px; margin-top: 0; }
+  .rail { position: absolute; left: 0; right: 0; top: 9px; height: 10px; border-radius: 999px; background: var(--bg3); }
+  .rail .fill { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 999px; background: var(--dim); }
+  .thumb { position: absolute; top: 0; left: 0; width: 6px; height: 28px; margin-left: -3px; border-radius: 3px; background: var(--text); box-shadow: 0 0 0 3px rgba(0,0,0,.6), 0 0 14px rgba(238,241,248,.45); pointer-events: none; }
+  #slider { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; -webkit-appearance: none; appearance: none; background: transparent; }
+  #slider::-webkit-slider-thumb { -webkit-appearance: none; width: 2px; height: 28px; }
+  #slider::-moz-range-thumb { width: 2px; height: 28px; border: 0; }
+  #sliderMarkers { position: relative; height: 5px; margin-top: 3px; pointer-events: none; }
+  .slider-marker { position: absolute; top: 0; bottom: 0; min-width: 3px; border-radius: 2px; }
+  .slider-marker.red { background: var(--err); }
+  .slider-marker.sc { background: var(--yellow); }
+  .slider-marker.vsc { background: var(--amber); }
+  .slider-marker.start { background: var(--text); width: 2px; min-width: 2px; }
+  .times { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .speed { flex: none; height: 32px; min-width: 40px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg2); font-size: 11px; font-weight: 600; cursor: pointer; }
+  .speed:active { background: var(--bg3); }
 
-  /* MAIN TIMING LIST */
-  #mainTimingContainer {
-    position: fixed;
-    top: calc(var(--header-height) + var(--map-height) + 60px);
-    bottom: 0; left: 0; right: 0;
-    overflow-y: auto; -webkit-overflow-scrolling: touch;
-    padding-bottom: 20px; z-index: 5;
-  }
-  
-  .list-header-row { display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 70px; gap: 4px; padding: 4px 16px 8px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; }
+  /* BOTTOM SHEET */
+  .sheet { position: relative; z-index: 4; flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: -16px; background: var(--bg0); border-radius: 22px 22px 0 0; border-top: 1px solid var(--line); box-shadow: 0 -14px 28px rgba(0,0,0,.7); }
+  .grab { flex: none; width: 100%; height: 20px; background: none; border: 0; cursor: pointer; position: relative; }
+  .grab::after { content: ""; position: absolute; left: 50%; top: 8px; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--bg3); }
+  .tabs { flex: none; display: flex; padding: 0 12px; border-bottom: 1px solid var(--line); }
+  .tab { flex: 1; padding: 11px 0 13px; background: none; border: 0; color: var(--muted); font-size: 13px; font-weight: 600; position: relative; cursor: pointer; }
+  .tab.active { color: var(--text); }
+  .tab.active::after { content: ""; position: absolute; left: 22%; right: 22%; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
+
+  /* TIMING LIST */
+  #mainTimingContainer { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding-bottom: 24px; }
+  .list-header-row { flex: none; display: grid; grid-template-columns: 22px 1fr 74px 40px 30px 66px; column-gap: 8px; padding: 10px 16px 8px; font-size: 11px; font-weight: 500; color: var(--muted); }
   .list-header-row span:nth-child(3), .list-header-row span:nth-child(6) { text-align: right; }
   .list-header-row span:nth-child(4), .list-header-row span:nth-child(5) { text-align: center; }
-  
-  .driver-row { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; margin: 0 16px 8px; user-select: none; touch-action: manipulation; transition: background 0.2s ease, opacity 0.2s ease; overflow: hidden; }
-  .driver-row.highlighted { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.3); }
+
+  .driver-row { padding: 9px 16px 8px; border-bottom: 1px solid var(--line); user-select: none; touch-action: manipulation; transition: background 0.2s ease, opacity 0.2s ease; }
+  .driver-row.highlighted { background: linear-gradient(90deg, rgba(86,120,255,.18), rgba(86,120,255,.03)); }
   .driver-row.stationary { opacity: 0.4; }
-  
-  .row-main { display: grid; grid-template-columns: 24px 56px 1fr 40px 24px 70px; gap: 4px; padding: 10px 12px; align-items: center; }
-  .row-pos { font-size: 13px; font-weight: 700; color: var(--dim); text-align: center; }
-  .row-driver { display: flex; align-items: center; gap: 6px; }
-  .row-circle { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
-  .row-acronym { font-size: 13px; font-weight: 700; letter-spacing: 0.3px; }
-  .row-gap-wrap { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; }
-  .row-gap-top { font-size: 12px; font-weight: 600; color: var(--text); }
-  .row-gap-bot { font-size: 11px; font-weight: 500; color: var(--dim); }
-  
+
+  .row-main { display: grid; grid-template-columns: 22px 1fr 74px 40px 30px 66px; column-gap: 8px; align-items: center; }
+  .row-pos { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .driver-row:nth-child(-n+3) .row-pos { color: var(--text); }
+  .row-driver { display: flex; align-items: center; gap: 9px; }
+  .row-bar { width: 3px; height: 20px; border-radius: 2px; flex: none; }
+  .row-acronym { font-size: 15px; font-weight: 700; }
+  .row-gap-wrap { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; font-variant-numeric: tabular-nums; }
+  .row-gap-top { font-size: 13px; font-weight: 600; color: var(--text); }
+  .row-gap-bot { font-size: 11px; font-weight: 500; color: var(--muted); }
+
   .row-tyre { display: flex; align-items: center; justify-content: center; }
-  .tyre-circle { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
-  .row-laps { font-size: 12px; font-weight: 500; color: var(--dim); text-align: center; }
+  .tyre-circle { width: 28px; height: 28px; border-radius: 50%; border: 2.5px solid #555; background: transparent; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .row-laps { font-size: 13px; font-weight: 500; color: var(--dim); text-align: center; font-variant-numeric: tabular-nums; }
   .row-best-wrap { display: flex; flex-direction: column; align-items: flex-end; }
-  .row-best { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .row-last-lap { font-size: 10px; font-weight: 500; color: var(--muted); margin-top: 2px; }
-  .row-inpit { font-size: 10px; font-weight: 700; color: var(--err); margin-top: 2px; display: none; }
-  .row-inpit.active { display: block; animation: flash 1s infinite; }
-  
-  .row-sectors { display: grid; grid-template-columns: 40px 40px 40px 1fr; gap: 6px; padding: 0 12px 10px 44px; align-items: center; }
+  .row-best { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .row-last-lap { font-size: 10px; font-weight: 500; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .row-inpit { font-size: 10px; font-weight: 700; color: #000; background: var(--amber); border-radius: 999px; padding: 1px 7px; margin-top: 3px; display: none; }
+  .row-inpit.active { display: block; }
+
+  .row-sectors { display: grid; grid-template-columns: 44px 44px 44px 1fr; gap: 6px; padding: 4px 0 0 31px; align-items: center; }
   .sector-time { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .lap-total-time { font-size: 11px; font-weight: 600; color: var(--text); text-align: right; font-variant-numeric: tabular-nums; padding-right: 4px; }
+  .lap-total-time { font-size: 11px; font-weight: 600; color: var(--text); text-align: right; font-variant-numeric: tabular-nums; }
   .sector-time.dimmed { opacity: 0.4; }
   .sector-time.c-neutral { color: var(--dim); }
   .sector-time.c-yellow { color: var(--yellow); }
@@ -231,7 +221,8 @@
   .analysis-track { width: 100%; height: 6px; background: #333; position: relative; border-radius: 3px; display: flex; justify-content: center; }
   .analysis-tick { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: #fff; z-index: 2; }
   
-  .analysis-sector-row { display: flex; justify-content: center; gap: 4px; margin-top: 4px; }
+  .analysis-sector-row { display: flex; gap: 4px; margin-top: 4px; }
+  .sector-seg { flex: 1; height: 4px; border-radius: 2px; }
   .analysis-sector-block { width: 33%; display: flex; gap: 2px; }
   .analysis-sector-block.left { justify-content: flex-end; }
   .analysis-sector-block.right { justify-content: flex-start; }
@@ -282,57 +273,69 @@
 </head>
 <body>
 
+<div id="app">
 <div id="header">
-  <div class="header-top">
-    <div class="selector-row">
-      <select id="sessionSelect" disabled><option>Loading…</option></select>
-    </div>
-    <button id="rcBtn" class="compact-control" style="width: auto;" disabled>RC</button>
-    <span class="download-meter" id="dataMeter">0 KB</span>
+  <div class="session">
+    <span class="names"><span class="s-title" id="sessionTitle">Loading…</span><span class="s-sub" id="sessionSub"></span></span>
+    <svg width="12" height="8" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="#a6b0c7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <select id="sessionSelect" disabled aria-label="Choose session"><option>Loading…</option></select>
   </div>
+  <button id="rcBtn" class="compact-control" disabled aria-label="Race control messages"><i></i>RC</button>
+  <span class="download-meter" id="dataMeter">0 KB</span>
 </div>
 
 <div id="error"></div>
 
 <div id="mapContainer">
   <div id="mapWrap">
-    <button id="flipBtn" class="map-float-btn left" disabled>⭕</button>
-    <button id="rotateBtn" class="map-float-btn right" disabled>⭕</button>
-    
-    <div id="mapControls">
-      <button id="playBtn" class="icon-btn" disabled>▶</button>
-      <div id="sliderWrap">
-        <div id="sliderMarkers"></div>
-        <input type="range" id="slider" min="0" max="100" value="0" step="0.1" disabled>
-      </div>
-    </div>
     <div id="progressWrap"><div id="progressBar"></div></div>
-    
     <canvas id="trackCanvas"></canvas>
     <div id="mapEmpty">Select a session to draw the track</div>
-    <div class="map-overlay-bl">
-      <span id="timeDisplay">00:00</span>
-      <span id="lapCounter" class="lap-counter" style="display:none">0/0</span>
+
+    <div class="lapbox">
+      <div class="lap-row">
+        <span id="lapCounter" class="lap-counter" style="display:none">0/0</span>
+        <button id="flipBtn" class="round" disabled aria-label="Flip map"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#eef1f8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg></button>
+        <button id="rotateBtn" class="round" disabled aria-label="Rotate map"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#eef1f8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg></button>
+      </div>
       <span id="statusLabel"></span>
     </div>
-    <div class="map-overlay-br" id="durationTicker">00:00</div>
+
     <div class="map-overlay-tr" id="weatherBox"></div>
+
+    <div class="tl">
+      <button id="playBtn" class="play" disabled aria-label="Play or pause">▶</button>
+      <div class="tl-main">
+        <div class="lapticks" id="lapTicks"></div>
+        <div id="sliderWrap">
+          <div class="rail"><div class="fill" id="railFill"></div></div>
+          <div class="thumb" id="railThumb"></div>
+          <input type="range" id="slider" min="0" max="100" value="0" step="0.1" disabled aria-label="Playback position">
+        </div>
+        <div id="sliderMarkers"></div>
+        <div class="times"><span id="timeDisplay">00:00</span><span id="durationTicker">00:00</span></div>
+      </div>
+      <button id="speedBtn" class="speed" aria-label="Playback speed">1×</button>
+    </div>
+
     <div id="rcPopup"></div>
   </div>
 </div>
 
-<div id="mainButtons">
-  <button class="main-btn" onclick="openTimingOverlay()">Timing</button>
-  <button class="main-btn" onclick="openAnalysisOverlay()">Analysis</button>
-  <button class="main-btn" onclick="openTrackGapsOverlay()">Track Gaps</button>
-</div>
-
-<!-- MAIN TIMING LIST (Visible by default) -->
-<div id="mainTimingContainer">
+<section class="sheet">
+  <button class="grab" onclick="openTimingOverlay()" aria-label="Expand timing"></button>
+  <div class="tabs" role="tablist">
+    <button class="tab active" role="tab" aria-selected="true" onclick="document.getElementById('mainTimingContainer').scrollTo({top:0,behavior:'smooth'})">Timing</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="openAnalysisOverlay()">Analysis</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="openTrackGapsOverlay()">Track gaps</button>
+  </div>
   <div class="list-header-row">
     <span>Pos</span><span>Driver</span><span>Gap</span><span>Tyre</span><span>Laps</span><span>Best</span>
   </div>
-  <div id="rankingsList"></div>
+  <div id="mainTimingContainer">
+    <div id="rankingsList"></div>
+  </div>
+</section>
 </div>
 
 <!-- TIMING OVERLAY (Expandable) -->
@@ -426,7 +429,9 @@
     mapEmpty: document.getElementById("mapEmpty"), playBtn: document.getElementById("playBtn"),
     slider: document.getElementById("slider"), sliderMarkers: document.getElementById("sliderMarkers"),
     flipBtn: document.getElementById("flipBtn"), rotateBtn: document.getElementById("rotateBtn"), 
-    rcBtn: document.getElementById("rcBtn"),
+    rcBtn: document.getElementById("rcBtn"), speedBtn: document.getElementById("speedBtn"), lapTicks: document.getElementById("lapTicks"),
+    railFill: document.getElementById("railFill"), railThumb: document.getElementById("railThumb"),
+    sessionTitle: document.getElementById("sessionTitle"), sessionSub: document.getElementById("sessionSub"),
     timeDisplay: document.getElementById("timeDisplay"), lapCounter: document.getElementById("lapCounter"), 
     statusLabel: document.getElementById("statusLabel"), durationTicker: document.getElementById("durationTicker"), 
     progressWrap: document.getElementById("progressWrap"), progressBar: document.getElementById("progressBar"), 
@@ -450,7 +455,7 @@
     q1Ended: false, q2Ended: false, q1Eliminated: [], q2Eliminated: [],
     activeRC: null, rcTimeout: null, lastFlagState: null,
     currentModalDriver: null, currentModalTab: 'laps', raceStartT: null,
-    tgCondition: 'green', tgDriver: null, expandedAnalysisLap: null
+    tgCondition: 'green', tgDriver: null, _stuck: {}, speed: 1, order: [], expandedAnalysisLap: null
   };
   
   var animationId = null;
@@ -521,6 +526,34 @@
     box.style.display = "block";
   }
 
+  function updateRail() {
+    var max = parseFloat(els.slider.max) || 1;
+    var pct = Math.min(100, Math.max(0, state.currentTime / max * 100));
+    els.railFill.style.width = pct + "%"; els.railThumb.style.left = pct + "%";
+  }
+
+  // Lap numbers (every 10) along the timeline, placed where the first car starts that lap
+  function renderLapTicks() {
+    els.lapTicks.innerHTML = "";
+    if (state.sessionType !== "race" || !state.sessionLength) return;
+    var total = state.sessionResult.length ? state.sessionResult[0].number_of_laps : 0;
+    var firstStart = {}, maxLapNo = 0;
+    state.laps.forEach(l => {
+      maxLapNo = Math.max(maxLapNo, l.lap_number || 0);
+      if (l._t_start === undefined || l._t_start === null) return;
+      if (firstStart[l.lap_number] === undefined || l._t_start < firstStart[l.lap_number]) firstStart[l.lap_number] = l._t_start;
+    });
+    total = total || maxLapNo;
+    var html = "";
+    for (var n = 10; n <= total; n += 10) {
+      if (firstStart[n] === undefined) continue;
+      var pct = firstStart[n] / state.sessionLength * 100;
+      if (pct > 96) continue;
+      html += '<span style="left:' + pct.toFixed(1) + '%">' + n + '</span>';
+    }
+    els.lapTicks.innerHTML = html;
+  }
+
   function updateTimeDisplay() {
     updateWeather();
     var now = new Date(state.sessionStartMs + state.currentTime * 1000);
@@ -538,7 +571,7 @@
     });
     if (maxLap > 0) {
       els.lapCounter.style.display = "inline-block";
-      els.lapCounter.textContent = maxLap + "/" + (state.sessionResult.length > 0 ? state.sessionResult[0].number_of_laps : "?");
+      els.lapCounter.innerHTML = '<span class="lapno">' + maxLap + '</span><span class="laptot">/' + (state.sessionResult.length > 0 ? state.sessionResult[0].number_of_laps : "?") + '</span>';
     } else {
       els.lapCounter.style.display = "none";
     }
@@ -548,6 +581,7 @@
     els.statusLabel.style.color = status === "Red" ? "var(--err)" : status === "SC" ? "var(--yellow)" : status === "VSC" ? "var(--amber)" : "var(--green)";
     
     els.slider.value = state.currentTime;
+    updateRail();
   }
 
   function getContrastColor(hex) {
@@ -606,7 +640,7 @@
   function selectSession(key) {
     state.currentSessionKey = key; state.outline = null; state.drivers = {};
     state.driverOrder = []; state.laps = []; state.stints = {}; state.raceControl = []; state.sessionResult = []; state.scPeriods = [];
-    state.highlightedDriver = null; state.bytesDownloaded = 0; state.flipX = false; state.rotation = 0;
+    state._stuck = {}; state.highlightedDriver = null; state.bytesDownloaded = 0; state.flipX = false; state.rotation = 0;
     state.q1Ended = false; state.q2Ended = false; state.q1Eliminated = []; state.q2Eliminated = [];
     state.lastFlagState = null; state.raceStartT = null; closeModal();
     updateMeter();
@@ -614,6 +648,9 @@
     els.mapEmpty.style.display = "flex"; els.mapEmpty.textContent = "Loading data…";
     els.rankingsList.innerHTML = ""; els.progressWrap.classList.add("show"); els.progressBar.style.width = "0%";
     els.sliderMarkers.innerHTML = "";
+    var sMeta = state.allSessions.find(x => String(x.session_key) === String(key));
+    if (sMeta) { els.sessionTitle.textContent = ((sMeta.year || "") + " " + (sMeta.meeting_name || "")).trim(); els.sessionSub.textContent = sMeta.session_name || ""; }
+    els.sessionSelect.value = key;
     
     Promise.all([
       fetchJSON(`data/${key}/meta.json`), fetchJSON(`data/${key}/outline.json`),
@@ -628,7 +665,8 @@
       state.weather = []; state._wxIdx = null;
 
       var sName = (meta.session_name || "").toLowerCase();
-      state.sessionType = (sName.includes("race") || sName.includes("sprint")) ? "race" : "qualifying";
+      var timedSession = /qualifying|shootout|practice/.test(sName);
+      state.sessionType = (!timedSession && (sName.includes("race") || sName.includes("sprint"))) ? "race" : "qualifying";
 
       state.sessionStartMs = new Date(meta.date_start).getTime();
       
@@ -683,6 +721,17 @@
         els.sliderMarkers.innerHTML += `<div class="slider-marker ${cls}" style="left:${pct}%; width:${w}%"></div>`;
       });
 
+      var redStart = null;
+      state.raceControl.forEach(m => {
+        var mt = (new Date(m.date).getTime() - state.sessionStartMs) / 1000, st = getTrackStatus(mt + 0.01);
+        if (st === "Red" && redStart === null) redStart = mt;
+        else if (st !== "Red" && redStart !== null) {
+          els.sliderMarkers.innerHTML += `<div class="slider-marker red" style="left:${(redStart / state.sessionLength) * 100}%; width:${((mt - redStart) / state.sessionLength) * 100}%"></div>`;
+          redStart = null;
+        }
+      });
+      if (redStart !== null) els.sliderMarkers.innerHTML += `<div class="slider-marker red" style="left:${(redStart / state.sessionLength) * 100}%; width:${((state.sessionLength - redStart) / state.sessionLength) * 100}%"></div>`;
+
       if (state.raceStartT !== null) {
         var pct = (state.raceStartT / state.sessionLength) * 100;
         els.sliderMarkers.innerHTML += `<div class="slider-marker start" style="left:${pct}%"></div>`;
@@ -733,6 +782,14 @@
         }
       });
 
+      // A lap with no recorded duration ends when the driver's next lap starts (never, if it was their last)
+      var lapsByDriver = {};
+      validLaps.forEach(l => { (lapsByDriver[l.driver_number] = lapsByDriver[l.driver_number] || []).push(l); });
+      Object.keys(lapsByDriver).forEach(k => {
+        var arr = lapsByDriver[k].sort((a, b) => a.lap_number - b.lap_number);
+        arr.forEach((l, j) => { if (!l.lap_duration) l._t_end = arr[j + 1] ? arr[j + 1]._t_start : Infinity; });
+      });
+
       var loaded = 0, total = state.driverOrder.length;
       function next() {
         if (loaded >= total) return finish();
@@ -744,7 +801,7 @@
       function finish() {
         els.progressWrap.classList.remove("show"); els.mapEmpty.style.display = "none";
         els.playBtn.disabled = false; els.flipBtn.disabled = false; els.rotateBtn.disabled = false; els.slider.disabled = false; els.rcBtn.disabled = false;
-        state.currentTime = 0; updateTimeDisplay();
+        state.currentTime = 0; updateTimeDisplay(); renderLapTicks();
         renderRankings(); prepareBackground(); drawCars(); updateRankings();
       }
       next();
@@ -759,7 +816,7 @@
           <div class="row-main">
             <div class="row-pos" id="pos-${dn}"></div>
             <div class="row-driver">
-              <div class="row-circle" style="background:#${color}; color:${txt}">${dn}</div>
+              <i class="row-bar" style="background:#${color}"></i>
               <div class="row-acronym">${state.drivers[dn].acronym}</div>
             </div>
             <div class="row-gap-wrap">
@@ -771,7 +828,7 @@
             <div class="row-best-wrap">
               <div class="row-best" id="best-${dn}"></div>
               <div class="row-last-lap" id="lastlap-${dn}"></div>
-              <div class="row-inpit" id="inpit-${dn}">IN PIT</div>
+              <div class="row-inpit" id="inpit-${dn}">In pit</div>
             </div>
           </div>
           <div class="row-sectors">
@@ -847,23 +904,41 @@
       var completedLaps = laps.filter(l => t >= l._t_end).length;
       var isStationary = (maxLapCompleted - completedLaps) >= 2;
       
-      var progress = completedLaps;
-      if (curr && curr._t_start && curr.lap_duration) {
-        progress += Math.min(1, Math.max(0, (t - curr._t_start) / curr.lap_duration));
-      }
-
-      var inPit = false;
+      var inPit = false, geoFrac = null;
       var loc = getCarLocation(state.drivers[dn].data, t);
       if (loc) {
         var tp = getTrackPosition(loc[0], loc[1]);
         if (tp.dist > PIT_THRESHOLD) inPit = true;
+        if (state.outline && state.outline.lap_duration) geoFrac = tp.t / state.outline.lap_duration;
       }
 
-      driversData.push({ dn, bestLap, lastLapVal, completedLaps, curr, prev, stint, isStationary, progress, inPit });
+      // Race order = laps completed, then where the car really is on track (not time elapsed / its own lap time,
+      // which goes wrong on pit, safety car and slow laps). Finished cars freeze and rank by finish time.
+      var lastLap = laps.length ? laps[laps.length - 1] : null;
+      var finishedAt = (lastLap && isFinite(lastLap._t_end) && t >= lastLap._t_end) ? lastLap._t_end : null;
+      var progress;
+      if (finishedAt !== null) {
+        progress = lastLap.lap_number;
+      } else if (curr) {
+        progress = curr.lap_number - 1;
+        var timeFrac = (isFinite(curr._t_end) && curr._t_end > curr._t_start) ? Math.min(1, Math.max(0, (t - curr._t_start) / (curr._t_end - curr._t_start))) : null;
+        if (geoFrac === null) progress += (timeFrac === null ? 0 : timeFrac);
+        else {
+          var bestF = geoFrac;   // pick the lap-wrap (-1/0/+1) that agrees with the lap clock
+          if (timeFrac !== null) [-1, 1].forEach(k => { if (Math.abs(geoFrac + k - timeFrac) < Math.abs(bestF - timeFrac)) bestF = geoFrac + k; });
+          progress += bestF;
+        }
+      } else {
+        // Before this driver's first lap row (grid / lap 1 when the API has no start time)
+        progress = geoFrac === null ? 0 : geoFrac;
+        if (geoFrac !== null && geoFrac > 0.5 && state.raceStartT !== null && t < state.raceStartT + 15) progress -= 1;
+      }
+
+      driversData.push({ dn, bestLap, lastLapVal, completedLaps, curr, prev, stint, isStationary, progress, inPit, finishedAt });
     }
 
     if (state.sessionType === "race") {
-      driversData.sort((a, b) => b.progress - a.progress);
+      driversData.sort((a, b) => (b.progress - a.progress) || ((a.finishedAt === null ? 1e12 : a.finishedAt) - (b.finishedAt === null ? 1e12 : b.finishedAt)));
     } else {
       driversData.sort((a, b) => {
         if (a.bestLap === null && b.bestLap === null) return a.dn - b.dn;
@@ -885,6 +960,7 @@
       finalOrder = driversData;
     }
 
+    state.order = finalOrder.map(d => d.dn);
     var p1Best = finalOrder.length > 0 ? finalOrder[0].bestLap : null;
     var p1Progress = finalOrder.length > 0 ? finalOrder[0].progress : 0;
     
@@ -914,13 +990,14 @@
         if (pos === 1) {
           gapTop = "LEADER";
         } else {
+          var lapRef = state.outline?.lap_duration || 90, lead = finalOrder[0], ahead = finalOrder[i-1];
+          var secGap = (hi, lo) => (hi.finishedAt !== null && lo.finishedAt !== null && hi.completedLaps === lo.completedLaps)
+            ? lo.finishedAt - hi.finishedAt : (hi.progress - lo.progress) * lapRef;
           var gapLaps = p1Progress - dd.progress;
           if (gapLaps >= 1) gapTop = "+" + Math.floor(gapLaps) + " LAP";
-          else gapTop = "+" + (gapLaps * (state.outline?.lap_duration || 90)).toFixed(2);
+          else gapTop = "+" + secGap(lead, dd).toFixed(2);
           
-          var aheadProgress = finalOrder[i-1].progress;
-          var gapAhead = aheadProgress - dd.progress;
-          gapBot = "+" + (gapAhead * (state.outline?.lap_duration || 90)).toFixed(2);
+          gapBot = "+" + secGap(ahead, dd).toFixed(2);
         }
       } else {
         if (pos === 1 || !dd.bestLap || !p1Best) gapTop = "";
@@ -944,8 +1021,9 @@
       if (tcEl) {
         if (dd.stint) {
           tcEl.style.display = "flex";
-          tcEl.style.background = getTyreColor(dd.stint.compound);
-          tcEl.style.color = getContrastColor(getTyreColor(dd.stint.compound).replace("#", ""));
+          tcEl.style.borderColor = getTyreColor(dd.stint.compound);
+          tcEl.style.background = "transparent";
+          tcEl.style.color = "var(--text)";
           tcEl.textContent = dd.curr.lap_number - dd.stint.lap_start + 1;
         } else tcEl.style.display = "none";
       }
@@ -1130,21 +1208,14 @@
 
   function handleCanvasClick(e) {
     if (!state.transform || els.mapEmpty.style.display !== "none") return;
-    var rect = els.canvas.getBoundingClientRect(), tx = e.clientX - rect.left, ty = e.clientY - rect.top - 48;
-    if (ty < 0) return;
+    var rect = els.canvas.getBoundingClientRect(), tx = e.clientX - rect.left, ty = e.clientY - rect.top;
     
     var hitDn = null;
     var t = state.transform;
     for (var i = Object.keys(state.drivers).length - 1; i >= 0; i--) {
       var dn = Object.keys(state.drivers)[i], loc = getCarLocation(state.drivers[dn].data, state.currentTime);
-      if (!loc) continue;
-      var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-      
-      var rot = state.rotation;
-      if (rot === 90) { var tmp = cx; cx = t.cssW - cy; cy = tmp; }
-      else if (rot === 180) { cx = t.cssW - cx; cy = t.cssH - cy; }
-      else if (rot === 270) { var tmp = cx; cx = cy; cy = t.cssH - tmp; }
-      if (state.flipX) cx = t.cssW - cx;
+      if (!loc || (state._stuck[dn] && state._stuck[dn].v)) continue;
+      var pc = t.project(loc[0], loc[1]), cx = pc[0], cy = pc[1];
       
       if (Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2)) < 22) { hitDn = parseInt(dn, 10); break; }
     }
@@ -1160,7 +1231,7 @@
 
   function prepareBackground() {
     if (!state.outline) return;
-    var wrap = els.mapWrap, dpr = window.devicePixelRatio || 1, cssW = wrap.clientWidth, cssH = wrap.clientHeight - 48;
+    var dpr = window.devicePixelRatio || 1, cssW = els.canvas.clientWidth, cssH = els.canvas.clientHeight;
     if (cssW === 0 || cssH === 0) return;
     els.canvas.width = Math.round(cssW * dpr); els.canvas.height = Math.round(cssH * dpr);
     baseCanvas.width = els.canvas.width; baseCanvas.height = els.canvas.height;
@@ -1171,21 +1242,23 @@
     var w = maxX - minX, h = maxY - minY;
     if (w <= 0 || h <= 0) return;
 
-    var pad = 20, availW = cssW - pad * 2, availH = cssH - pad * 2;
-    var scale = Math.min(availW / w, availH / h), offsetX = pad + (availW - w * scale) / 2, offsetY = pad + (availH - h * scale) / 2;
-    state.transform = { minX, minY, scale, offsetX, offsetY, cssW, cssH };
-
+    // Fit and centre the track AFTER rotation (a 90/270 turn swaps its width and height)
+    var rot = state.rotation, swap = (rot === 90 || rot === 270);
+    var bw = swap ? h : w, bh = swap ? w : h;
+    var pad = 16, availW = cssW - pad * 2, availH = cssH - pad * 2;
+    var scale = Math.min(availW / bw, availH / bh);
+    var ox = (cssW - bw * scale) / 2, oy = (cssH - bh * scale) / 2;
     function toCanvas(px, py) {
-      var cx = (px - minX) * scale + offsetX, cy = (py - minY) * scale + offsetY;
-      
-      var rot = state.rotation;
-      if (rot === 90) { var tmp = cx; cx = cssW - cy; cy = tmp; }
-      else if (rot === 180) { cx = cssW - cx; cy = cssH - cy; }
-      else if (rot === 270) { var tmp = cx; cx = cy; cy = cssH - tmp; }
+      var lx = (px - minX) * scale, ly = (py - minY) * scale, rx, ry;
+      if (rot === 90) { rx = h * scale - ly; ry = lx; }
+      else if (rot === 180) { rx = w * scale - lx; ry = h * scale - ly; }
+      else if (rot === 270) { rx = ly; ry = w * scale - lx; }
+      else { rx = lx; ry = ly; }
+      var cx = ox + rx, cy = oy + ry;
       if (state.flipX) cx = cssW - cx;
-      
       return [cx, cy];
     }
+    state.transform = { minX, minY, scale, cssW, cssH, project: toCanvas, mid: toCanvas(minX + w / 2, minY + h / 2) };
 
     var trackStatus = getTrackStatus(state.currentTime);
     var strokeColor = trackStatus === "Red" ? "#ff5c5c" : trackStatus === "SC" ? "var(--yellow)" : trackStatus === "VSC" ? "var(--amber)" : "#2a3454";
@@ -1235,43 +1308,81 @@
     }
   }
 
+  // A car is "stuck" in a race once the leader is 3+ laps ahead of it AND it hasn't moved for the last minute.
+  var STUCK_DIST = 80;   // location units (about 8 m)
+  function isStuck(dn, lapsBehind) {
+    if (state.sessionType !== "race" || lapsBehind < 3) return false;
+    var t = state.currentTime, memo = state._stuck[dn];
+    if (memo && t >= memo.t && t - memo.t < 1.5) return memo.v;
+    var data = state.drivers[dn].data, now = getCarLocation(data, t), v = false;
+    if (now) {
+      v = true;
+      for (var s = 10; s <= 60; s += 10) {
+        var p = getCarLocation(data, t - s);
+        if (p && Math.hypot(p[0] - now[0], p[1] - now[1]) > STUCK_DIST) { v = false; break; }
+      }
+    }
+    state._stuck[dn] = { t: t, v: v };
+    return v;
+  }
+
   function drawCars() {
     if (!state.outline || !state.transform) return;
-    var ctx = els.canvas.getContext("2d"), t = state.transform;
+    var ctx = els.canvas.getContext("2d"), t = state.transform, dpr = window.devicePixelRatio || 1;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
     ctx.drawImage(baseCanvas, 0, 0);
-    ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     
     var maxLap = 0;
     state.laps.forEach(l => { if (state.currentTime >= l._t_end && l.lap_number > maxLap) maxLap = l.lap_number; });
 
+    var podium = (state.order || []).slice(0, 3), hl = state.highlightedDriver, plain = [], tagged = [];
     for (var dn in state.drivers) {
       var car = state.drivers[dn], loc = getCarLocation(car.data, state.currentTime);
       if (!loc) continue;
       
-      var tp = getTrackPosition(loc[0], loc[1]);
-      var inPit = tp.dist > PIT_THRESHOLD;
-      
       var dLaps = state.laps.filter(l => l.driver_number == dn && l._t_start !== null);
       var completed = dLaps.filter(l => state.currentTime >= l._t_end).length;
+      if (isStuck(parseInt(dn, 10), maxLap - completed)) continue;   // stopped for 3+ laps: remove from the tracker
       
-      if (!inPit && (maxLap - completed) >= 2) continue;
-      
-      var cx = (loc[0] - t.minX) * t.scale + t.offsetX, cy = (loc[1] - t.minY) * t.scale + t.offsetY;
-      
-      var rot = state.rotation;
-      if (rot === 90) { var tmp = cx; cx = t.cssW - cy; cy = tmp; }
-      else if (rot === 180) { cx = t.cssW - cx; cy = t.cssH - cy; }
-      else if (rot === 270) { var tmp = cx; cx = cy; cy = t.cssH - tmp; }
-      if (state.flipX) cx = t.cssW - cx;
-
-      if (state.highlightedDriver === parseInt(dn, 10)) {
-        ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2); ctx.fillStyle = "#" + car.color; ctx.globalAlpha = 0.3; ctx.fill(); ctx.globalAlpha = 1.0;
-      }
-      ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI * 2); ctx.fillStyle = "#" + car.color; ctx.fill();
-      ctx.fillStyle = getContrastColor(car.color); ctx.font = "bold 11px 'Noto Sans Mono', monospace";
-      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(dn, cx, cy);
+      var pc = t.project(loc[0], loc[1]);
+      var c = { dn: parseInt(dn, 10), car: car, x: pc[0], y: pc[1] };
+      if (c.dn === hl || podium.indexOf(c.dn) !== -1) tagged.push(c); else plain.push(c);
     }
+
+    // Everyone is a small team-colour dot; the podium and the selected car also get a name tag
+    plain.forEach(c => {
+      ctx.beginPath(); ctx.arc(c.x, c.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "#" + c.car.color; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = "#000"; ctx.stroke();
+    });
+    tagged.sort((a, b) => (a.dn === hl) - (b.dn === hl));   // selected car on top
+    tagged.forEach(c => {
+      var sel = c.dn === hl;
+      ctx.beginPath(); ctx.arc(c.x, c.y, sel ? 8 : 6.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#" + c.car.color; ctx.fill();
+      ctx.lineWidth = sel ? 2.2 : 1.5; ctx.strokeStyle = sel ? "#fff" : "#000"; ctx.stroke();
+    });
+
+    var placed = [];
+    tagged.slice().reverse().forEach(c => {
+      var sel = c.dn === hl, text = c.car.acronym;
+      ctx.font = "bold 10.5px 'Noto Sans Mono', monospace";
+      var bw = ctx.measureText(text).width + 14, bh = 18;
+      var dx = c.x - t.mid[0], dy = c.y - t.mid[1], d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+      var dist = 26, lx = c.x, ly = c.y;
+      for (var tries = 0; tries < 8; tries++) {
+        lx = Math.max(bw / 2 + 2, Math.min(t.cssW - bw / 2 - 2, c.x + dx * dist));
+        ly = Math.max(bh / 2 + 2, Math.min(t.cssH - bh / 2 - 2, c.y + dy * dist));
+        if (!placed.some(p => Math.abs(p.x - lx) < (p.w + bw) / 2 + 2 && Math.abs(p.y - ly) < (p.h + bh) / 2 + 2)) break;
+        dist += 14;
+      }
+      placed.push({ x: lx, y: ly, w: bw, h: bh });
+      ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(lx, ly); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(255,255,255,.28)"; ctx.stroke();
+      ctx.beginPath(); tgRoundRect(ctx, lx - bw / 2, ly - bh / 2, bw, bh, 9);
+      ctx.fillStyle = sel ? "#eef1f8" : "rgba(0,0,0,.85)"; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(255,255,255,.2)"; ctx.stroke();
+      ctx.fillStyle = sel ? "#000" : "#eef1f8"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(text, lx, ly + 1);
+    });
   }
 
   function getCarLocation(data, t) {
@@ -1324,7 +1435,7 @@
   function loop(timestamp) {
     if (!state.playing) return;
     if (!state.lastFrameTime) state.lastFrameTime = timestamp;
-    var dt = (timestamp - state.lastFrameTime) / 1000; state.lastFrameTime = timestamp; state.currentTime += dt;
+    var dt = (timestamp - state.lastFrameTime) / 1000; state.lastFrameTime = timestamp; state.currentTime += dt * state.speed;
     if (state.currentTime >= state.sessionLength) { state.currentTime = state.sessionLength; pausePlayback(); }
     
     updateTimeDisplay();
@@ -1386,6 +1497,11 @@
   });
   
   els.rcBtn.addEventListener("click", window.openRCOverlay);
+  els.speedBtn.addEventListener("click", () => {
+    var steps = [1, 2, 4, 8, 16];
+    state.speed = steps[(steps.indexOf(state.speed) + 1) % steps.length];
+    els.speedBtn.textContent = state.speed + "×";
+  });
   
   window.addEventListener("resize", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); renderTrackGaps(); }, 100); });
   window.addEventListener("orientationchange", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { prepareBackground(); drawCars(); renderTrackGaps(); }, 100); });
@@ -1483,18 +1599,11 @@
             <span class="analysis-time ${t2Cls}">${t2Str}</span>
           </div>
         </div>
-        <div class="analysis-sector-row">
-          <div class="analysis-sector-block left">
-            <div class="sector-bar" style="background:${l1?.duration_sector_3 < l2?.duration_sector_3 ? d1Color : '#333'}; margin-left:${l1?.duration_sector_3 < l2?.duration_sector_3 ? 0 : 100-s3w}%; width:${s3w}%"></div>
-            <div class="sector-bar" style="background:${l1?.duration_sector_2 < l2?.duration_sector_2 ? d1Color : '#333'}; margin-left:${l1?.duration_sector_2 < l2?.duration_sector_2 ? 0 : 100-s2w}%; width:${s2w}%"></div>
-            <div class="sector-bar" style="background:${l1?.duration_sector_1 < l2?.duration_sector_1 ? d1Color : '#333'}; margin-left:${l1?.duration_sector_1 < l2?.duration_sector_1 ? 0 : 100-s1w}%; width:${s1w}%"></div>
-          </div>
-          <div class="analysis-sector-block right">
-            <div class="sector-bar" style="background:${l2?.duration_sector_1 < l1?.duration_sector_1 ? d2Color : '#333'}; width:${s1w}%"></div>
-            <div class="sector-bar" style="background:${l2?.duration_sector_2 < l1?.duration_sector_2 ? d2Color : '#333'}; width:${s2w}%"></div>
-            <div class="sector-bar" style="background:${l2?.duration_sector_3 < l1?.duration_sector_3 ? d2Color : '#333'}; width:${s3w}%"></div>
-          </div>
-        </div>
+        <div class="analysis-sector-row">${[1, 2, 3].map(n => {
+          var a = l1 && l1["duration_sector_" + n], b = l2 && l2["duration_sector_" + n];
+          var c = (a && b) ? (a < b ? d1Color : (b < a ? d2Color : "#333")) : "#333";
+          return `<div class="sector-seg" style="background:${c}"></div>`;
+        }).join("")}</div>
       </div>`;
 
       if (l1 && l2) {
@@ -1670,10 +1779,9 @@
       if (!loc) continue;
       var pos = getTrackPosition(loc[0], loc[1]);
       var segs = getPitSegments(dnum);
+      var done = state.laps.filter(l => l.driver_number == d && l._t_start !== null && T >= l._t_end).length;
+      if (isStuck(dnum, maxLapDone - done)) continue;   // stopped for 3+ laps
       if (pos.dist > PIT_THRESHOLD) {
-        // Skip cars 2+ laps down (retired in the garage)
-        var done = state.laps.filter(l => l.driver_number == d && l._t_start !== null && T >= l._t_end).length;
-        if (maxLapDone - done >= 2) continue;
         var seg = null;
         for (var si = 0; si < segs.length; si++) if (T >= segs[si][0] && T <= segs[si][1]) { seg = segs[si]; break; }
         var u = 0.5, startT = T;
