@@ -111,6 +111,7 @@ def main():
     session_result, _ = fetch_all("session_result", session_key); (out_dir / "session_result.json").write_text(json.dumps(session_result))
     drivers, _ = fetch_all("drivers", session_key); (out_dir / "drivers.json").write_text(json.dumps(drivers))
     stints, _ = fetch_all("stints", session_key); (out_dir / "stints.json").write_text(json.dumps(stints))
+    weather, _ = fetch_all("weather", session_key); (out_dir / "weather.json").write_text(json.dumps(weather))
 
     start_dt, end_dt = None, None
     if race_control:
