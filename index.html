@@ -250,6 +250,9 @@
   .tg-toggle-label { font-size: 13px; color: #888; margin-right: 4px; }
   .tg-toggle { background: transparent; border: 1px solid #fff; color: #fff; border-radius: 999px; padding: 8px 20px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; }
   .tg-toggle.active { background: #fff; color: #000; }
+  .tg-grid { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; margin-bottom: 16px; }
+  .tg-drv { background: transparent; border: 1px solid #555; color: #ddd; border-radius: 8px; padding: 9px 0; font-size: 10px; font-weight: 600; font-family: inherit; cursor: pointer; touch-action: manipulation; }
+  .tg-drv.active { background: #fff; color: #000; border-color: #fff; }
   .tg-canvas-wrap { flex: 1; position: relative; min-height: 0; }
   #trackGapsCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 
@@ -260,16 +263,14 @@
   .rc-time { font-size: 13px; color: #666; white-space: nowrap; }
   .rc-text { font-size: 15px; line-height: 1.4; color: #eee; }
 
-  /* MANUAL PIT LOSS INPUT */
+  /* MANUAL PIT LOSS INPUT (sits in the overlay header row) */
   #manualPitLossWrap {
-    position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
-    background: rgba(12, 19, 34, 0.9); border: 1px solid var(--line);
-    border-radius: 8px; padding: 8px 12px; display: flex; gap: 8px; align-items: center;
-    z-index: 10; font-size: 12px; color: var(--dim);
+    display: flex; gap: 6px; align-items: center;
+    font-size: 12px; color: var(--dim);
   }
   #manualPitLossWrap input {
     background: var(--bg0); border: 1px solid var(--line); color: var(--text);
-    border-radius: 4px; padding: 4px 8px; width: 50px; font-family: inherit;
+    border-radius: 6px; padding: 4px 4px; width: 48px; font-family: inherit;
     font-size: 14px; text-align: center;
   }
 
@@ -363,10 +364,15 @@
 <div id="trackGapsOverlay" class="overlay">
   <div class="overlay-header">
     <span class="overlay-title">Track gaps</span>
+    <div id="manualPitLossWrap">
+      <span>Pit loss</span>
+      <input type="number" id="manualPitLoss" value="22.0" step="0.1">
+      <span>s</span>
+    </div>
     <button class="overlay-close" onclick="closeTrackGapsOverlay()">✕</button>
   </div>
   <div class="tg-content">
-    <select id="tgDriverSelect" class="tg-selector"></select>
+    <div id="tgDriverGrid" class="tg-grid"></div>
     <div class="tg-toggles">
       <span class="tg-toggle-label">Pit under</span>
       <button class="tg-toggle active" onclick="setTGCondition('green')" id="tgBtnGreen">Green</button>
@@ -374,13 +380,6 @@
       <button class="tg-toggle" onclick="setTGCondition('sc')" id="tgBtnSc">SC</button>
     </div>
     
-    <!-- MANUAL PIT LOSS INPUT -->
-    <div id="manualPitLossWrap">
-      <span>Est. Pit Loss:</span>
-      <input type="number" id="manualPitLoss" value="22.0" step="0.1">
-      <span>s</span>
-    </div>
-
     <div class="tg-canvas-wrap">
       <canvas id="trackGapsCanvas"></canvas>
     </div>
@@ -449,7 +448,7 @@
     q1Ended: false, q2Ended: false, q1Eliminated: [], q2Eliminated: [],
     activeRC: null, rcTimeout: null, lastFlagState: null,
     currentModalDriver: null, currentModalTab: 'laps', raceStartT: null,
-    tgCondition: 'green', expandedAnalysisLap: null
+    tgCondition: 'green', tgDriver: null, expandedAnalysisLap: null
   };
   
   var animationId = null;
@@ -1500,12 +1499,26 @@
 
   // --- TRACK GAPS (CIRCLE OF DOOM) ---
   function initTrackGaps() {
-    var sel = document.getElementById("tgDriverSelect");
-    var opts = state.driverOrder.map(d => `<option value="${d.driver_number}">${state.drivers[d.driver_number].acronym}</option>`).join("");
-    sel.innerHTML = opts;
-    if (state.driverOrder.length > 0) sel.selectedIndex = 0;
-    sel.onchange = renderTrackGaps;
+    var ids = Object.keys(state.drivers).sort((a, b) => state.drivers[a].acronym.localeCompare(state.drivers[b].acronym));
+    if (!ids.length) return;
+    if (!state.tgDriver || !state.drivers[state.tgDriver]) {
+      state.tgDriver = state.driverOrder.length ? state.driverOrder[0].driver_number : parseInt(ids[0]);
+    }
+    var grid = document.getElementById("tgDriverGrid");
+    grid.innerHTML = ids.map(id => `<button class="tg-drv" data-dn="${id}">${state.drivers[id].acronym}</button>`).join("");
+    grid.onclick = function(e) {
+      var b = e.target.closest(".tg-drv");
+      if (!b) return;
+      state.tgDriver = parseInt(b.dataset.dn);
+      updateTGGrid();
+      renderTrackGaps();
+    };
+    updateTGGrid();
     renderTrackGaps();
+  }
+
+  function updateTGGrid() {
+    document.querySelectorAll("#tgDriverGrid .tg-drv").forEach(b => b.classList.toggle("active", parseInt(b.dataset.dn) === state.tgDriver));
   }
 
   function renderTrackGaps() {
@@ -1522,10 +1535,46 @@
     ctx.closePath();
   }
 
+  // Time spans [start, end] where a car is off the racing line (pit lane). Cached per car.
+  function getPitSegments(dn) {
+    var car = state.drivers[dn];
+    if (car._pitSegs) return car._pitSegs;
+    if (!state.outline || !state.outline.points[0][2]) return [];
+    var segs = [], start = null, lastSample = -1e9, data = car.data;
+    for (var i = 0; i < data.length; i++) {
+      var p = data[i];
+      if (p[0] - lastSample < 1) continue;
+      if (p[1] === 0 && p[2] === 0) continue;
+      lastSample = p[0];
+      var inP = getTrackPosition(p[1], p[2]).dist > PIT_THRESHOLD;
+      if (inP && start === null) start = p[0];
+      else if (!inP && start !== null) { segs.push([start, p[0]]); start = null; }
+    }
+    if (start !== null) segs.push([start, Infinity]);
+    car._pitSegs = segs;
+    return segs;
+  }
+
+  function tgLerpAng(a, b, k) {
+    var d = b - a;
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    return a + d * k;
+  }
+
+  // Fake pit-lane motion: slide in, sit still, then roll towards the 10s mark. u is 0..1 through the stop.
+  function tgPitFrac(u) {
+    u = Math.max(0, Math.min(1, u));
+    var stopAt = 0.12;
+    if (u < 0.2) { var k = u / 0.2; return stopAt * (1 - (1 - k) * (1 - k)); }
+    if (u < 0.7) return stopAt;
+    var k2 = (u - 0.7) / 0.3;
+    return stopAt + (1 - stopAt) * k2 * k2;
+  }
+
   function renderTrackGapsInner() {
     if (!document.getElementById("trackGapsOverlay").classList.contains("open")) return;
-    var dn = parseInt(document.getElementById("tgDriverSelect").value);
-    if (!dn) return;
+    var dn = state.tgDriver;
+    if (!dn || !state.drivers[dn]) return;
 
     var canvas = els.trackGapsCanvas;
     var ctx = canvas.getContext("2d");
@@ -1539,7 +1588,8 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    var cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.4;
+    var cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.36;
+    var TAU = Math.PI * 2, T = state.currentTime;
     
     var basePitLoss = parseFloat(els.manualPitLoss.value) || 22.0;
     var pitLoss = basePitLoss;
@@ -1567,94 +1617,148 @@
       ctx.fillText(sec + "s", tx, ty);
     });
 
-    var driversData = [], pitCars = [];
+    // Pit lane arch: 12 o'clock to the 10s mark, just inside the ring
+    var a0 = -Math.PI / 2, a1 = (10 / maxT) * TAU - Math.PI / 2, rp = r * 0.78;
+    ctx.beginPath(); ctx.arc(cx, cy, rp, a0, a1);
+    ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.strokeStyle = "#262626"; ctx.stroke(); ctx.lineCap = "butt";
+    [a0, a1].forEach(a => {
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * rp, cy + Math.sin(a) * rp);
+      ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+      ctx.lineWidth = 2; ctx.strokeStyle = "#262626"; ctx.stroke();
+    });
+    ctx.fillStyle = "#666"; ctx.font = "10px 'Noto Sans Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    var am = (a0 + a1) / 2;
+    ctx.fillText("PIT", cx + Math.cos(am) * (rp - 18), cy + Math.sin(am) * (rp - 18));
+
+    // Gather cars: on track (t, angle) and in the pit (stop progress)
     var maxLapDone = 0;
-    state.laps.forEach(l => { if (state.currentTime >= l._t_end && l.lap_number > maxLapDone) maxLapDone = l.lap_number; });
+    state.laps.forEach(l => { if (T >= l._t_end && l.lap_number > maxLapDone) maxLapDone = l.lap_number; });
+    var BL = 2; // seconds of session time used to blend between pit arch and track
+    var cars = [], pitCars = [];
     for (var d in state.drivers) {
-      var loc = getCarLocation(state.drivers[d].data, state.currentTime);
+      var dnum = parseInt(d);
+      var loc = getCarLocation(state.drivers[d].data, T);
       if (!loc) continue;
       var pos = getTrackPosition(loc[0], loc[1]);
+      var segs = getPitSegments(dnum);
       if (pos.dist > PIT_THRESHOLD) {
-        // Off the racing line: in the pit lane/garage. Skip cars 2+ laps down (retired).
-        var done = state.laps.filter(l => l.driver_number == d && l._t_start !== null && state.currentTime >= l._t_end).length;
-        if (maxLapDone - done < 2) pitCars.push(parseInt(d));
-        continue;
+        // Skip cars 2+ laps down (retired in the garage)
+        var done = state.laps.filter(l => l.driver_number == d && l._t_start !== null && T >= l._t_end).length;
+        if (maxLapDone - done >= 2) continue;
+        var seg = null;
+        for (var si = 0; si < segs.length; si++) if (T >= segs[si][0] && T <= segs[si][1]) { seg = segs[si]; break; }
+        var u = 0.5, startT = T;
+        if (seg) {
+          startT = seg[0];
+          u = isFinite(seg[1]) ? (T - seg[0]) / Math.max(0.1, seg[1] - seg[0]) : Math.min(1, (T - seg[0]) / 25);
+        }
+        pitCars.push({ dn: dnum, u: u, startT: startT });
+      } else {
+        var c = { dn: dnum, t: pos.t, ang: (pos.t / maxT) * TAU - Math.PI / 2, rad: r };
+        for (var sj = 0; sj < segs.length; sj++) {
+          var sg = segs[sj];
+          if (T >= sg[1] && T - sg[1] < BL) {            // just left the pit: arch end -> track
+            var k = (T - sg[1]) / BL;
+            c.ang = tgLerpAng(a1, c.ang, k); c.rad = rp + (r - rp) * k;
+          } else if (T < sg[0] && sg[0] - T < BL) {      // about to enter: track -> arch start
+            var k2 = 1 - (sg[0] - T) / BL;
+            c.ang = tgLerpAng(c.ang, a0, k2); c.rad = r + (rp - r) * k2;
+          }
+        }
+        cars.push(c);
       }
-      driversData.push({ dn: parseInt(d), t: pos.t });
     }
 
-    driversData.sort((a, b) => a.t - b.t);
-    var selIdx = driversData.findIndex(x => x.dn === dn);
-    // Selected driver may be in the pit (or have no data): keep drawing instead of bailing out
-    var selData = selIdx === -1 ? null : driversData[selIdx];
+    pitCars.sort((x, y) => (x.startT - y.startT) || (x.dn - y.dn));
+    pitCars.forEach((pc, i) => {
+      var f = tgPitFrac(pc.u);
+      var off = (i % 2 ? -1 : 1) * Math.ceil(i / 2) * 10;
+      pc.ang = a0 + (a1 - a0) * f; pc.rad = rp + off;
+      pc.t = null;
+    });
 
-    // Rejoin Marker (only when the selected car is on track)
+    var selCar = cars.find(x => x.dn === dn) || null;
+    var selPit = pitCars.find(x => x.dn === dn) || null;
+    var selData = selCar;   // on-track selected car (null while pitting)
+
+    // Rejoin marker: you lose pitLoss seconds, so you come out BEHIND where you are now
+    var rejoinT = null;
     if (selData) {
-      var rejoinT = selData.t + pitLoss;
-      if (rejoinT > maxT) rejoinT -= maxT;
+      rejoinT = selData.t - pitLoss;
+      if (rejoinT < 0) rejoinT += maxT;
       var rejoinAngle = (rejoinT / maxT) * Math.PI * 2 - (Math.PI/2);
       var rx = cx + Math.cos(rejoinAngle) * r, ry = cy + Math.sin(rejoinAngle) * r;
       
       ctx.beginPath(); ctx.arc(rx, ry, 8, 0, Math.PI * 2);
       ctx.setLineDash([4, 4]); ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke(); ctx.setLineDash([]);
       
-      ctx.fillStyle = "#fff"; ctx.textAlign = "left";
-      ctx.fillText("rejoin", rx + 12, ry + 4);
+      ctx.fillStyle = "#fff"; ctx.font = "12px 'Noto Sans Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("rejoin", cx + Math.cos(rejoinAngle) * (r - 26), cy + Math.sin(rejoinAngle) * (r - 26));
     }
 
-    // Mini pit circle at 12 o'clock, inside the main ring
-    var mr = Math.max(30, Math.min(42, r * 0.22));
-    var mcx = cx, mcy = cy - r * 0.55;
-    ctx.beginPath(); ctx.arc(mcx, mcy, mr, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,255,255,0.03)"; ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = "#333"; ctx.stroke();
-    ctx.fillStyle = "#888"; ctx.font = "10px 'Noto Sans Mono', monospace";
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    var shownPit = pitCars.slice(0, 6);
-    ctx.fillText("PIT" + (pitCars.length > 6 ? " +" + (pitCars.length - 6) : ""), mcx, mcy - mr - 8);
-    var pitRows = Math.ceil(shownPit.length / 3);
-    shownPit.forEach((pdn, i) => {
-      var row = Math.floor(i / 3), col = i % 3;
-      var inRow = Math.min(3, shownPit.length - row * 3);
-      var px = mcx + (col - (inRow - 1) / 2) * 20;
-      var py = mcy + (row - (pitRows - 1) / 2) * 24 - 3;
-      var pcar = state.drivers[pdn];
-      var isSel = pdn === dn;
-      ctx.beginPath(); ctx.arc(px, py, isSel ? 6 : 5, 0, Math.PI * 2);
-      ctx.fillStyle = "#" + pcar.color; ctx.fill();
-      if (isSel) { ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke(); }
-      ctx.fillStyle = isSel ? "#fff" : "#aaa";
-      ctx.font = (isSel ? "bold " : "") + "9px 'Noto Sans Mono', monospace";
-      ctx.fillText(pcar.acronym, px, py + 12);
-    });
+    // Which cars get a label: selected, plus the few nearest the selected car and the rejoin spot
+    function cdiff(a, b) { var x = (((a - b) % maxT) + maxT) % maxT; return x > maxT / 2 ? x - maxT : x; }
+    var labelled = {};
+    function pickNear(anchorT) {
+      cars.filter(c => c.dn !== dn && Math.abs(cdiff(c.t, anchorT)) <= 7)
+          .sort((p, q) => Math.abs(cdiff(p.t, anchorT)) - Math.abs(cdiff(q.t, anchorT)))
+          .slice(0, 4).forEach(c => { labelled[c.dn] = true; });
+    }
+    if (selData) { pickNear(selData.t); pickNear(rejoinT); }
+    else if (selPit) { pickNear(10); }
 
-    driversData.forEach(d => {
-      var car = state.drivers[d.dn];
-      var angle = (d.t / maxT) * Math.PI * 2 - (Math.PI/2);
-      var x = cx + Math.cos(angle) * r, y = cy + Math.sin(angle) * r;
-      
-      ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
-      ctx.fillStyle = "#" + car.color; ctx.fill();
-      
-      var gapT = selData ? d.t - selData.t : 0;
-      if (gapT > maxT/2) gapT -= maxT;
-      if (gapT < -maxT/2) gapT += maxT;
-      
-      var text = car.acronym + ((d.dn === dn || !selData) ? "" : " " + (gapT > 0 ? "+" : "") + gapT.toFixed(1));
+    var all = cars.concat(pitCars);
+    all.forEach(c => { c.x = cx + Math.cos(c.ang) * c.rad; c.y = cy + Math.sin(c.ang) * c.rad; });
+
+    // Dots: plain first, then labelled, selected on top
+    function dot(c, rad, ring) {
+      ctx.beginPath(); ctx.arc(c.x, c.y, rad, 0, Math.PI * 2);
+      ctx.fillStyle = "#" + state.drivers[c.dn].color; ctx.fill();
+      if (ring) { ctx.lineWidth = ring; ctx.strokeStyle = "#fff"; ctx.stroke(); }
+    }
+    all.filter(c => c.dn !== dn && !labelled[c.dn]).forEach(c => dot(c, 4.5, 0));
+    all.filter(c => c.dn !== dn && labelled[c.dn]).forEach(c => dot(c, 6, 1.5));
+    var selAny = selData || selPit;
+    if (selAny) dot(selAny, 8, 2);
+
+    // Labels, placed outward from the dot, pushed further out if they would overlap
+    var placed = [];
+    function label(c) {
+      var car = state.drivers[c.dn], isSel = c.dn === dn;
+      var text = car.acronym;
+      if (!isSel && selData && c.t !== null) {
+        var g = cdiff(c.t, selData.t);
+        text += " " + (g > 0 ? "+" : "") + g.toFixed(1);
+      }
       ctx.font = "bold 12px 'Noto Sans Mono', monospace";
-      var tw = ctx.measureText(text).width;
-      
-      ctx.fillStyle = (d.dn === dn) ? "#fff" : "rgba(0,0,0,0.8)";
-      ctx.strokeStyle = (d.dn === dn) ? "#fff" : "#444";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      tgRoundRect(ctx, x - tw/2 - 6, y - 24, tw + 12, 18, 9);
+      var bw = ctx.measureText(text).width + 12, bh = 18, dist = 26, lx = c.x, ly = c.y;
+      for (var tries = 0; tries < 8; tries++) {
+        lx = c.x + Math.cos(c.ang) * dist; ly = c.y + Math.sin(c.ang) * dist;
+        lx = Math.max(bw / 2 + 2, Math.min(w - bw / 2 - 2, lx));
+        ly = Math.max(bh / 2 + 2, Math.min(h - bh / 2 - 2, ly));
+        var hit = placed.some(p => Math.abs(p.x - lx) < (p.w + bw) / 2 + 2 && Math.abs(p.y - ly) < (p.h + bh) / 2 + 2);
+        if (!hit) break;
+        dist += 14;
+      }
+      placed.push({ x: lx, y: ly, w: bw, h: bh });
+
+      ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(lx, ly);
+      ctx.lineWidth = 1; ctx.strokeStyle = "#555"; ctx.stroke();
+
+      ctx.fillStyle = isSel ? "#fff" : "rgba(0,0,0,0.85)";
+      ctx.strokeStyle = isSel ? "#fff" : "#444";
+      ctx.beginPath(); tgRoundRect(ctx, lx - bw / 2, ly - bh / 2, bw, bh, 9);
       ctx.fill(); ctx.stroke();
-      
-      ctx.fillStyle = (d.dn === dn) ? "#000" : "#fff";
+
+      ctx.fillStyle = isSel ? "#000" : "#fff";
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(text, x, y - 15);
-    });
+      ctx.fillText(text, lx, ly + 1);
+    }
+    if (selAny) label(selAny);
+    all.filter(c => c.dn !== dn && labelled[c.dn])
+       .sort((p, q) => Math.abs(cdiff(p.t, selData ? selData.t : 10)) - Math.abs(cdiff(q.t, selData ? selData.t : 10)))
+       .forEach(label);
 
     var leaderLaps = 1;
     var lapCounts = {};
@@ -1664,7 +1768,7 @@
     });
     for (var d in lapCounts) if (lapCounts[d] > leaderLaps) leaderLaps = lapCounts[d];
     
-    ctx.fillStyle = "#fff"; ctx.font = "bold 36px 'Noto Sans Mono', monospace"; ctx.textAlign = "center";
+    ctx.fillStyle = "#fff"; ctx.font = "bold 36px 'Noto Sans Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText(leaderLaps + "/" + (state.sessionResult.length > 0 ? state.sessionResult[0].number_of_laps : "58"), cx, cy - 10);
     
     ctx.fillStyle = "#888"; ctx.font = "16px 'Noto Sans Mono', monospace";
