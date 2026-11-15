@@ -99,6 +99,7 @@
   #mapEmpty { position: absolute; inset: 48px 0 0 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; text-align: center; padding: 20px; pointer-events: none; }
   
   .map-overlay-bl { position: absolute; bottom: 10px; left: 12px; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8); display: flex; gap: 10px; align-items: center; }
+  .map-overlay-tr { position: absolute; top: 56px; right: 10px; display: none; text-align: right; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; line-height: 1.5; color: var(--dim); z-index: 5; pointer-events: none; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
   .map-overlay-br { position: absolute; bottom: 10px; right: 12px; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--dim); z-index: 5; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
   .lap-counter { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
   
@@ -315,6 +316,7 @@
       <span id="statusLabel"></span>
     </div>
     <div class="map-overlay-br" id="durationTicker">00:00</div>
+    <div class="map-overlay-tr" id="weatherBox"></div>
     <div id="rcPopup"></div>
   </div>
 </div>
@@ -501,7 +503,26 @@
   }
   function formatShortTime(sec) { return sec === null ? "" : sec.toFixed(2); }
 
+  function updateWeather() {
+    var box = document.getElementById("weatherBox");
+    var wx = state.weather;
+    if (!wx || !wx.length) { box.style.display = "none"; return; }
+    var t = state.currentTime, lo = 0, hi = wx.length - 1;
+    while (lo < hi) { var mid = (lo + hi + 1) >> 1; if (wx[mid].t <= t) lo = mid; else hi = mid - 1; }
+    if (state._wxIdx === lo && box.style.display === "block") return;
+    state._wxIdx = lo;
+    var w = wx[lo];
+    var f = (v, d) => (v === null || v === undefined || isNaN(v)) ? "–" : Number(v).toFixed(d);
+    var wind = (w.wind_speed === null || w.wind_speed === undefined) ? "–" : (w.wind_speed * 3.6).toFixed(0);  // m/s -> km/h
+    var rain = w.rainfall ? ' · <span style="color:#4aa3ff;font-weight:700">RAIN</span>' : "";
+    box.innerHTML = "<div>Track " + f(w.track_temperature, 1) + "°C</div>" +
+                    "<div>Air " + f(w.air_temperature, 1) + "°C · " + f(w.humidity, 0) + "%</div>" +
+                    "<div>Wind " + wind + " km/h" + rain + "</div>";
+    box.style.display = "block";
+  }
+
   function updateTimeDisplay() {
+    updateWeather();
     var now = new Date(state.sessionStartMs + state.currentTime * 1000);
     var fmt = d => (d.getHours()<10?"0":"") + d.getHours() + ":" + (d.getMinutes()<10?"0":"") + d.getMinutes();
     els.timeDisplay.textContent = fmt(now);
@@ -598,11 +619,13 @@
       fetchJSON(`data/${key}/meta.json`), fetchJSON(`data/${key}/outline.json`),
       fetchJSON(`data/${key}/drivers.json`), fetchJSON(`data/${key}/laps.json`),
       fetchJSON(`data/${key}/stints.json`), fetchJSON(`data/${key}/race_control.json`),
-      fetchJSON(`data/${key}/session_result.json`)
+      fetchJSON(`data/${key}/session_result.json`),
+      fetchJSON(`data/${key}/weather.json`).catch(() => [])   // optional: older sessions have no weather.json
     ]).then(results => {
       var meta = results[0], outline = results[1], driversRaw = results[2];
       state.laps = results[3]; var stintsRaw = results[4];
       state.raceControl = results[5]; state.sessionResult = results[6];
+      state.weather = []; state._wxIdx = null;
 
       var sName = (meta.session_name || "").toLowerCase();
       state.sessionType = (sName.includes("race") || sName.includes("sprint")) ? "race" : "qualifying";
@@ -616,6 +639,11 @@
       } else {
         state.sessionLength = (new Date(meta.date_end).getTime() - state.sessionStartMs) / 1000;
       }
+
+      state.weather = (Array.isArray(results[7]) ? results[7] : [])
+        .filter(x => x && x.date)
+        .map(x => Object.assign({}, x, { t: (new Date(x.date).getTime() - state.sessionStartMs) / 1000 }))
+        .sort((a, b) => a.t - b.t);
 
       var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
       outline.points.forEach(p => { 
