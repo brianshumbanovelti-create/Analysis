@@ -1509,6 +1509,20 @@
   }
 
   function renderTrackGaps() {
+    try { renderTrackGapsInner(); }
+    catch (e) { console.error("Track gaps render failed:", e); }
+  }
+
+  function tgRoundRect(ctx, x, y, w, h, rad) {
+    ctx.moveTo(x + rad, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rad);
+    ctx.arcTo(x + w, y + h, x, y + h, rad);
+    ctx.arcTo(x, y + h, x, y, rad);
+    ctx.arcTo(x, y, x + w, y, rad);
+    ctx.closePath();
+  }
+
+  function renderTrackGapsInner() {
     if (!document.getElementById("trackGapsOverlay").classList.contains("open")) return;
     var dn = parseInt(document.getElementById("tgDriverSelect").value);
     if (!dn) return;
@@ -1553,32 +1567,66 @@
       ctx.fillText(sec + "s", tx, ty);
     });
 
-    var driversData = [];
+    var driversData = [], pitCars = [];
+    var maxLapDone = 0;
+    state.laps.forEach(l => { if (state.currentTime >= l._t_end && l.lap_number > maxLapDone) maxLapDone = l.lap_number; });
     for (var d in state.drivers) {
       var loc = getCarLocation(state.drivers[d].data, state.currentTime);
       if (!loc) continue;
       var pos = getTrackPosition(loc[0], loc[1]);
-      if (pos.dist > PIT_THRESHOLD) continue; 
+      if (pos.dist > PIT_THRESHOLD) {
+        // Off the racing line: in the pit lane/garage. Skip cars 2+ laps down (retired).
+        var done = state.laps.filter(l => l.driver_number == d && l._t_start !== null && state.currentTime >= l._t_end).length;
+        if (maxLapDone - done < 2) pitCars.push(parseInt(d));
+        continue;
+      }
       driversData.push({ dn: parseInt(d), t: pos.t });
     }
 
     driversData.sort((a, b) => a.t - b.t);
     var selIdx = driversData.findIndex(x => x.dn === dn);
-    if (selIdx === -1) return;
-    
-    var selData = driversData[selIdx];
+    // Selected driver may be in the pit (or have no data): keep drawing instead of bailing out
+    var selData = selIdx === -1 ? null : driversData[selIdx];
 
-    // Rejoin Marker
-    var rejoinT = selData.t + pitLoss;
-    if (rejoinT > maxT) rejoinT -= maxT;
-    var rejoinAngle = (rejoinT / maxT) * Math.PI * 2 - (Math.PI/2);
-    var rx = cx + Math.cos(rejoinAngle) * r, ry = cy + Math.sin(rejoinAngle) * r;
-    
-    ctx.beginPath(); ctx.arc(rx, ry, 8, 0, Math.PI * 2);
-    ctx.setLineDash([4, 4]); ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke(); ctx.setLineDash([]);
-    
-    ctx.fillStyle = "#fff"; ctx.textAlign = "left";
-    ctx.fillText("rejoin", rx + 12, ry + 4);
+    // Rejoin Marker (only when the selected car is on track)
+    if (selData) {
+      var rejoinT = selData.t + pitLoss;
+      if (rejoinT > maxT) rejoinT -= maxT;
+      var rejoinAngle = (rejoinT / maxT) * Math.PI * 2 - (Math.PI/2);
+      var rx = cx + Math.cos(rejoinAngle) * r, ry = cy + Math.sin(rejoinAngle) * r;
+      
+      ctx.beginPath(); ctx.arc(rx, ry, 8, 0, Math.PI * 2);
+      ctx.setLineDash([4, 4]); ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke(); ctx.setLineDash([]);
+      
+      ctx.fillStyle = "#fff"; ctx.textAlign = "left";
+      ctx.fillText("rejoin", rx + 12, ry + 4);
+    }
+
+    // Mini pit circle at 12 o'clock, inside the main ring
+    var mr = Math.max(30, Math.min(42, r * 0.22));
+    var mcx = cx, mcy = cy - r * 0.55;
+    ctx.beginPath(); ctx.arc(mcx, mcy, mr, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.03)"; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = "#333"; ctx.stroke();
+    ctx.fillStyle = "#888"; ctx.font = "10px 'Noto Sans Mono', monospace";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    var shownPit = pitCars.slice(0, 6);
+    ctx.fillText("PIT" + (pitCars.length > 6 ? " +" + (pitCars.length - 6) : ""), mcx, mcy - mr - 8);
+    var pitRows = Math.ceil(shownPit.length / 3);
+    shownPit.forEach((pdn, i) => {
+      var row = Math.floor(i / 3), col = i % 3;
+      var inRow = Math.min(3, shownPit.length - row * 3);
+      var px = mcx + (col - (inRow - 1) / 2) * 20;
+      var py = mcy + (row - (pitRows - 1) / 2) * 24 - 3;
+      var pcar = state.drivers[pdn];
+      var isSel = pdn === dn;
+      ctx.beginPath(); ctx.arc(px, py, isSel ? 6 : 5, 0, Math.PI * 2);
+      ctx.fillStyle = "#" + pcar.color; ctx.fill();
+      if (isSel) { ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke(); }
+      ctx.fillStyle = isSel ? "#fff" : "#aaa";
+      ctx.font = (isSel ? "bold " : "") + "9px 'Noto Sans Mono', monospace";
+      ctx.fillText(pcar.acronym, px, py + 12);
+    });
 
     driversData.forEach(d => {
       var car = state.drivers[d.dn];
@@ -1588,11 +1636,11 @@
       ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
       ctx.fillStyle = "#" + car.color; ctx.fill();
       
-      var gapT = d.t - selData.t;
+      var gapT = selData ? d.t - selData.t : 0;
       if (gapT > maxT/2) gapT -= maxT;
       if (gapT < -maxT/2) gapT += maxT;
       
-      var text = car.acronym + (d.dn === dn ? "" : " " + (gapT > 0 ? "+" : "") + gapT.toFixed(1));
+      var text = car.acronym + ((d.dn === dn || !selData) ? "" : " " + (gapT > 0 ? "+" : "") + gapT.toFixed(1));
       ctx.font = "bold 12px 'Noto Sans Mono', monospace";
       var tw = ctx.measureText(text).width;
       
@@ -1600,7 +1648,7 @@
       ctx.strokeStyle = (d.dn === dn) ? "#fff" : "#444";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(x - tw/2 - 6, y - 24, tw + 12, 18, 9);
+      tgRoundRect(ctx, x - tw/2 - 6, y - 24, tw + 12, 18, 9);
       ctx.fill(); ctx.stroke();
       
       ctx.fillStyle = (d.dn === dn) ? "#000" : "#fff";
@@ -1670,12 +1718,6 @@
 
     document.getElementById("rcResults").innerHTML = html;
   }
-
-  var originalLoop = loop;
-  loop = function(ts) {
-    originalLoop(ts);
-    if (document.getElementById('trackGapsOverlay').classList.contains('open')) renderTrackGaps();
-  };
 
   els.slider.addEventListener("input", () => {
     if (document.getElementById('trackGapsOverlay').classList.contains('open')) renderTrackGaps();
