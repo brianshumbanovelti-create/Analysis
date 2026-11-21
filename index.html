@@ -1126,7 +1126,7 @@
   }
 
   function setText(id, val) { 
-    var els = document.querySelectorAll('[id^="' + id + '"]');
+    var els = document.querySelectorAll('[id="' + id + '"]');   // exact match: a prefix match made "pos-1" also hit pos-10, pos-12, pos-16...
     els.forEach(el => { if (el && el.textContent !== String(val)) el.textContent = val; });
   }
   
