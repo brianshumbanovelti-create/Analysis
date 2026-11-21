@@ -453,6 +453,7 @@
     currentTime: 0, playing: false, lastFrameTime: 0, transform: null,
     highlightedDriver: null, bytesDownloaded: 0,
     q1Ended: false, q2Ended: false, q1Eliminated: [], q2Eliminated: [],
+    segments: [], qEndT: {},
     activeRC: null, rcTimeout: null, lastFlagState: null,
     currentModalDriver: null, currentModalTab: 'laps', raceStartT: null,
     tgCondition: 'green', tgDriver: null, _stuck: {}, speed: 1, order: [], expandedAnalysisLap: null
@@ -642,6 +643,7 @@
     state.driverOrder = []; state.laps = []; state.stints = {}; state.raceControl = []; state.sessionResult = []; state.scPeriods = [];
     state._stuck = {}; state.highlightedDriver = null; state.bytesDownloaded = 0; state.flipX = false; state.rotation = 0;
     state.q1Ended = false; state.q2Ended = false; state.q1Eliminated = []; state.q2Eliminated = [];
+    state.segments = []; state.qEndT = {};
     state.lastFlagState = null; state.raceStartT = null; closeModal();
     updateMeter();
     els.playBtn.disabled = true; els.flipBtn.disabled = true; els.rotateBtn.disabled = true; els.slider.disabled = true; els.rcBtn.disabled = true;
@@ -697,6 +699,26 @@
       }
       state.outline = outline;
       els.slider.max = state.sessionLength;
+
+      // Qualifying segments: every "SESSION STARTED" message opens a new segment (Q1, Q2, Q3) and resets the times.
+      state.segments = []; state.qEndT = {};
+      state.raceControl.forEach(m => {
+        var mt = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
+        var msg = (m.message || "").toUpperCase().trim();
+        if (msg === "SESSION STARTED") {
+          var last = state.segments[state.segments.length - 1];
+          if (!last || mt - last.start > 5) state.segments.push({ start: mt });
+        }
+      });
+      if (!state.segments.length) state.segments.push({ start: -Infinity });
+      state.segments[0].start = -Infinity;
+      state.raceControl.forEach(m => {
+        if (!(m.message || "").toUpperCase().includes("CHEQUERED FLAG")) return;
+        var mt = (new Date(m.date).getTime() - state.sessionStartMs)/1000;
+        var ph = m.qualifying_phase;
+        if (!ph) { ph = 1; state.segments.forEach((sg, k) => { if (mt >= sg.start) ph = k + 1; }); }
+        if (state.qEndT[ph] === undefined) state.qEndT[ph] = mt;
+      });
 
       var activeSC = null;
       state.raceControl.forEach(m => {
@@ -854,9 +876,6 @@
     });
     if (rcInWindow.length > 0) {
       var m = rcInWindow[0];
-      if (m.message.includes("CHEQUERED FLAG") && m.qualifying_phase === 1) state.q1Ended = true;
-      if (m.message.includes("CHEQUERED FLAG") && m.qualifying_phase === 2) state.q2Ended = true;
-      
       if (m.message !== state.activeRC) {
         state.activeRC = m.message;
         els.rcPopup.textContent = m.message;
@@ -865,6 +884,21 @@
         state.rcTimeout = setTimeout(() => els.rcPopup.classList.remove("show"), 4000);
       }
     }
+
+    // Qualifying segment maths (stateless, so scrubbing the slider back and forth stays correct)
+    var segs = state.segments, segIdx = 0;
+    segs.forEach((sg, k) => { if (t >= sg.start) segIdx = k; });
+    var segA = k => segs[k] ? segs[k].start : Infinity;
+    var segB = k => Math.min(t, segs[k + 1] ? segs[k + 1].start : Infinity);
+    var segBest = (laps, k) => {
+      var best = null, a = segA(k), b = segB(k);
+      laps.forEach(l => { if (l.lap_duration && !l.is_pit_out_lap && l._t_end >= a && l._t_end <= b && (best === null || l.lap_duration < best)) best = l.lap_duration; });
+      return best;
+    };
+    state.q1Ended = segIdx >= 1 || (state.qEndT[1] !== undefined && t >= state.qEndT[1]);
+    state.q2Ended = segIdx >= 2 || (state.qEndT[2] !== undefined && t >= state.qEndT[2]);
+    var q1Set = new Set(state.q1Eliminated), q2Set = new Set(state.q2Eliminated);
+    var isQuali = state.sessionType === "qualifying";
 
     var maxLapCompleted = 0;
     state.laps.forEach(l => {
@@ -878,6 +912,13 @@
       var bestLap = Infinity;
       laps.forEach(l => { if (t >= l._t_end && l.lap_duration && !l.is_pit_out_lap && l.lap_duration < bestLap) bestLap = l.lap_duration; });
       if (bestLap === Infinity) bestLap = null;
+      var elimLevel = 0, orderBest = null, segBests = [];
+      if (isQuali) {
+        segBests = [segBest(laps, 0), segIdx >= 1 || state.q2Ended ? segBest(laps, 1) : null];
+        elimLevel = (state.q1Ended && q1Set.has(dn)) ? 1 : ((state.q2Ended && q2Set.has(dn)) ? 2 : 0);
+        bestLap = elimLevel ? segBests[elimLevel - 1] : (segIdx === 0 ? segBests[0] : segBest(laps, segIdx));
+        orderBest = (!bestLap && segIdx > 0) ? segBest(laps, segIdx - 1) : null;   // no time yet this segment: keep previous order
+      }
 
       var lastLapVal = null;
       for (var j = laps.length - 1; j >= 0; j--) {
@@ -934,14 +975,19 @@
         if (geoFrac !== null && geoFrac > 0.5 && state.raceStartT !== null && t < state.raceStartT + 15) progress -= 1;
       }
 
-      driversData.push({ dn, bestLap, lastLapVal, completedLaps, curr, prev, stint, isStationary, progress, inPit, finishedAt });
+      driversData.push({ dn, bestLap, elimLevel, orderBest, segBests, lastLapVal, completedLaps, curr, prev, stint, isStationary, progress, inPit, finishedAt });
     }
 
     if (state.sessionType === "race") {
       driversData.sort((a, b) => (b.progress - a.progress) || ((a.finishedAt === null ? 1e12 : a.finishedAt) - (b.finishedAt === null ? 1e12 : b.finishedAt)));
     } else {
       driversData.sort((a, b) => {
-        if (a.bestLap === null && b.bestLap === null) return a.dn - b.dn;
+        if (a.bestLap === null && b.bestLap === null) {
+          if (a.orderBest !== null && b.orderBest !== null) return a.orderBest - b.orderBest;
+          if (a.orderBest !== null) return -1;
+          if (b.orderBest !== null) return 1;
+          return a.dn - b.dn;
+        }
         if (a.bestLap === null) return 1;
         if (b.bestLap === null) return -1;
         return a.bestLap - b.bestLap;
@@ -950,18 +996,17 @@
 
     var finalOrder = [];
     if (state.sessionType === "qualifying") {
-      var eliminated = new Set();
-      if (state.q1Ended) state.q1Eliminated.forEach(dn => eliminated.add(dn));
-      if (state.q2Ended) state.q2Eliminated.forEach(dn => eliminated.add(dn));
-      
-      driversData.forEach(d => { if (!eliminated.has(d.dn)) finalOrder.push(d); });
-      finalOrder = finalOrder.concat(driversData.filter(d => eliminated.has(d.dn)));
+      // Active cars first, then Q2 casualties (P11-15), then Q1 casualties (P16-20), each ranked by their own segment time
+      finalOrder = driversData.filter(d => d.elimLevel === 0)
+        .concat(driversData.filter(d => d.elimLevel === 2), driversData.filter(d => d.elimLevel === 1));
     } else {
       finalOrder = driversData;
     }
 
     state.order = finalOrder.map(d => d.dn);
     var p1Best = finalOrder.length > 0 ? finalOrder[0].bestLap : null;
+    var leadBest = [null, null];   // fastest time of Q1 / Q2, used for the gaps of eliminated cars
+    driversData.forEach(d => { [0, 1].forEach(k => { if (d.segBests[k] && (leadBest[k] === null || d.segBests[k] < leadBest[k])) leadBest[k] = d.segBests[k]; }); });
     var p1Progress = finalOrder.length > 0 ? finalOrder[0].progress : 0;
     
     var mainListOrder = [];
@@ -1000,10 +1045,11 @@
           gapBot = "+" + secGap(ahead, dd).toFixed(2);
         }
       } else {
-        if (pos === 1 || !dd.bestLap || !p1Best) gapTop = "";
-        else gapTop = "+" + (dd.bestLap - p1Best).toFixed(2);
+        var refBest = dd.elimLevel ? leadBest[dd.elimLevel - 1] : p1Best;
+        if (!dd.bestLap || !refBest || dd.bestLap === refBest) gapTop = "";
+        else gapTop = "+" + (dd.bestLap - refBest).toFixed(2);
         
-        if (pos > 1 && dd.bestLap && finalOrder[i-1].bestLap) {
+        if (pos > 1 && dd.bestLap && finalOrder[i-1].bestLap && finalOrder[i-1].elimLevel === dd.elimLevel) {
           gapBot = "+" + (dd.bestLap - finalOrder[i-1].bestLap).toFixed(2);
         }
       }
