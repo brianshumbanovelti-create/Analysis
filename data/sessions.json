@@ -17,5 +17,11 @@
     "year": 2025,
     "meeting_name": "Las Vegas Grand Prix",
     "session_name": "Race"
+  },
+  {
+    "session_key": "11416",
+    "year": 2026,
+    "meeting_name": "Las Vegas Grand Prix",
+    "session_name": "Qualifying"
   }
 ]
